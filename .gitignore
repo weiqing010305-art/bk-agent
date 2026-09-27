@@ -3,3 +3,13 @@ node_modules/
 dist/
 artifacts/
 *.log
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+*.db
+*.sqlite*
+*.dump
+*.backup

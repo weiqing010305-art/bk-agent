@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: qinghe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env first}
+      POSTGRES_DB: qinghe
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - qinghe_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qinghe -d qinghe"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  qinghe_pgdata:

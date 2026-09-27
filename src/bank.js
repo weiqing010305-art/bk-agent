@@ -1,5 +1,8 @@
+import demoRecipients from '../data/demo-recipients.json' with { type: 'json' };
+
 export const money = n => (n / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export const contacts = [{ id: 'landlord', name: '房东 · 王女士', number: '6228 •••• 3821' }, { id: 'zhang', name: '张三', number: '6217 •••• 9062' }, { id: 'li', name: '李四', number: '6222 •••• 1058' }];
+export const directory = demoRecipients;
+export const contacts = demoRecipients.filter(c => ['landlord', 'zhang', 'li'].includes(c.id));
 export function seed() {
   return { balance: 1286050, completed: [], cards: [{ id: 'debit', name: '青禾借记卡', tail: '8826', status: 'active', type: '日常支付账户' }, { id: 'travel', name: '青禾旅行卡', tail: '3901', status: 'active', type: '备用借记卡 · 余额 ¥0.00' }], subscriptions: [{ id: 'cloud', name: '云空间', detail: '200 GB 云存储', amount: 2900, date: '2026-09-28', status: 'active' }, { id: 'video', name: '光影视频', detail: '连续包月会员', amount: 2500, date: '2026-09-29', status: 'active' }, { id: 'music', name: '随听音乐', detail: '个人音乐会员', amount: 1800, date: '2026-10-02', status: 'active' }], transactions: [
     { id: '1', name: '九月工资', category: '收入', amount: 1500000, date: '2026-09-10' },
@@ -14,7 +17,7 @@ export function seed() {
 }
 export function transfer(state, { id, contactId, amount, note = '' }) {
   if (state.completed.includes(id)) return state;
-  const contact = contacts.find(c => c.id === contactId);
+  const contact = directory.find(c => c.id === contactId);
   if (!contact || !Number.isSafeInteger(amount) || amount <= 0) throw new Error('请选择收款人，并输入有效金额（最多两位小数）。');
   if (amount > state.balance) throw new Error('账户余额不足，请修改转账金额。');
   return { ...state, balance: state.balance - amount, completed: [...state.completed, id], transactions: [{ id, name: `转给${contact.name}`, category: '转账', amount: -amount, date: '2026-09-25', note }, ...state.transactions] };

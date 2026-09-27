@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
 const browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:5173';
 await mkdir('artifacts', { recursive: true });
 async function assertConversationLayout(page, label) {
   await page.waitForTimeout(350);
@@ -25,7 +26,7 @@ async function assertConversationLayout(page, label) {
 }
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
-  await page.goto('http://127.0.0.1:5173/', { waitUntil: 'networkidle' });
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
   await page.getByText('今天想先处理什么？').waitFor();
   await page.screenshot({ path: 'artifacts/desktop.png', fullPage: true });
   await page.getByRole('button', { name: /智能转账 给朋友/ }).click();
@@ -58,7 +59,7 @@ try {
   await page.keyboard.press('Control+k');
   await page.getByText('今天想先处理什么？').waitFor();
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
-  await mobile.goto('http://127.0.0.1:5173/', { waitUntil: 'networkidle' });
+  await mobile.goto(baseURL, { waitUntil: 'networkidle' });
   await mobile.screenshot({ path: 'artifacts/mobile.png', fullPage: true });
   const overflow = await mobile.evaluate(() => document.documentElement.scrollWidth > innerWidth);
   assert.equal(overflow, false, 'mobile has horizontal overflow');
