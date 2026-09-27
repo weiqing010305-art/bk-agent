@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, CircleHelp, CreditCard, LockKeyhole, Menu, Plus, RotateCcw, Send, ShieldCheck, Sparkles, Wallet, X } from 'lucide-react';
 import { contacts, intent, money, seed, totals, transfer } from './bank.js';
 import './style.css';
+import './refinement.css';
 
 const actions = [
   { id: 'transfer', label: '智能转账', hint: '给朋友转账，几步搞定', icon: ArrowUpRight, tone: 'mint' },

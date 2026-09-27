@@ -38,7 +38,7 @@ npm run dev
 
 ## 实现概览
 
-当前代码使用 React 19、JavaScript/JSX、Vite 和 CSS 实现 Web 页面；业务样例和状态变更在浏览器端完成。`src/bank.js` 保存模拟账本逻辑，`src/main.jsx` 实现对话与业务卡片，`src/style.css` 负责桌面和手机布局。测试包括 Node.js 单元测试及基于 Playwright 的浏览器流程检查。
+当前代码使用 React 19、JavaScript/JSX、Vite 和 CSS 实现 Web 页面；业务样例和状态变更在浏览器端完成。`src/bank.js` 保存模拟账本逻辑，`src/main.jsx` 实现对话与业务卡片，`src/style.css` 提供基础布局，`src/refinement.css` 统一可读性、业务卡片和手机适配。当前界面保留青禾绿色三栏布局，将首页快捷业务整理为列表，增大正文和操作控件，并使用本地字体栈避免外部字体加载影响。测试包括 Node.js 单元测试及基于 Playwright 的浏览器流程检查。
 
 ## 设计文档
 
