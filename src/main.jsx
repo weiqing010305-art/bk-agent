@@ -5,6 +5,10 @@ import { contacts as demoContacts, directory, intent, money, seed, totals, trans
 import { api, backendMode, binding } from './api.js';
 import TransferDialog from './TransferDialog.jsx';
 import RecipientField from './RecipientField.jsx';
+import DeleteConversationDialog from './DeleteConversationDialog.jsx';
+import { Trash2 } from 'lucide-react';
+import { useConversations } from './useConversations.js';
+import { emptyTransfer } from './conversations.js';
 import './style.css';
 import './refinement.css';
 
@@ -17,10 +21,6 @@ const actions = [
 const workflowKinds = new Set(actions.map(a => a.id));
 const uid = () => crypto.randomUUID();
 const yuan = n => `¥${money(n)}`;
-const emptyTransfer = () => ({ contactId: '', recipientMode: 'saved', cardNumber: '', amount: '', note: '' });
-const initialMessages = [
-  { id: 'welcome', role: 'assistant', kind: 'welcome', time: '09:41' }
-];
 function loadState() { try { const s = JSON.parse(localStorage.getItem('qinghe-mock-v1')); if (s && Number.isSafeInteger(s.balance) && Array.isArray(s.transactions) && Array.isArray(s.cards) && Array.isArray(s.subscriptions) && Array.isArray(s.completed)) return s; } catch {} return seed(); }
 
 function loadBackendState() {
@@ -42,14 +42,18 @@ function App() {
   const busyRef = useRef(false);
   const requestRef = useRef(null);
   const confirmRef = useRef(null);
-  const [messages, setMessages] = useState(initialMessages);
-  const [draft, setDraft] = useState('');
-  const [active, setActive] = useState('home');
+  const history = useConversations();
+  const { messages, draft, active, transferDraft, billFilter } = history.current;
+  const setMessages = value => history.setField('messages', value);
+  const setDraft = value => history.setField('draft', value);
+  const setActive = value => history.setField('active', value);
+  const setTransferDraft = value => history.setField('transferDraft', value);
+  const setBillFilter = value => history.setField('billFilter', value);
+  const navigationRef = useRef(null);
+  const initializingRef = useRef(backendMode);
   const [mobileNav, setMobileNav] = useState(false);
-  const [transferDraft, setTransferDraft] = useState(emptyTransfer);
   const [confirm, setConfirm] = useState(null);
   const [toast, setToast] = useState('');
-  const [billFilter, setBillFilter] = useState('全部');
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   confirmRef.current = confirm;
@@ -78,20 +82,24 @@ function App() {
     }
   };
   const connect = async () => {
+    initializingRef.current = true;
     setConnection('loading');
     try {
       await api('/session', {}); await refreshBank();
       const pending = sessionStorage.getItem('qinghe-pending-operation');
       if (pending) {
+        const conversationId = sessionStorage.getItem('qinghe-pending-conversation');
+        if (conversationId) history.select(conversationId);
         try { await handleResult(await api(`/operations/${pending}`)); }
         catch (err) { if (err.status === 404) sessionStorage.removeItem('qinghe-pending-operation'); else throw err; }
       }
     } catch (err) { setConnection('error'); setToast(err.message); }
+    finally { initializingRef.current = false; }
   };
   useEffect(() => { if (backendMode) connect(); }, []);
   useEffect(() => {
     const last = messages.at(-1);
-    if (!last || last.kind === 'welcome') return;
+    if (!last || last.kind === 'welcome') { scrollRef.current?.scrollTo({ top: 0 }); return; }
     const scroller = scrollRef.current;
     const target = [...scroller.querySelectorAll('[data-message-id]')].at(-1);
     if (!target) return;
@@ -102,7 +110,7 @@ function App() {
   useEffect(() => {
     const onKeyDown = e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault(); setMessages(initialMessages); setActive('home'); setMobileNav(false); inputRef.current?.focus();
+        e.preventDefault(); navigationRef.current?.();
       }
       if (e.key === 'Escape' && !busyRef.current && !confirmRef.current?.uncertain) {
         if (backendMode && confirmRef.current?.type === 'transfer') sessionStorage.removeItem('qinghe-pending-operation');
@@ -112,6 +120,25 @@ function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+  const navigateConversation = id => {
+    if (busyRef.current || confirmRef.current || initializingRef.current) return setToast('请先完成或关闭当前确认，等待请求处理完毕后再切换对话');
+    if (id) history.select(id); else history.create();
+    setToast('');
+    requestRef.current = null; setVerificationCode(''); setApiError('');
+    setMobileNav(false); inputRef.current?.focus();
+  };
+  navigationRef.current = () => navigateConversation();
+  const requestDeleteConversation = conversation => {
+    if (busyRef.current || confirmRef.current || initializingRef.current) return;
+    setToast('');
+    setMobileNav(false);
+    setConfirm({ type: 'delete-chat', id: conversation.id, title: conversation.title });
+  };
+  const removeConversation = () => {
+    if (busyRef.current || confirm?.type !== 'delete-chat') return;
+    if (confirm.id === history.current.id) { requestRef.current = null; setVerificationCode(''); setApiError(''); }
+    history.remove(confirm.id); setConfirm(null); setToast('对话已删除，银行交易和账单不受影响');
+  };
   const addMessage = (role, kind, text = '') => setMessages(prev => [...prev, { id: uid(), role, kind, text, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }]);
   const open = (id, withUser = true) => {
     setMobileNav(false); setActive(id);
@@ -141,6 +168,7 @@ function App() {
       try {
         const op = await api('/operations', payload, { 'Idempotency-Key': requestRef.current.key });
         sessionStorage.setItem('qinghe-pending-operation', op.id);
+        sessionStorage.setItem('qinghe-pending-conversation', history.current.id);
         await handleResult(op);
         requestRef.current = null;
       } catch (err) { setToast(err.message); }
@@ -176,7 +204,7 @@ function App() {
       try {
         await api('/session/reset', {});
         sessionStorage.removeItem('qinghe-pending-operation'); requestRef.current = null;
-        setBank(seed()); await refreshBank(); setConfirm(null); setMessages(initialMessages); setActive('home'); setToast('已创建新的独立演示账户');
+        setBank(seed()); await refreshBank(); setConfirm(null); history.create(); setToast('已创建新的独立演示账户，旧对话已保留');
       } catch (err) { setConnection('error'); setConfirm(null); setToast(err.message); }
       finally { busyRef.current = false; setBusy(false); }
       return;
@@ -191,7 +219,7 @@ function App() {
       setBank(prev => ({ ...prev, cards: prev.cards.map(c => c.id === action.id ? { ...c, status: action.status } : c) }));
       addMessage('assistant', 'success', `尾号 ${action.tail} 的卡片已${action.status === 'frozen' ? '模拟冻结' : '模拟解冻'}。`); setToast('卡片状态已更新');
     } else if (action.type === 'reset') {
-      setBank(seed()); setMessages(initialMessages); setActive('home'); setToast('演示数据已重置');
+      setBank(seed()); history.create(); setToast('演示数据已重置，旧对话已保留');
     }
   };
   const summary = totals(bank);
@@ -207,10 +235,15 @@ function App() {
     {mobileNav && <button className="nav-scrim" aria-label="关闭导航" onClick={closeNav}/>}
     <aside className={`sidebar ${mobileNav ? 'open' : ''}`}>
       <div className="brand"><div className="brand-symbol"><span>青</span></div><div><strong>青禾</strong><small>AI BANKING</small></div><button className="mobile-close" onClick={closeNav} aria-label="关闭菜单"><X size={19}/></button></div>
-      <button className={`nav-new ${active === 'home' ? 'selected' : ''}`} onClick={() => { setMessages(initialMessages); setActive('home'); closeNav(); }}><Plus size={18}/> 新对话 <span>Ctrl K</span></button>
+      <button className={`nav-new ${messages.length === 1 ? 'selected' : ''}`} disabled={busy || Boolean(confirm) || connection === 'loading'} onClick={() => navigateConversation()}><Plus size={18}/> 新对话 <span>Ctrl K</span></button>
       <div className="nav-section-label">探索服务</div>
       <nav className="side-nav" aria-label="银行服务">{actions.map(a => <button key={a.id} className={active === a.id ? 'current' : ''} onClick={() => open(a.id)}><a.icon size={18}/><span>{a.label}</span><ArrowRight size={14} className="nav-arrow"/></button>)}</nav>
       <button className="reset-nav" onClick={() => { closeNav(); setConfirm({type:'reset'}); }}><RotateCcw size={16}/> 重置演示数据</button>
+      <section className="chat-history" aria-label="历史对话">
+        <div className="history-heading">历史对话 <small>保存在此浏览器</small></div>
+        <div className="history-list">{[...history.items].sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)).map(c => <div className={`history-row ${c.id === history.current.id ? 'current' : ''}`} key={c.id}><button className="history-select" aria-current={c.id === history.current.id ? 'true' : undefined} title={c.title} disabled={busy || Boolean(confirm) || connection === 'loading'} onClick={() => navigateConversation(c.id)}><span>{c.title}</span><small>{new Date(c.updatedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}</small></button><button className="history-delete" aria-label={`删除对话：${c.title}`} title="删除对话" disabled={busy || Boolean(confirm) || connection === 'loading'} onClick={() => requestDeleteConversation(c)}><Trash2 size={15}/></button></div>)}</div>
+        {history.saveError && <p role="alert">浏览器保存失败，刷新可能丢失对话，请勿关闭页面。</p>}
+      </section>
       <div className="sidebar-bottom"><div className="support"><div className="support-icon"><Sparkles size={17}/></div><div><strong>让每笔钱都更清晰</strong><p>从一句话开始，管理日常银行事务。</p></div></div><div className="profile"><span className="avatar">林</span><span><strong>林小禾</strong><small>演示账户</small></span></div></div>
     </aside>
     <div className="main-area">
@@ -237,8 +270,9 @@ function App() {
     </div>
     <aside className="insights"><div className="insights-top"><span>资金一览</span><button title="重置演示数据" aria-label="重置演示数据" onClick={()=>setConfirm({type:'reset'})}><RotateCcw size={16}/></button></div><div className="balance-card"><div className="balance-top"><span>可用余额</span><Wallet size={19}/></div><strong>{yuan(bank.balance)}</strong><div className="balance-bottom"><span>青禾日常账户</span><span>·· 8826</span></div></div><div className="insight-section"><h4>本月概览 <span>2026.09</span></h4><div className="stat-row"><span className="stat-icon spent"><ArrowUpRight size={18}/></span><div><small>总支出</small><strong>{yuan(summary.spending)}</strong></div></div><div className="stat-row"><span className="stat-icon earned"><ArrowDownLeft size={18}/></span><div><small>总收入</small><strong>{yuan(summary.income)}</strong></div></div></div><div className="insight-section"><h4>下次自动扣费</h4>{activeSubs.length ? <div className="upcoming"><span className="date-box"><strong>{activeSubs.sort((a,b)=>a.date.localeCompare(b.date))[0].date.slice(-2)}</strong><small>SEP</small></span><div><strong>{activeSubs[0].name}</strong><small>{activeSubs[0].date} · {yuan(activeSubs[0].amount)}</small></div><ArrowRight size={16}/></div> : <p className="empty-note">暂无待续费订阅</p>}</div><div className="insight-section"><h4>卡片状态</h4>{bank.cards.map(c=><div className="card-mini-status" key={c.id}><CreditCard size={17}/><span>尾号 {c.tail}</span><b className={c.status==='active'?'ok':'frozen'}>{c.status==='active'?'正常':'已冻结'}</b></div>)}</div><div className="insights-disclaimer"><ShieldCheck size={16}/><span>所有余额与交易仅供体验演示</span></div></aside>
     {toast && <div role="status" className="toast"><Check size={16}/>{toast}</div>}
+    {confirm?.type === 'delete-chat' && <DeleteConversationDialog title={confirm.title} onCancel={() => setConfirm(null)} onDelete={removeConversation}/>}
     {backendMode && confirm?.type === 'transfer' && <TransferDialog operation={confirm} busy={busy} code={verificationCode} setCode={setVerificationCode} error={apiError} onSubmit={applyBackendTransfer} onClose={() => { if (busyRef.current || confirm.uncertain) return; sessionStorage.removeItem('qinghe-pending-operation'); setConfirm(null); setApiError(''); }}/>}
-    {confirm && !(backendMode && confirm.type === 'transfer') && <div className="modal-backdrop" onClick={()=>setConfirm(null)}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={e=>e.stopPropagation()}><button className="modal-close" aria-label="关闭" onClick={()=>setConfirm(null)}><X size={19}/></button><span className="modal-icon"><ShieldCheck size={23}/></span><h2 id="confirm-title">{confirm.type==='transfer'?'核对转账信息':confirm.type==='cancel'?'确认取消订阅':confirm.type==='freeze'?(confirm.status==='frozen'?'确认冻结卡片':'确认解除冻结'):'重置演示数据'}</h2><p>{confirm.type==='transfer'?'确认后将更新模拟余额和账单。':confirm.type==='cancel'?'确认后该项目将不再计入模拟续费。':confirm.type==='freeze'?'该操作只改变演示卡片的状态。':'余额、账单、订阅与卡片会恢复到初始样例。'}</p>{confirm.type==='transfer' && <div className="confirm-detail"><div><span>收款人</span><strong>{directory.find(c=>c.id===confirm.contactId)?.name}</strong></div><div><span>收款账户</span><strong>{directory.find(c=>c.id===confirm.contactId)?.number}</strong></div><div><span>转账金额</span><strong className="confirm-amount">{yuan(confirm.amount)}</strong></div>{confirm.note && <div><span>备注</span><strong>{confirm.note}</strong></div>}<div><span>确认后余额</span><strong>{yuan(bank.balance-confirm.amount)}</strong></div></div>}{confirm.type==='cancel' && <div className="confirm-detail"><div><span>订阅项目</span><strong>{confirm.name}</strong></div><div><span>每月金额</span><strong>{yuan(confirm.amount)}</strong></div></div>}{confirm.type==='freeze' && <div className="confirm-detail"><div><span>卡片</span><strong>尾号 {confirm.tail}</strong></div></div>}<div className="modal-actions"><button className="ghost-btn" onClick={()=>setConfirm(null)}>返回修改</button><button className="primary-btn" disabled={busy} onClick={applyConfirmation}>确认模拟操作 <ArrowRight size={16}/></button></div></div></div>}
+    {confirm && confirm.type !== 'delete-chat' && !(backendMode && confirm.type === 'transfer') && <div className="modal-backdrop" onClick={()=>setConfirm(null)}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={e=>e.stopPropagation()}><button className="modal-close" aria-label="关闭" onClick={()=>setConfirm(null)}><X size={19}/></button><span className="modal-icon"><ShieldCheck size={23}/></span><h2 id="confirm-title">{confirm.type==='transfer'?'核对转账信息':confirm.type==='cancel'?'确认取消订阅':confirm.type==='freeze'?(confirm.status==='frozen'?'确认冻结卡片':'确认解除冻结'):'重置演示数据'}</h2><p>{confirm.type==='transfer'?'确认后将更新模拟余额和账单。':confirm.type==='cancel'?'确认后该项目将不再计入模拟续费。':confirm.type==='freeze'?'该操作只改变演示卡片的状态。':'余额、账单、订阅与卡片会恢复到初始样例。'}</p>{confirm.type==='transfer' && <div className="confirm-detail"><div><span>收款人</span><strong>{directory.find(c=>c.id===confirm.contactId)?.name}</strong></div><div><span>收款账户</span><strong>{directory.find(c=>c.id===confirm.contactId)?.number}</strong></div><div><span>转账金额</span><strong className="confirm-amount">{yuan(confirm.amount)}</strong></div>{confirm.note && <div><span>备注</span><strong>{confirm.note}</strong></div>}<div><span>确认后余额</span><strong>{yuan(bank.balance-confirm.amount)}</strong></div></div>}{confirm.type==='cancel' && <div className="confirm-detail"><div><span>订阅项目</span><strong>{confirm.name}</strong></div><div><span>每月金额</span><strong>{yuan(confirm.amount)}</strong></div></div>}{confirm.type==='freeze' && <div className="confirm-detail"><div><span>卡片</span><strong>尾号 {confirm.tail}</strong></div></div>}<div className="modal-actions"><button className="ghost-btn" onClick={()=>setConfirm(null)}>返回修改</button><button className="primary-btn" disabled={busy} onClick={applyConfirmation}>确认模拟操作 <ArrowRight size={16}/></button></div></div></div>}
   </div>;
 }
 

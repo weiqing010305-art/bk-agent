@@ -1,4 +1,30 @@
 /* Qinghe: refine the existing three-panel banking workspace. */
+.sidebar { min-height: 0; overflow-y: auto; }
+.sidebar > :not(.chat-history) { flex-shrink: 0; }
+.chat-history { margin-top: 24px; min-height: 100px; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.history-heading { display: flex; justify-content: space-between; gap: 5px; padding: 0 10px 10px; color: #c2dbcc; font-size: 12px; }
+.history-heading small { font-size: 10px; }
+.history-list { overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.history-list button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px; min-height: 44px; border: 0; border-radius: 7px; background: transparent; color: #d6e8df; text-align: left; }
+.history-list button.current { background: #356a54; color: #fff; }
+.history-list button:hover { background: #2a5947; }
+.history-list button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-size: 13px; }
+.history-list button small { font-size: 10px; opacity: .85; }
+.history-row { display: flex; align-items: center; border-radius: 7px; }
+.history-row.current { background: #356a54; }
+.history-list .history-select { flex: 1; min-width: 0; }
+.history-list .history-delete { width: 36px; min-width: 36px; padding: 0; justify-content: center; color: #c6dace; }
+.history-list .history-delete:hover { color: #ffe5df; background: #704637; }
+.delete-chat-dialog { border: 1px solid #dce5dd; color: #183c30; max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; margin: auto; }
+.delete-chat-dialog::backdrop { background: #102d2966; }
+.delete-chat-icon { display: inline-flex; padding: 12px; background: #faeae5; color: #943b2b; border-radius: 12px; }
+.delete-chat-name { display: block; margin: 16px 0; overflow-wrap: anywhere; }
+.delete-chat-dialog p { line-height: 1.8; }
+.danger-btn { background: #943b2b; }
+.danger-btn:hover { background: #793023; }
+@media (pointer: coarse) { .history-list .history-delete { width: 44px; min-width: 44px; } }
+.chat-history p { font-size: 12px; color: #ffe1a6; line-height: 1.6; }
+@media (max-height: 820px) { .sidebar .support { display: none; } .sidebar .brand { padding-bottom: 18px; } .sidebar .nav-section-label { margin-top: 20px; } .chat-history { margin-top: 18px; } }
 .recipient-field { border: 0; padding: 0; margin: 0; min-width: 0; }
 .recipient-field legend { font-size: 14px; margin-bottom: 12px; color: #425d4b; }
 .recipient-modes { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
