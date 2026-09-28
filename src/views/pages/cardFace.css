@@ -1,0 +1,39 @@
+/* cardFace.css —— 卡面在卡包页之外的形态。
+   卡面本体的几何（比例 / 圆角 / 芯片 / 渐变）在 wallet.css 的 .card-face 系列，
+   两个消费者共用；这里只有「助手侧的小一号卡面 + 这张卡的身份」。
+   规约同 wallet.css：零硬编码色值，一律 var()。 */
+
+/* ══ 助手侧的卡片形象 ══════════════════════════════════════════════════
+   卡面不只在卡包页出现：助手侧调出卡片时，它是「一张真卡 + 这张卡的身份」，
+   而不是一行灰字。缩到 240px 仍然读得出来，是因为几何全是固定像素
+   （芯片、圆角、内边距按 282px 卡包比例定的），只把卡号降一档字号 ——
+   像同一张卡被拿远了一点，比例关系没有变。 */
+.card-tile {
+  display: grid; grid-template-columns: 240px 1fr; align-items: center;
+  gap: var(--space-6); padding: var(--space-5);
+  border-radius: var(--radius-card); background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+}
+/* 卡面在卡包里靠浮起表达「被选中」；这里没有选中态，换成一层贴地的接触影 */
+.card-tile .card-face { box-shadow: var(--shadow-1); }
+.card-tile .bank-card-num { font-size: var(--text-callout); }
+.card-tile .card-face .bank-card-logo { width: 28px; height: 28px; font-size: 14px; }
+.card-tile .card-chip { width: 26px; height: 20px; }
+/* 240px 的卡面装不下「持卡人 / 有效期 / 卡组织」三栏（实测溢出 23px），
+   而卡组织在右侧事实里已经写着 —— 小卡面收掉这一栏，不缩小字号去挤。 */
+.card-tile .card-face-foot { gap: var(--space-4); }
+.card-tile .card-face-foot .bank-card-field:last-child { display: none; }
+
+.card-tile-body { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.card-tile-body h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
+.card-tile-sub { margin: 0; font-size: var(--text-footnote); color: var(--text-tertiary); }
+.card-tile-facts { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-7); margin: 0; }
+.card-tile-facts > div { display: flex; flex-direction: column; gap: 1px; }
+.card-tile-facts dt { font-size: var(--text-caption-2); color: var(--text-tertiary); }
+.card-tile-facts dd { margin: 0; font-size: var(--text-subhead); font-weight: 500; font-variant-numeric: tabular-nums; }
+.card-tile-facts dd.is-warn { color: var(--warning); }
+.card-tile-act { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+/* 冻结的卡在助手侧也要一眼认出来：暗面与磨砂已经在卡面上，这里只把信息降一档 */
+.card-tile[data-state="frozen"] .card-tile-body h3 { color: var(--text-secondary); }
+
+@media (max-width: 560px) { .card-tile { grid-template-columns: 1fr; } }

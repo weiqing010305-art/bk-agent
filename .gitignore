@@ -1,5 +1,15 @@
 node_modules/
 .npm-cache/
+
+# 参考素材：GSAP 与几个前端技能库的 clone，约 150 MB。
+# 它们是给人看的教材，不是依赖 —— 不要入库，也不要 import。
+vendor/
+
+# 调研的原始素材（截图、抓取脚本，约 10 MB）。
+# 报告本身在 doc/research/*.md，带 URL 与结论 —— 那才是交付物，这些是过程材料。
+doc/research/_raw/
+# 从其他开源项目抓来研究的源码片段，同理不入库（避免把第三方代码混进本仓库）
+doc/research/_tmp/
 dist/
 artifacts/
 *.log

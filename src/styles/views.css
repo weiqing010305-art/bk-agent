@@ -1,0 +1,170 @@
+/**
+ * views.css —— 产品层的信息架构零件
+ *
+ * 参考众安银行（doc/research/za-bank-product-layer.md §D.3/§D.4）：
+ *   IconTile  两种图标语言：圆形=动作，方形=产品
+ *   StatBar   双列统计条（账单 / 卡片 / 订阅 / 余额拆分行，4 处复用）
+ *   Row       统一列表行（交易 / 订阅 / 卡片操作 / 动态 / 收款人，5 处复用）
+ *
+ * 规约：本文件禁止出现硬编码颜色，一律 var()。
+ */
+
+/* ── 双列统计条 ────────────────────────────────────────────────────── */
+/* 用 border-left 做分隔，而不是 ::before —— 伪元素在 grid 里会参与排布并抢占单元格 */
+.stat-bar {
+  display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
+  background: var(--bg-surface); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); overflow: hidden;
+}
+.stat-cell { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.stat-cell--right { border-left: 1px solid var(--hairline); }
+/* 右列：label / value / note 三行右对齐成一条线。
+   主卡的脚注（「按活跃订阅合计」这类）也用同一套，所以规则留在零件层而不是页面里。 */
+.stat-cell--right .stat-label,
+.stat-cell--right .stat-value,
+.stat-cell--right .stat-note { text-align: right; }
+.stat-label {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-footnote); color: var(--text-secondary);
+}
+.stat-value {
+  font-size: var(--text-title-2); line-height: var(--leading-title-2);
+  font-weight: 600; letter-spacing: var(--tracking-title-2);
+  font-variant-numeric: tabular-nums; color: var(--text-primary);
+}
+.stat-note { font-size: var(--text-caption); color: var(--text-tertiary); }
+
+/* ── 4×2 快捷宫格 ──────────────────────────────────────────────────── */
+.icon-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);
+  background: var(--bg-surface); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); padding: var(--space-5);
+}
+.icon-tile {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+  min-height: var(--hit-min); padding: var(--space-3) var(--space-2);
+  border: none; border-radius: var(--radius-md); background: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-base) var(--ease-spring);
+}
+.icon-tile b { font-size: var(--text-caption); font-weight: 500; color: var(--text-secondary); }
+/* 两种图标语言的核心：动作是圆的（钱在动），产品是方的（有具体的物） */
+.icon-tile-mark {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: var(--radius-thumb);
+  transition: transform var(--duration-base) var(--ease-spring);
+}
+.icon-tile--action .icon-tile-mark { border-radius: var(--radius-pill); color: var(--accent-on); }
+.icon-tile--product .icon-tile-mark { background: var(--fill-3); color: var(--text-secondary); }
+
+.icon-tile--action .icon-tile-mark--accent    { background: var(--accent); }
+.icon-tile--action .icon-tile-mark--positive  { background: var(--success); }
+.icon-tile--action .icon-tile-mark--subscribe { background: var(--cat-subscribe); }
+.icon-tile--product .icon-tile-mark--accent    { background: var(--accent-tint); color: var(--accent); }
+.icon-tile--product .icon-tile-mark--positive  { background: var(--success-tint); color: var(--success); }
+.icon-tile--product .icon-tile-mark--warning   { background: var(--warning-tint); color: var(--warning); }
+.icon-tile--product .icon-tile-mark--subscribe { background: var(--cat-subscribe-tint); color: var(--cat-subscribe); }
+
+@media (hover: hover) and (pointer: fine) {
+  .icon-tile:hover { background: var(--bg-hover); }
+  .icon-tile:hover .icon-tile-mark { transform: scale(1.07); }
+}
+.icon-tile:active { transform: scale(.96); transition-duration: var(--duration-instant); }
+
+/* ── 统一列表行 ────────────────────────────────────────────────────── */
+.row-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.row-item {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3); margin: 0 calc(var(--space-3) * -1);
+  border-radius: var(--radius-thumb);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.row-icon { flex: 0 0 auto; display: grid; place-items: center; }
+.row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.row-main strong { font-size: var(--text-subhead); font-weight: 500; }
+.row-main small {
+  font-size: var(--text-caption); color: var(--text-tertiary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (hover: hover) and (pointer: fine) {
+  .row-item:hover { background: var(--bg-hover); }
+  .row-item:hover .tx-icon, .row-item:hover .sub-logo { transform: scale(1.06); }
+}
+.row-item:focus-within { background: var(--bg-hover); }
+.row-list--muted .row-item { opacity: .55; }
+
+/* ── 金额 ──────────────────────────────────────────────────────────── */
+.amount {
+  font-size: var(--text-subhead); font-weight: 600;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.amount--in { color: var(--success); }
+.amount--lg { font-size: var(--text-title-3); letter-spacing: -0.01em; }
+
+/* ── 按日分组 ──────────────────────────────────────────────────────── */
+.day-groups { display: flex; flex-direction: column; gap: var(--space-6); }
+.day-head {
+  margin: 0 0 var(--space-2); font-size: var(--text-caption-2); font-weight: 600;
+  letter-spacing: .06em; color: var(--text-tertiary); text-transform: uppercase;
+  position: sticky; top: 0; background: var(--bg-surface); padding: var(--space-2) 0;
+}
+
+/* ── 余额主卡的英雄金额与隐私开关 ──────────────────────────────────── */
+.hero-amount {
+  font-size: var(--text-hero); line-height: var(--leading-hero);
+  font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.hero-eye, .card-eye {
+  width: 30px; height: 30px; border: none; border-radius: var(--radius-pill);
+  display: grid; place-items: center; background: var(--on-dark-fill); color: inherit;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.card-eye { margin-left: auto; background: color-mix(in srgb, currentColor 10%, transparent); }
+@media (hover: hover) and (pointer: fine) {
+  .hero-eye:hover { background: var(--on-dark-fill-hover); }
+  .card-eye:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
+}
+.balance-hero .stat-bar { background: transparent; box-shadow: none; }
+.balance-hero .stat-cell--right { border-left-color: color-mix(in srgb, currentColor 22%, transparent); }
+.balance-hero .stat-cell { padding: var(--space-4) 0 0; }
+.balance-hero .stat-cell--right { padding-right: 0; }
+.balance-hero .stat-label, .balance-hero .stat-value { color: inherit; }
+.balance-hero .stat-label { opacity: .72; }
+.balance-hero .stat-value { font-size: var(--text-subhead); font-weight: 600; }
+.balance-hero .stat-cell--right .stat-value { font-size: var(--text-subhead); }
+/* 主卡里的两格是暗底上的「科目名 + 金额 + 这个数怎么来的」。
+   默认 .stat-cell 的 4px 间隔对脚注太紧，读起来像被吸在数字上；给到 6px 后
+   label → value → note 三行才是三级，而不是两团。 */
+.balance-hero .stat-cell { gap: var(--space-2); }
+.balance-hero .stat-note { font-size: var(--text-caption-2); opacity: .68; }
+
+@media (max-width: 640px) {
+  .icon-grid { grid-template-columns: repeat(4, 1fr); gap: var(--space-2); padding: var(--space-4); }
+  .icon-tile-mark { width: 40px; height: 40px; }
+  .stat-cell { padding: var(--space-5); }
+  .stat-value { font-size: var(--text-title-3); }
+}
+/* ── 5 秒可撤销条 ──────────────────────────────────────────────────── */
+.undo-bar {
+  position: fixed; left: 50%; bottom: calc(var(--space-9) + env(safe-area-inset-bottom));
+  transform: translateX(-50%); z-index: 41;
+  display: flex; align-items: center; gap: var(--space-5);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6);
+  border-radius: var(--radius-pill); overflow: hidden;
+  background: var(--bg-surface); box-shadow: var(--shadow-overlay);
+  animation: rise var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.undo-fill {
+  position: absolute; inset: 0 auto 0 0; z-index: 0;
+  background: var(--accent-tint); transition: width 80ms linear;
+}
+.undo-text, .undo-btn { position: relative; z-index: 1; }
+.undo-text { font-size: var(--text-subhead); color: var(--text-primary); }
+.undo-btn {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  height: 34px; padding: 0 var(--space-5); border: none; border-radius: var(--radius-pill);
+  background: var(--accent); color: var(--accent-on);
+  font-size: var(--text-footnote); font-weight: 500;
+}
+@media (hover: hover) and (pointer: fine) { .undo-btn:hover { background: var(--accent-hover); } }
+.undo-btn:active { transform: scale(.96); transition-duration: var(--duration-instant); }
+@media (prefers-reduced-motion: reduce) { .undo-bar { animation: none; } .undo-fill { transition: none; } }

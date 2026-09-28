@@ -1,0 +1,41 @@
+/* taskgraph.css —— 子任务 DAG 的呈现与执行控制 */
+
+.task-graph {
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-alt);
+}
+.task-graph.is-stopped { background: var(--warning-tint); }
+
+.tg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.tg-kicker { display: block; font-size: var(--text-caption); color: var(--text-tertiary); }
+.tg-head h3 { margin: 2px 0 0; font-size: var(--text-subhead); font-weight: 600; }
+.tg-count { font-size: var(--text-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+.tg-track { height: 3px; border-radius: var(--radius-pill); background: var(--fill-4); overflow: hidden; }
+.tg-track i { display: block; height: 100%; background: var(--accent); border-radius: var(--radius-pill);
+  transition: width var(--duration-slow) var(--ease-spring); }
+
+.tg-nodes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.tg-node {
+  display: grid; grid-template-columns: 20px 1fr auto; align-items: center;
+  gap: var(--space-3); font-size: var(--text-footnote);
+}
+.tg-dot { display: grid; place-items: center; width: 20px; height: 20px; border-radius: var(--radius-pill);
+  background: var(--fill-4); color: var(--text-tertiary); }
+.tg-node--done .tg-dot { background: var(--success-tint); color: var(--success); }
+.tg-node--running .tg-dot { background: var(--accent-tint); color: var(--accent); }
+.tg-node--blocked .tg-dot { background: var(--warning-tint); color: var(--warning); }
+.tg-node--human .tg-dot { background: var(--accent-tint); color: var(--accent); }
+.tg-body { display: flex; flex-direction: column; min-width: 0; }
+.tg-body b { font-weight: 500; color: var(--text-primary); }
+.tg-body small { color: var(--text-tertiary); font-size: var(--text-caption-2); }
+.tg-node--pending .tg-body b { color: var(--text-secondary); }
+.tg-state { font-size: var(--text-caption-2); color: var(--text-faint); }
+.tg-node--blocked .tg-state { color: var(--warning); }
+.tg-node--human .tg-state { color: var(--accent); }
+
+.tg-handoff { margin: 0; font-size: var(--text-caption); color: var(--warning); }
+.tg-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.tg-actions .a2ui-btn { display: inline-flex; align-items: center; gap: var(--space-2); }

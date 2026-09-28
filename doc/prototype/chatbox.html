@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>青禾 · ChatBox 视觉原型 v1</title>
+<style>
+/* ============================================================
+   tokens.css —— 设计令牌唯一来源
+   规则（见 AGENTS.md §3）：组件样式内禁止硬编码颜色字面量
+   ============================================================ */
+:root{
+  /* —— 底色与材质 —— */
+  --bg-base:#eaeef8;
+  --bg-warm:#f2f0fb;
+  --bg-cool:#e4ecfa;
+  --glass:rgba(255,255,255,.58);
+  --glass-strong:rgba(255,255,255,.76);
+  --glass-thin:rgba(255,255,255,.38);
+  --hairline:rgba(16,24,40,.075);
+  --specular:rgba(255,255,255,.9);
+
+  /* —— 文字层级（Apple label 体系） —— */
+  --ink:#0f1729;
+  --ink-2:rgba(15,23,41,.60);
+  --ink-3:rgba(15,23,41,.38);
+  --ink-4:rgba(15,23,41,.24);
+
+  /* —— 强调色（参考图的雾蓝 / 长春花蓝） —— */
+  --accent:#0071e3;
+  --accent-soft:rgba(0,113,227,.10);
+  --accent-ring:rgba(0,113,227,.26);
+  --pos:#2aa06a;
+  --neg:#d4614f;
+
+  /* —— 圆角 —— */
+  --r-xs:8px; --r-sm:12px; --r-md:18px; --r-lg:24px; --r-xl:32px; --r-full:999px;
+
+  /* —— 分层阴影（越靠上层越深、越散） —— */
+  --sh-1:0 1px 2px rgba(15,23,41,.04), 0 3px 10px rgba(15,23,41,.035);
+  --sh-2:0 2px 6px rgba(15,23,41,.05), 0 12px 30px rgba(15,23,41,.06);
+  --sh-3:0 6px 18px rgba(15,23,41,.07), 0 24px 56px rgba(15,23,41,.09);
+  --sh-focus:0 0 0 4px var(--accent-ring);
+  --inner-top:inset 0 1px 0 var(--specular);
+
+  /* —— 动效（Apple spring 近似） —— */
+  --ease:cubic-bezier(.32,.72,0,1);
+  --dur:.3s;
+
+  /* —— 排版 —— */
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','PingFang SC','HarmonyOS Sans SC','Microsoft YaHei',system-ui,sans-serif;
+  --font-num:'SF Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+
+  --measure:720px;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:var(--font);color:var(--ink);
+  background:var(--bg-base);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  font-size:17px;line-height:1.29;letter-spacing:-.026em;   /* HIG: 17pt 正文最紧 */
+  overflow:hidden;
+}
+
+/* ============================================================
+   氛围背景：多层径向渐变 + 极淡光晕
+   ============================================================ */
+.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.aurora::before{
+  content:'';position:absolute;inset:-30%;
+  background:
+    radial-gradient(38% 44% at 18% 12%, rgba(122,162,255,.40) 0%, transparent 62%),
+    radial-gradient(34% 40% at 84% 8%,  rgba(178,160,255,.32) 0%, transparent 60%),
+    radial-gradient(46% 46% at 72% 92%, rgba(120,205,225,.26) 0%, transparent 64%),
+    radial-gradient(40% 40% at 8% 86%,  rgba(255,186,214,.20) 0%, transparent 62%),
+    linear-gradient(168deg, var(--bg-cool) 0%, var(--bg-base) 46%, var(--bg-warm) 100%);
+  filter:blur(6px);
+}
+/* 极淡噪点，消除渐变色带 */
+.aurora::after{
+  content:'';position:absolute;inset:0;opacity:.16;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   外壳
+   ============================================================ */
+.app{position:relative;z-index:1;height:100dvh;display:flex;flex-direction:column}
+
+.topbar{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:18px 26px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.02em}
+.brand-mark{
+  width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  font-size:15px;font-weight:600;color:#fff;
+  background:linear-gradient(150deg,#7ba0ff,#4d78f0 60%,#3f63d8);
+  box-shadow:0 2px 6px rgba(77,120,240,.35), var(--inner-top);
+}
+.brand small{display:block;font-size:9.5px;font-weight:500;letter-spacing:.14em;color:var(--ink-3)}
+.tools{display:flex;align-items:center;gap:8px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;
+  border-radius:var(--r-full);border:1px solid var(--hairline);
+  background:var(--glass-thin);backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  font-size:12.5px;color:var(--ink-2);box-shadow:var(--sh-1),var(--inner-top);
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--pos);box-shadow:0 0 0 3px rgba(42,160,106,.16)}
+.icon-btn{
+  width:32px;height:32px;border-radius:var(--r-full);display:grid;place-items:center;
+  border:1px solid var(--hairline);background:var(--glass-thin);color:var(--ink-2);
+  backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+  box-shadow:var(--sh-1),var(--inner-top);cursor:pointer;
+  transition:transform var(--dur) var(--ease),background var(--dur) var(--ease);
+}
+.icon-btn:hover{background:var(--glass-strong);transform:translateY(-1px)}
+.icon-btn svg{width:16px;height:16px}
+
+/* ============================================================
+   对话流
+   ============================================================ */
+.thread{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.thread::-webkit-scrollbar{width:10px}
+.thread::-webkit-scrollbar-thumb{background:rgba(15,23,41,.14);border:3px solid transparent;background-clip:content-box;border-radius:99px}
+.inner{max-width:var(--measure);margin:0 auto;padding:14px 26px 30px;display:flex;flex-direction:column;gap:26px}
+
+/* —— 欢迎态 —— */
+.hero{padding:34px 0 6px;animation:rise .6s var(--ease) both}
+.eyebrow{font-size:10.5px;letter-spacing:.18em;color:var(--ink-3);font-weight:600;margin-bottom:16px}
+.hero h1{margin:0;font-size:34px;line-height:1.21;letter-spacing:.012em;font-weight:600}  /* HIG: 34pt 转正字距 */
+.hero h1 em{
+  font-style:normal;
+  background:linear-gradient(96deg,#3f63d8,#7ba0ff 52%,#9d8cf0);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p{margin:16px 0 0;color:var(--ink-2);font-size:15.5px;max-width:44ch}
+
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
+.suggest{
+  display:inline-flex;align-items:center;gap:9px;height:42px;padding:0 17px 0 12px;
+  border-radius:var(--r-full);border:1px solid var(--hairline);
+  background:#fff;
+  box-shadow:var(--sh-1);
+  font-size:14px;color:var(--ink);cursor:pointer;font-family:inherit;
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),background var(--dur) var(--ease);
+}
+.suggest:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
+.suggest i{
+  width:24px;height:24px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--accent-soft);color:var(--accent);
+}
+.suggest svg{width:14px;height:14px}
+
+/* —— 消息 —— */
+.msg{display:flex;gap:13px;animation:rise .45s var(--ease) both}
+.msg.user{justify-content:flex-end}
+.avatar{
+  width:29px;height:29px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;
+  background:linear-gradient(150deg,#fff,#eaf0ff);
+  border:1px solid var(--hairline);box-shadow:var(--sh-1),var(--inner-top);color:var(--accent);
+}
+.avatar svg{width:15px;height:15px}
+.body{min-width:0;max-width:100%}
+.who{font-size:11.5px;color:var(--ink-3);margin:2px 0 7px;font-weight:500;letter-spacing:.01em}
+.say{font-size:17px;line-height:1.5;letter-spacing:-.026em;color:var(--ink-2);max-width:60ch}  /* 助手消息无气泡，直接排文字 */
+.say strong{font-weight:600}
+
+.bubble{
+  max-width:66%;padding:11px 17px;border-radius:var(--r-lg) var(--r-lg) 7px var(--r-lg);
+  background:linear-gradient(160deg,#547ff2,#4368de);color:#fff;font-size:15px;
+  box-shadow:0 4px 14px rgba(67,104,222,.28), var(--inner-top);
+}
+
+/* —— 业务卡片（A2UI surface 的视觉基线） —— */
+.surface{
+  margin-top:15px;border-radius:var(--r-lg);overflow:hidden;
+  /* 内容层：Apple 两层模型规定 —— 业务卡片绝不能用玻璃，用标准材质 */
+  background:#fff;
+  border:1px solid var(--hairline);box-shadow:var(--sh-2);
+}
+.surface-head{display:flex;align-items:center;gap:12px;padding:17px 20px 15px;border-bottom:1px solid var(--hairline)}
+.surface-head .ic{
+  width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(150deg,#eef3ff,#dfe8ff);color:var(--accent);
+  box-shadow:var(--inner-top),0 1px 3px rgba(77,120,240,.16);
+}
+.surface-head .ic svg{width:18px;height:18px}
+.surface-head small{display:block;font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);font-weight:600}
+.surface-head h3{margin:2px 0 0;font-size:16.5px;font-weight:600;letter-spacing:-.02em}
+.spacer{flex:1}
+.pill{
+  font-size:11.5px;color:var(--ink-2);padding:4px 11px;border-radius:var(--r-full);
+  background:rgba(15,23,41,.045);border:1px solid var(--hairline);
+}
+.surface-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-size:12px;color:var(--ink-2);font-weight:500}
+.input{
+  height:44px;border-radius:var(--r-sm);border:1px solid var(--hairline);
+  background:rgba(255,255,255,.7);padding:0 14px;font:inherit;font-size:14.5px;color:var(--ink);width:100%;
+  transition:box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:var(--sh-focus)}
+.amount{position:relative}
+.amount span{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:19px}
+.amount .input{padding-left:34px;font-size:21px;font-weight:600;letter-spacing:-.02em;height:56px;font-variant-numeric:tabular-nums}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.meta{font-size:12.5px;color:var(--ink-3)}
+.meta b{color:var(--ink-2);font-weight:600;font-variant-numeric:tabular-nums}
+
+.btn{
+  height:44px;padding:0 22px;border-radius:var(--r-full);border:none;cursor:pointer;
+  font:inherit;font-size:14.5px;font-weight:550;display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(160deg,#547ff2,#4368de);color:#fff;
+  box-shadow:0 3px 12px rgba(67,104,222,.30), var(--inner-top);
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),filter var(--dur) var(--ease);
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(67,104,222,.36), var(--inner-top);filter:brightness(1.04)}
+.btn:active{transform:translateY(0) scale(.985)}
+.btn svg{width:15px;height:15px}
+.btn.ghost{
+  background:rgba(15,23,41,.04);color:var(--ink-2);
+  box-shadow:inset 0 0 0 1px var(--hairline);
+}
+.btn.ghost:hover{background:rgba(15,23,41,.07);box-shadow:inset 0 0 0 1px var(--hairline)}
+
+/* —— 迷你柱状图（参考图的极细绿色柱） —— */
+.bars{display:flex;align-items:flex-end;gap:3px;height:44px;margin-top:2px}
+.bars i{flex:1;border-radius:var(--r-full);background:linear-gradient(180deg,#7fd4a8,#48b585);opacity:.85}
+.note{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3);margin-top:12px}
+.note svg{width:13px;height:13px;flex:0 0 auto}
+
+/* ============================================================
+   输入区
+   ============================================================ */
+.composer-wrap{flex:0 0 auto;padding:6px 26px calc(20px + env(safe-area-inset-bottom))}
+.composer-inner{max-width:var(--measure);margin:0 auto}
+.composer{
+  display:flex;align-items:flex-end;gap:10px;padding:11px 11px 11px 20px;
+  border-radius:var(--r-xl);border:1px solid var(--hairline);
+  background:var(--glass-strong);backdrop-filter:blur(34px) saturate(190%);
+  -webkit-backdrop-filter:blur(34px) saturate(190%);
+  box-shadow:var(--sh-3),var(--inner-top);
+  transition:box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.composer:focus-within{border-color:var(--accent-ring);box-shadow:var(--sh-3),var(--sh-focus),var(--inner-top)}
+.composer textarea{
+  flex:1;border:none;background:transparent;resize:none;font:inherit;font-size:15.5px;color:var(--ink);
+  line-height:1.5;padding:10px 0;max-height:160px;min-height:22px;overflow:hidden;
+}
+.composer textarea::placeholder{color:var(--ink-3)}
+.composer textarea:focus{outline:none}
+.send{
+  width:40px;height:40px;flex:0 0 auto;border-radius:var(--r-full);border:none;cursor:pointer;
+  display:grid;place-items:center;color:#fff;
+  background:linear-gradient(160deg,#547ff2,#4368de);
+  box-shadow:0 3px 12px rgba(67,104,222,.32), var(--inner-top);
+  transition:transform var(--dur) var(--ease),filter var(--dur) var(--ease);
+}
+.send:hover{transform:translateY(-1px) scale(1.03);filter:brightness(1.05)}
+.send svg{width:17px;height:17px}
+.hint{text-align:center;font-size:11.5px;color:var(--ink-4);margin:11px 0 0}
+
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* —— 优雅降级：不支持 backdrop-filter —— */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .chip,.icon-btn,.suggest,.surface,.composer{background:rgba(255,255,255,.92)}
+}
+
+@media (max-width:640px){
+  .hero h1{font-size:30px}
+  .inner{padding:8px 16px 22px}
+  .composer-wrap{padding:6px 14px calc(14px + env(safe-area-inset-bottom))}
+  .bubble{max-width:82%}
+  .topbar{padding:14px 16px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="aurora"></div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">青</div>
+      <div>青禾<small>AI BANKING</small></div>
+    </div>
+    <div class="tools">
+      <span class="chip"><span class="dot"></span>演示环境</span>
+      <button class="icon-btn" aria-label="历史对话">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+      </button>
+      <button class="icon-btn" aria-label="更多">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="thread">
+    <div class="inner">
+
+      <section class="hero">
+        <div class="eyebrow">YOUR FINANCES, IN FOCUS</div>
+        <h1>你好，小禾。<br/><em>今天想先处理什么？</em></h1>
+        <p>一句话就可以开始。转账、看账单、整理订阅，或管理你的卡片。</p>
+        <div class="chips">
+          <button class="suggest"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg></i>智能转账</button>
+          <button class="suggest"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></i>账单分析</button>
+          <button class="suggest"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></i>订阅管理</button>
+          <button class="suggest"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2.5" y="5.5" width="19" height="13" rx="3"/><path d="M2.5 10h19"/></svg></i>卡片管理</button>
+        </div>
+      </section>
+
+      <div class="msg user">
+        <div class="bubble">给张三转 100 元</div>
+      </div>
+
+      <div class="msg">
+        <div class="avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></div>
+        <div class="body">
+          <div class="who">青禾助手</div>
+          <div class="say">好的，我来帮你处理这笔转账。请先核对下面的信息，确认后才会记账。</div>
+
+          <div class="surface">
+            <div class="surface-head">
+              <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg></div>
+              <div><small>智能转账</small><h3>发起一笔转账</h3></div>
+              <div class="spacer"></div>
+              <span class="pill">01 / 02</span>
+            </div>
+            <div class="surface-body">
+              <div class="field">
+                <label>收款人</label>
+                <input class="input" value="张三 · 6222 •••• •••• 4821" readonly/>
+              </div>
+              <div class="field">
+                <label>转账金额</label>
+                <div class="amount"><span>¥</span><input class="input" value="100.00" readonly/></div>
+              </div>
+              <div class="row">
+                <span class="meta">可用余额 <b>¥12,860.50</b></span>
+                <button class="btn">核对转账信息
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+            模拟转账，确认后同步更新余额与账单
+          </div>
+        </div>
+      </div>
+
+      <div class="msg">
+        <div class="avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></div>
+        <div class="body">
+          <div class="who">青禾助手</div>
+          <div class="say">这是你 9 月的收支概览。本月支出 <strong>¥4,742.00</strong>，收入 <strong>¥15,000.00</strong>。</div>
+          <div class="surface">
+            <div class="surface-head">
+              <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></div>
+              <div><small>账单分析</small><h3>九月资金流向</h3></div>
+              <div class="spacer"></div>
+              <span class="pill">2026.09</span>
+            </div>
+            <div class="surface-body">
+              <div class="bars">
+                <i style="height:38%"></i><i style="height:64%"></i><i style="height:29%"></i><i style="height:82%"></i>
+                <i style="height:47%"></i><i style="height:71%"></i><i style="height:35%"></i><i style="height:56%"></i>
+                <i style="height:92%"></i><i style="height:44%"></i><i style="height:68%"></i><i style="height:31%"></i>
+                <i style="height:58%"></i><i style="height:76%"></i><i style="height:40%"></i><i style="height:63%"></i>
+                <i style="height:51%"></i><i style="height:87%"></i><i style="height:36%"></i><i style="height:60%"></i>
+              </div>
+              <div class="row" style="margin-top:4px">
+                <span class="meta">转账 ¥3,000 · 餐饮 ¥856 · 购物 ¥628</span>
+                <span class="meta">共 <b>8</b> 笔</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="composer-wrap">
+    <div class="composer-inner">
+      <form class="composer" onsubmit="return false">
+        <textarea rows="1" placeholder="问问青禾，比如「这个月花了多少」"></textarea>
+        <button class="send" aria-label="发送">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+        </button>
+      </form>
+      <p class="hint">演示对话由预设规则驱动，暂未接入真实 AI 或银行系统</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

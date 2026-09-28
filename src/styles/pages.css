@@ -1,0 +1,279 @@
+/* pages.css —— 侧边栏 / 视图头 / 产品层页面 / 卡面 */
+
+/* ══ 侧边栏（功能层 → 玻璃）═══════════════════════════════════════════ */
+.sidebar {
+  flex: 0 0 auto; width: 264px; display: flex; flex-direction: column; gap: var(--space-6);
+  padding: var(--space-5) var(--space-4); overflow-y: auto;
+  background: var(--material-thin-tint);
+  -webkit-backdrop-filter: blur(var(--blur-thick)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--blur-thick)) saturate(var(--glass-saturate));
+  border-right: 1px solid var(--glass-border);
+}
+.sidebar-head { display: flex; align-items: center; justify-content: space-between; }
+.sidebar-close { display: none; }
+.side-section { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-3); }
+.side-label {
+  margin: 0 0 var(--space-2); font-size: var(--text-caption-2); letter-spacing: .1em;
+  color: var(--text-tertiary); font-weight: 600; text-transform: uppercase;
+}
+.side-item {
+  display: flex; align-items: center; gap: var(--space-4); width: 100%; text-align: left;
+  padding: var(--space-4); border: none; border-radius: var(--radius-md);
+  background: transparent; color: var(--text-secondary);
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.side-item strong { font-size: var(--text-subhead); font-weight: 500; }
+.side-item:hover { background: var(--fill-4); color: var(--text-primary); }
+.side-item.current { background: var(--accent-tint); color: var(--accent); }
+
+/* ══ 首页 ══════════════════════════════════════════════════════════════
+   首页不是"功能"列表里的第五项，它是家。所以它：
+   · 排在最前且常驻（sticky）—— 滚到下面的历史里也走不丢；
+   · 装在一个容器里（下方一条 hairline）—— 切换在这块内部换高亮，
+     视觉上仍然是"在家里换了个面"，不是"离开了当前所在的地方"；
+   · 整块高亮：这一块是家，高亮说"你正在家里"，不是"你点到了哪一项"。
+   块内两项的 hover 刻意保持中性（--fill-3 / --on-dark-fill），
+   浅蓝的 --accent-tint 会把容器的深色高亮洗淡，读起来像"家里又开了一个页面"。 */
+.side-home {
+  display: flex; flex-direction: column; gap: var(--space-1);
+  position: sticky; top: 0; z-index: 1;
+  padding: var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius-sheet); border-bottom: 1px solid var(--hairline);
+  background: var(--fill-4);
+  transition: background var(--duration-base) var(--ease-out);
+}
+.side-home .side-item { padding: var(--space-3) var(--space-3); }
+.side-home .side-item:hover { background: var(--fill-3); }
+.side-home.current { background: var(--grad-hero-soft); }
+.side-home.current .side-item { color: var(--accent-on); }
+.side-home.current .side-item:hover { background: var(--on-dark-fill); }
+.side-home.current .side-item.current { background: var(--on-dark-fill-hover); color: var(--accent-on); font-weight: 600; }
+
+.side-history { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--space-3); min-height: 120px; margin-top: var(--space-3); border-top: 1px solid var(--hairline); padding-top: var(--space-5); }
+.side-history-head { display: flex; align-items: center; justify-content: space-between; }
+.side-history-head .side-label { margin: 0; }
+.side-new { width: 24px; height: 24px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); background: transparent; color: var(--text-secondary); display: grid; place-items: center; }
+.side-new:hover { background: var(--accent-tint); color: var(--accent); border-color: transparent; }
+.side-history-list { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.side-conv { display: flex; align-items: center; border-radius: var(--radius-sm); }
+.side-conv.current { background: var(--accent-tint); }
+.side-conv > button:first-child {
+  flex: 1; min-width: 0; text-align: left; border: none; background: none; padding: var(--space-3);
+  font-size: var(--text-footnote); color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: var(--radius-sm);
+}
+.side-conv.current > button:first-child { color: var(--accent); font-weight: 500; }
+.side-conv-del { border: none; background: none; color: var(--text-faint); padding: 6px; border-radius: var(--radius-sm); opacity: 0; }
+.side-conv:hover .side-conv-del { opacity: 1; }
+.side-conv-del:hover { color: var(--danger); background: var(--danger-tint); }
+.side-note { margin: 0; font-size: var(--text-caption-2); color: var(--text-faint); }
+.side-toggle {
+  display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--hairline); border-radius: var(--radius-md); background: transparent;
+  font-size: var(--text-caption); color: var(--text-secondary); width: 100%; text-align: left;
+}
+.side-toggle:hover { background: var(--fill-4); color: var(--text-primary); }
+.side-toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--accent-tint); background: var(--accent-tint); }
+
+.menu-fab {
+  display: none; position: absolute; top: var(--space-5); left: var(--space-5); z-index: 2;
+  width: 36px; height: 36px; border-radius: var(--radius-pill); place-items: center;
+  border: 1px solid var(--glass-border); color: var(--text-secondary);
+  background: var(--material-regular-tint);
+  -webkit-backdrop-filter: blur(var(--blur-thin)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--blur-thin)) saturate(var(--glass-saturate));
+  box-shadow: var(--glass-rim-light);
+}
+/* 窄屏时菜单按钮是绝对定位的，会和标题首字重叠 —— 给视图头让出它那 36px + 间距 */
+@media (max-width: 900px) {
+  /* 抽屉本身就是浮层，块内再吸顶只会跟抽屉的滚动打架 */
+  .side-home { position: static; }
+  .menu-fab { display: grid; }
+  .view-head { padding-left: calc(var(--space-5) * 2 + 36px); }
+  .page-head { padding-left: calc(var(--space-5) * 2 + 36px); }
+}
+
+/* ══ 视图头 ══════════════════════════════════════════════════════════ */
+.view-head {
+  flex: 0 0 auto; display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-5);
+  max-width: var(--max-read); width: 100%; margin: 0 auto;
+  padding: var(--space-6) var(--pad-container) var(--space-3);
+}
+.view-head h1 { margin: 0; font-size: var(--text-title-2); line-height: var(--leading-title-2); letter-spacing: var(--tracking-title-2); }
+.view-head p { margin: var(--space-2) 0 0; font-size: var(--text-subhead); color: var(--text-secondary); }
+
+/* ══ 产品层页面 ══════════════════════════════════════════════════════ */
+.view-scroll { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
+.view-scroll::-webkit-scrollbar { width: 10px; }
+.view-scroll::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid transparent; background-clip: content-box; border-radius: 99px; }
+.view-inner { max-width: 860px; margin: 0 auto; padding: var(--space-5) var(--pad-container) var(--space-10); }
+.page { display: flex; flex-direction: column; gap: var(--space-6); }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.page-head h1 { margin: 0; font-size: var(--text-title-1); line-height: var(--leading-title-1); letter-spacing: var(--tracking-title-1); }
+.page-head p { margin: var(--space-2) 0 0; color: var(--text-secondary); font-size: var(--text-subhead); }
+.page-body { display: flex; flex-direction: column; gap: var(--space-5); }
+.page-note { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-caption); color: var(--text-tertiary); }
+
+/* 余额主卡：内容层，不透明 */
+.balance-hero {
+  border-radius: var(--radius-panel); padding: var(--space-7);
+  background: var(--grad-hero); color: var(--accent-on);
+  box-shadow: var(--shadow-panel); display: flex; flex-direction: column; gap: var(--space-3);
+}
+.balance-hero-top { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-subhead); opacity: .82; }
+.balance-hero > strong { font-size: 2.25rem; line-height: 1.1; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.balance-hero-foot { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-footnote); opacity: .78; }
+.balance-hero-actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
+.balance-hero .a2ui-btn--primary { background: var(--accent-on); color: var(--accent); }
+.balance-hero .a2ui-btn--primary:hover { background: var(--accent-on); opacity: .9; }
+.balance-hero .a2ui-btn--secondary { background: var(--on-dark-fill); color: var(--accent-on); }
+.balance-hero .a2ui-btn--secondary:hover { background: var(--on-dark-fill-hover); }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-5); }
+
+/* 面板：内容层，禁止玻璃 */
+.panel {
+  background: var(--bg-surface);
+  border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4); border-bottom: 1px solid var(--hairline);
+}
+.panel-head h2 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
+.panel-hint { font-size: var(--text-caption); color: var(--text-tertiary); }
+.panel-body { padding: var(--space-5) var(--space-6) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.panel > .panel-body:only-child { padding: var(--space-6); }
+
+.stat-num { font-size: var(--text-title-3); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.stat-note { font-size: var(--text-caption); color: var(--text-tertiary); }
+.link-btn { border: none; background: none; color: var(--accent); font-size: var(--text-footnote); padding: 0; }
+.link-btn:hover { text-decoration: underline; }
+
+/* 不给每一行画分隔线：那是"最懒的布局"，12 行就是 12 条线。
+   改用「间距 + hover 底色 + 组间一条 hairline」来表达分组。 */
+.sub-list > li + li { border-top: 1px solid var(--hairline); }
+.masked-num { font-variant-numeric: tabular-nums; letter-spacing: .06em; }
+/* ── 图标底座：两种语言 ──────────────────────────────────────────────
+   圆形 = 动作（钱在动，没有"物"）；方形 = 对象（有具体消费品）。
+   这条规则来自 ZA Bank 首页宫格的双图标语言。 */
+.tx-icon, .sub-logo {
+  width: 36px; height: 36px; flex: 0 0 auto;
+  display: grid; place-items: center; font-weight: 600;
+  border-radius: var(--radius-thumb);            /* 默认方形语言 */
+  background: var(--fill-3); color: var(--text-secondary);
+  transition: transform var(--duration-fast) var(--ease-out-quart),
+              background-color var(--duration-fast) var(--ease-out);
+}
+.tx-icon--round, .sub-logo--round { border-radius: var(--radius-pill); }
+
+.tx-icon--transfer  { background: var(--cat-transfer-tint);  color: var(--cat-transfer); }
+.tx-icon--dining    { background: var(--cat-dining-tint);    color: var(--cat-dining); }
+.tx-icon--shopping  { background: var(--cat-shopping-tint);  color: var(--cat-shopping); }
+.tx-icon--transport { background: var(--cat-transport-tint); color: var(--cat-transport); }
+.tx-icon--subscribe { background: var(--cat-subscribe-tint); color: var(--cat-subscribe); }
+.tx-icon--income    { background: var(--cat-income-tint);    color: var(--cat-income); }
+
+/* 餐饮变体：下标由 diningLook(name) 给出，同一家店永远同一套色 */
+.tx-icon--dining[data-look="1"] { background: color-mix(in srgb, var(--cat-dining-b) 12%, transparent); color: var(--cat-dining-b); }
+.tx-icon--dining[data-look="2"] { background: color-mix(in srgb, var(--cat-dining-c) 12%, transparent); color: var(--cat-dining-c); }
+.tx-icon--dining[data-look="3"] { background: color-mix(in srgb, var(--cat-dining-d) 12%, transparent); color: var(--cat-dining-d); }
+.tx-icon--dining[data-look="4"] { background: color-mix(in srgb, var(--cat-dining-e) 12%, transparent); color: var(--cat-dining-e); }
+.tx-icon--dining[data-look="5"] { background: color-mix(in srgb, var(--cat-dining-f) 12%, transparent); color: var(--cat-dining-f); }
+
+/* 行 hover 共用：底色 + 图标放大。键盘也要有等价物，否则键盘用户完全看不到这套语言 */
+@media (hover: hover) and (pointer: fine) {
+}
+.tx-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.tx-main strong { font-size: var(--text-subhead); font-weight: 500; }
+.tx-main small { font-size: var(--text-caption); color: var(--text-tertiary); }
+
+.chips-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip {
+  height: 28px; padding: 0 var(--space-4); border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline); background: var(--bg-surface);
+  font-size: var(--text-caption); color: var(--text-secondary);
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.chip:hover { background: var(--fill-4); }
+.chip.on { background: var(--accent); border-color: transparent; color: var(--accent-on); }
+
+.total-pill { padding: var(--space-3) var(--space-5); border-radius: var(--radius-pill); background: var(--accent-tint); color: var(--accent); font-size: var(--text-footnote); font-weight: 500; }
+.sub-row.muted { opacity: .5; }
+.sub-right { display: flex; align-items: center; gap: var(--space-4); }
+.sub-right b { font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sub-right b small { font-weight: 400; color: var(--text-tertiary); }
+.canceled-tag { font-size: var(--text-caption); color: var(--text-tertiary); }
+.next-sub { display: flex; flex-direction: column; }
+.next-sub strong { font-size: var(--text-subhead); }
+.next-sub small { font-size: var(--text-caption); color: var(--text-tertiary); }
+.card-status-row { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-subhead); color: var(--text-secondary); }
+.card-status-row b { margin-left: auto; font-size: var(--text-caption); }
+.card-status-row b.ok { color: var(--success); }
+.card-status-row b.frozen { color: var(--warning); }
+
+/* ══ 卡面 ══════════════════════════════════════════════════════════════
+   比例 / 圆角 / 内边距 / 渐变方向全部来自 ZA Card 官方截图的逐像素实测。
+   注意渐变是**角对角**（CSS 的 to bottom right），不是 135deg —— 后者在非方形元素上是错的。 */
+.bank-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-5); }
+.bank-card {
+  position: relative; overflow: hidden; isolation: isolate;
+  aspect-ratio: 1.669;                    /* 实测 631×378，不是 ISO 的 1.586 */
+  border-radius: 20px;                    /* 实测约 5.39% 卡宽 */
+  padding: 18px 21px 20px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  color: var(--accent-on); font-variant-numeric: tabular-nums;
+  background: linear-gradient(to bottom right, var(--card-0-a), var(--card-0-b));
+  color: var(--on-card-0);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--duration-base) var(--ease-out-quart),
+              box-shadow var(--duration-base) var(--ease-out);
+}
+/* ZA 卡面实测零高光零纹理。这条是我们主动加的一层，用低 alpha 的顶部高光，
+   不用 mix-blend-mode（在浅底上会发灰、显脏）。 */
+.bank-card::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--card-gloss-soft);
+}
+.bank-card > * { position: relative; z-index: 1; }
+
+.bank-card-top { display: flex; align-items: center; gap: var(--space-4); }
+.bank-card-logo {
+  width: 44px; height: 44px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 50%;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: inherit; font-size: 20px; font-weight: 600; line-height: 1;
+}
+.bank-card-brand { font-size: var(--text-footnote); font-weight: 600; opacity: .95; }
+.bank-card-brand em { font-style: normal; font-weight: 400; opacity: .8; }
+.bank-card-num { font-size: 22px; font-weight: 600; letter-spacing: .045em; line-height: 1.15; }
+.bank-card-foot { display: flex; align-items: flex-end; gap: var(--space-7); }
+.bank-card-field { display: flex; flex-direction: column; gap: 1px; }
+.bank-card-field i { font-style: normal; font-size: var(--text-caption-2); opacity: .82; }
+.bank-card-field b { font-size: var(--text-footnote); font-weight: 600; letter-spacing: .06em; }
+.bank-card-mark { margin-left: auto; font-size: 17px; font-weight: 800; font-style: italic; letter-spacing: -.02em; opacity: .78; }
+
+.bank-card--1 { background: linear-gradient(to bottom right, var(--card-1-a), var(--card-1-b)); color: var(--on-card-1); }
+.bank-card--2 { background: linear-gradient(to bottom right, var(--card-2-a), var(--card-2-b)); color: var(--on-card-2); }
+
+/* 冻结：换墨黑 + 斜纹。原来的 grayscale 会把文字也压灰，看起来像 bug */
+.bank-card.frozen { background: linear-gradient(to bottom right, var(--card-2-a), var(--card-2-b)); color: var(--on-card-2); }
+.bank-card.frozen .bank-card-num,
+.bank-card.frozen .bank-card-logo { opacity: .35; }
+.bank-card.frozen { background-image: repeating-linear-gradient(115deg, transparent 0 12px, var(--card-frost) 12px 13px), linear-gradient(to bottom right, var(--card-2-a), var(--card-2-b)); }
+/* 扫光单独一层。之前光泽层和扫光抢同一个伪元素，
+   hover 时 background 被换掉，那层"灰灰的光泽"就突然消失了 —— 观感上像闪了一下。 */
+.bank-card::after {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--sheen-video);
+  transform: translate3d(-130%, 0, 0) skewX(-14deg); opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .bank-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
+  .bank-card:hover::after { animation: sheen-sweep 1500ms var(--ease-out) 120ms 1 both; }
+}
+.bank-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .bank-card:hover { transform: none; }
+  .bank-card:hover::before { animation: none; }
+}

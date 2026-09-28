@@ -1,0 +1,209 @@
+/* motion.css —— 动效。只动 transform/opacity；降级规则见文末与 tokens.css */
+
+/* ══ 动效 ════════════════════════════════════════════════════════════
+   原则（doc/research/apple-design-tokens.md §6）：
+   · 只用 transform / opacity —— 不触发布局重排
+   · 进场用 spring 曲线；按压把 duration 压到 instant（拟真的关键）
+   · 列表错峰用纯 CSS 的 animation-delay，不写 JS 循环
+   · prefers-reduced-motion 已在 tokens.css 全局降级
+   ══════════════════════════════════════════════════════════════════ */
+
+@keyframes surface-in {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+}
+@keyframes item-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+@keyframes sheen {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+/* 卡片滑入：每次 surface 换页都会重播（AssistantView 按 step 换了 key） */
+.a2ui-surface { animation: surface-in var(--dur-spring-sheet) var(--ease-spring-sheet) both; }
+
+/* 选项列表逐项浮现 */
+.a2ui-col > .a2ui-card,
+.a2ui-row > .a2ui-card {
+  animation: item-in var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.a2ui-col > .a2ui-card:nth-child(1), .a2ui-row > .a2ui-card:nth-child(1) { animation-delay: 50ms; }
+.a2ui-col > .a2ui-card:nth-child(2), .a2ui-row > .a2ui-card:nth-child(2) { animation-delay: 95ms; }
+.a2ui-col > .a2ui-card:nth-child(3), .a2ui-row > .a2ui-card:nth-child(3) { animation-delay: 140ms; }
+.a2ui-col > .a2ui-card:nth-child(4), .a2ui-row > .a2ui-card:nth-child(4) { animation-delay: 185ms; }
+.a2ui-col > .a2ui-card:nth-child(5), .a2ui-row > .a2ui-card:nth-child(5) { animation-delay: 230ms; }
+.a2ui-col > .a2ui-card:nth-child(6), .a2ui-row > .a2ui-card:nth-child(6) { animation-delay: 275ms; }
+.a2ui-col > .a2ui-card:nth-child(7), .a2ui-row > .a2ui-card:nth-child(7) { animation-delay: 320ms; }
+.a2ui-col > .a2ui-card:nth-child(n+8) { animation-delay: 360ms; }
+
+/* 步骤条 */
+.a2ui-progress { display: flex; gap: 6px; width: 100%; }
+.a2ui-progress-seg {
+  flex: 1 1 0; height: 4px; border-radius: var(--radius-pill);
+  background: var(--bg-track);
+  transition: background var(--duration-slow) var(--ease-out);
+}
+.a2ui-progress-seg.on { background: var(--accent); }
+
+/* 可点卡片：hover 抬升 + 右移的那一点"邀请感" */
+.a2ui-card--interactive .a2ui-icon { transition: transform var(--duration-base) var(--ease-spring), background var(--duration-base) var(--ease-out); }
+.a2ui-card--interactive:hover .a2ui-icon { transform: scale(1.08); }
+.a2ui-card--interactive:hover { border-color: var(--accent-tint); }
+
+/* 金额输入：聚焦时轻微放大，给"这一步是重点"的暗示 */
+.a2ui-field input[inputmode="decimal"] { transition: box-shadow var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-spring); }
+.a2ui-field input[inputmode="decimal"]:focus { transform: scale(1.012); }
+
+/* 面板/列表进场的轻微错峰（产品层页面） */
+.panel { animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both; }
+.page-body > .panel:nth-child(1) { animation-delay: 40ms; }
+.page-body > .panel:nth-child(2) { animation-delay: 90ms; }
+.page-body > .panel:nth-child(3) { animation-delay: 140ms; }
+.page-body > .panel:nth-child(4) { animation-delay: 190ms; }
+.balance-hero { animation: surface-in var(--dur-spring-sheet) var(--ease-spring-sheet) both; }
+
+/* 余额数字：等宽，避免跳动 */
+.balance-hero > strong { font-variant-numeric: tabular-nums; }
+/* ══ 分类签名动效 ════════════════════════════════════════════════════
+   每个分类有自己的"性格动作"，一眼能认出这是哪类消费。
+   全部只动 transform —— 不触发布局，跑在合成器上。
+   降级见文件末尾的 prefers-reduced-motion 段。 */
+
+/* ① 转账 · 对流：两个箭头来回，钱在两个账户之间走 */
+@keyframes flow-x { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
+/* ② 餐饮 · 抬盘：端起来看一眼 */
+@keyframes plate-lift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-3px) rotate(-8deg); }
+}
+/* ③ 购物 · 提袋轻晃 */
+@keyframes bag-swing {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-9deg); }
+  75%      { transform: rotate(9deg); }
+}
+/* ④ 交通 · 前行 */
+@keyframes car-forward { 0% { transform: translateX(0); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
+/* ⑤ 收入 · 生长 */
+@keyframes grow-up { 0% { transform: translateY(3px); opacity: .55; } 100% { transform: translateY(0); opacity: 1; } }
+
+@media (hover: hover) and (pointer: fine) {
+  /* 列表行是"一天看几十次"的频率层 —— 按 emilkowalski 的门，
+     这一层只该有"几乎不可感知"的动效。所以：
+     · 转账的 ±2px 对流留在循环（36px 底座上 2px ≈ 5.6%，读不出在动，只觉得"活着"）
+     · 餐饮/购物的抬盘与摆动幅度太大，改成**一次性**签名动作 —— 扫过时认得出来，不持续干扰 */
+  .row-item:hover .tx-icon--transfer svg  { animation: flow-x 1400ms var(--ease-in-out) infinite; }
+  .row-item:hover .tx-icon--dining svg    { animation: plate-lift 620ms var(--ease-out) 1; }
+  .row-item:hover .tx-icon--shopping svg  { animation: bag-swing 560ms var(--ease-out) 1; }
+  .row-item:hover .tx-icon--transport svg { animation: car-forward 900ms var(--ease-out) 1; }
+  .row-item:hover .tx-icon--income svg    { animation: grow-up 700ms var(--ease-spring) 1; }
+}
+
+/* ══ 订阅细分项的三条动效 ═══════════════════════════════════════════
+   作者点名要求：云空间要"浮"、视频要有"光影"、音乐要有"律动"。 */
+
+/* ── 云空间 · 漂浮 + 同步的云影 ───────────────────────────────────
+   没有影子的上浮看起来像贴纸被拽走；有影子才像"飘"。 */
+.sub-logo--cloud { position: relative; overflow: visible; }
+@keyframes cloud-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(0, -4px, 0) scale(1.07); }
+}
+@keyframes cloud-shadow {
+  0%, 100% { transform: scale(1); opacity: .38; }
+  50%      { transform: scale(.72); opacity: .16; }
+}
+/* 云影用独立伪元素而不是动画化 box-shadow —— 后者每帧重绘整个阴影 */
+.sub-logo--cloud::after {
+  content: ''; position: absolute; left: 50%; bottom: 1px;
+  width: 18px; height: 5px; margin-left: -9px;
+  border-radius: var(--radius-pill); background: var(--cat-subscribe);
+  opacity: .38; transform-origin: 50% 50%; pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sub-row--cloud:hover .sub-logo--cloud svg {
+    animation: cloud-float var(--dur-float) var(--ease-in-out) infinite;
+    will-change: transform;   /* 只写在 hover 里，避免整列常驻合成层 */
+  }
+  .sub-row--cloud:hover .sub-logo--cloud::after { animation: cloud-shadow var(--dur-float) var(--ease-in-out) infinite; }
+}
+
+/* ── 视频 · 光影扫过 ─────────────────────────────────────────────
+   overflow:hidden 只加在这一行 —— 加到基类会切掉云上浮的 4px。 */
+@keyframes sheen-sweep {
+  0%   { transform: translate3d(-130%, 0, 0) skewX(-14deg); opacity: 0; }
+  12%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate3d(130%, 0, 0) skewX(-14deg);  opacity: 0; }
+}
+.sub-row--video { position: relative; overflow: hidden; isolation: isolate; border-radius: var(--radius-thumb); }
+.sub-row--video::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: var(--sheen-video);
+  transform: translate3d(-130%, 0, 0) skewX(-14deg); opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sub-row--video:hover::after { animation: sheen-sweep var(--dur-sheen) var(--ease-out) 60ms 1 both; }
+}
+.sub-row--video:focus-within::after { animation: sheen-sweep var(--dur-sheen) var(--ease-out) 60ms 1 both; }
+/* overflow:hidden 会裁掉 outline，焦点环改成内缩 */
+.sub-row--video :focus-visible { outline-offset: -3px; }
+
+/* ── 音乐 · 均衡器律动 ───────────────────────────────────────────
+   ⚠️ 绝不能加 animation-fill-mode: both —— tokens.css 的降级规则会把
+   duration 压成 .01ms，配 both 会让四根条全部停在 scaleY(.30) 塌成一条平线。
+   用默认的 none，动画结束后回落到下面的静态波形。 */
+.sub-logo--music { color: var(--cat-subscribe); background: var(--cat-subscribe-tint); }
+.eq { display: flex; align-items: flex-end; gap: 2.5px; height: 15px; }
+.eq i {
+  display: block; width: 2.5px; height: 100%;
+  border-radius: var(--radius-pill); background: currentColor;
+  transform-origin: 50% 100%;   /* 从基线往上长，不是从中心往两头涨 */
+}
+/* 静态态 = 一段冻住的波形（未 hover 与降级时都用它） */
+.eq i:nth-child(1) { transform: scaleY(.42); }
+.eq i:nth-child(2) { transform: scaleY(.86); }
+.eq i:nth-child(3) { transform: scaleY(.58); }
+.eq i:nth-child(4) { transform: scaleY(.74); }
+
+@keyframes eq-bounce { 0%, 100% { transform: scaleY(.30); } 50% { transform: scaleY(1); } }
+@media (hover: hover) and (pointer: fine) {
+  .sub-row--music:hover .eq i { animation: eq-bounce var(--dur-eq) var(--ease-in-out) infinite; }
+  .sub-row--music:hover .eq i:nth-child(1) { animation-delay:   0ms; }
+  .sub-row--music:hover .eq i:nth-child(2) { animation-delay: 110ms; }
+  .sub-row--music:hover .eq i:nth-child(3) { animation-delay: 220ms; }
+  .sub-row--music:hover .eq i:nth-child(4) { animation-delay: 330ms; }
+}
+
+/* ── 降级：不是删掉动效，是换成不动的、语义等价的版本 ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sub-logo--cloud svg { transform: translate3d(0, -2px, 0); }
+  .sub-logo--cloud::after { transform: scale(.82); opacity: .22; }
+  .sub-row--cloud:hover .sub-logo--cloud svg,
+  .sub-row--cloud:hover .sub-logo--cloud::after { animation: none; }
+  /* 扫光是纯装饰，没有语义替身，直接消失 */
+  .sub-row--video:hover::after, .sub-row--video:focus-within::after { animation: none; opacity: 0; }
+  .sub-row--music:hover .eq i { animation: none; }
+  .row-item:hover .tx-icon svg { animation: none; }
+}
+
+/* ══ 切换视图：一次「对焦」 ══════════════════════════════════════════
+   这是全站唯一一个"有作者意识的瞬间"，所以它不跟别处共用入场。
+   craft-floor 明确要求：动效不要只停在 transform/opacity ——
+   blur、backdrop-filter、clip-path、mask、shadow 都属于这套调色板。
+   内容从轻微失焦落到清晰，读起来像"这一页被带到了眼前"。 */
+@keyframes focus-pull {
+  from { opacity: 0; transform: translateY(10px) scale(.994); filter: blur(8px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.view-scroll, .workspace { animation: focus-pull 380ms var(--ease-out-quart) both; }
+
+/* 侧边栏切换项：按下去要有触感 */
+.side-item:active { transform: scale(.985); }
+.side-item { transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), transform var(--duration-instant) var(--ease-out); }
+
+/* 流程换步：同一个 surface 在原地换页，用轻微横向位移表达"翻过去" */
+@keyframes step-forward {
+  from { opacity: 0; transform: translateX(14px); filter: blur(4px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+.a2ui-surface[data-step] { animation: step-forward 300ms var(--ease-out-quart) both; }

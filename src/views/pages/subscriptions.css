@@ -1,0 +1,121 @@
+/* subscriptions.css —— 订阅页本页自己的样式
+   其余零件（panel / stat-bar / a2ui-btn）来自 pages.css 与 views.css。
+   规约：本文件同样禁止硬编码颜色，一律 var()。 */
+
+/* ══ 一项订阅 = 一张有身份的卡 ═══════════════════════════════════════
+   为什么不把卡片套进面板：卡片就是这一层的内容，再套一层就是嵌套卡片
+   （craft-floor 明说嵌套卡片永远是错的）。所以「正在续费」是页面上的一个分区，
+   不是面板里的一串行。 */
+/* 标题上方留得比下方多（craft-floor 的间距节奏）：分区标题属于下面那组卡，
+   不属于上面那个面板。 */
+/* 进场与面板同一支（motion.css 的 sheen）：不加的话，两个面板在浮现、
+   中间的卡片却硬生生出现，看起来像没渲染完。降级由 tokens.css 的
+   .page-body > * 那条统一接管。 */
+.sub-block {
+  display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-1);
+  animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.sub-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); }
+.sub-block-head h2 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
+
+/* 一项一张卡，排成网格而不是一行行往下堆：这一页最多 3 到 4 项，
+   一行堆一张会在宽屏上留下大片空白。align-items:start 让展开后果预览时
+   只有那一张变高，旁边的卡不被拉伸。 */
+.sub-cards {
+  list-style: none; margin: 0; padding: 0; align-items: start;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-5);
+}
+/* li.sub-card 而不是 .sub-card：motion.css 的 .sub-row--video 也定圆角，
+   两边特异度相同就变成"看文件加载顺序"，那是 bug 不是设计。 */
+li.sub-card {
+  display: flex; flex-direction: column; gap: var(--space-5);
+  padding: var(--space-6); border-radius: var(--radius-card);
+  background: var(--bg-surface); box-shadow: var(--shadow-card);
+}
+
+/* 专属形象的第一步：每一项一个色相。色相取自既有的交易分类色，
+   不新增令牌 —— 全站的颜色只有一个来源。 */
+li.sub-card { --sub-hue: var(--cat-subscribe); }
+li.sub-card[data-tone="cloud"] { --sub-hue: var(--cat-transport); }
+li.sub-card[data-tone="video"] { --sub-hue: var(--cat-shopping); }
+li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
+
+.sub-card-head { display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: var(--space-5); }
+/* 形象本体：46px 的方形底座（方形 = 有具体的物，订阅是有物的一类）+ 该细分的动效 */
+.sub-card .sub-logo { width: 46px; height: 46px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--sub-hue) 14%, transparent); color: var(--sub-hue); }
+.sub-card .sub-logo--cloud::after { width: 22px; margin-left: -11px; background: var(--sub-hue); }
+.sub-card-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.sub-card-id h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
+.sub-card-id small { font-size: var(--text-footnote); color: var(--text-tertiary); }
+
+/* 价格的双视角：每月与每年同时在场。切换会把另一个视角藏起来，
+   而"一年到底花多少"正是用户在这一页最需要的那个数。 */
+.sub-card-price { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
+.sub-card-price > span { display: flex; align-items: baseline; gap: var(--space-3); }
+.sub-card-price i { font-style: normal; font-size: var(--text-caption-2); color: var(--text-tertiary); }
+.sub-card-price b { font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sub-card-price > span:first-child b { font-size: var(--text-title-3); }
+
+/* 事实行：第一行是「什么时候扣 + 可以取消」，第二行是「已经花了多少」。
+   已续与已付被强制换到整行（flex-basis 100%）—— 挤在动作旁边会被折成两行，
+   ¥174.00 单独掉下去一行，读起来像断句。 */
+.sub-card-facts { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
+.due-chip {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  height: 30px; padding: 0 var(--space-4); border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--sub-hue) 12%, transparent); color: var(--sub-hue);
+  font-size: var(--text-subhead); font-weight: 600;
+}
+.due-date { font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
+.due-tenure { flex: 1 1 100%; font-size: var(--text-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.sub-card-act { margin-left: auto; display: flex; gap: var(--space-3); }
+
+/* ── 已取消：同一张卡，但材料换成"不在运行"的那一种 ─────────────────── */
+.sub-cards--gone li.sub-card { background: var(--bg-surface-alt); box-shadow: var(--shadow-1); }
+.sub-cards--gone .sub-logo { background: var(--fill-3); color: var(--text-tertiary); }
+.sub-cards--gone .due-chip { background: var(--fill-3); color: var(--text-secondary); }
+.sub-cards--gone .sub-card-price b { color: var(--text-secondary); }
+@media (max-width: 560px) {
+  .sub-card-head { grid-template-columns: 46px 1fr; row-gap: var(--space-3); }
+  .sub-card-price { grid-column: 2; align-items: flex-start; }
+}
+
+/* ── 扫光放慢到 2400ms ───────────────────────────────────────────────
+   tokens.css 的 --dur-sheen 是 1400ms。那对一根 4px 高的横杠够用，对一整张卡
+   （约 770px 宽）不够：扫光要走 260% 的宽度，1400ms 等于每秒 1400px 以上，
+   读起来是「闪」不是「光」。慢到 2400ms 之后是每秒约 830px，一次呼吸的长度。
+   只覆盖本页，不动 tokens.css —— 卡面扫光是另一码事，那里本来就是 1500ms。
+   层级说明：这个选择器比 motion.css 的那条多一个类，所以与文件加载顺序无关。 */
+.sub-cards .sub-row--video:hover::after,
+.sub-cards .sub-row--video:focus-within::after { animation-duration: 2400ms; }
+
+/* ── 年度视角：三个角度并排 ─────────────────────────────────────────── */
+.sub-year-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+.sub-year-grid > div { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.sub-read { margin: 0; font-size: var(--text-subhead); color: var(--text-secondary); }
+@media (max-width: 640px) { .sub-year-grid { grid-template-columns: 1fr; gap: var(--space-4); } }
+
+/* ── 取消前的后果预览：就地展开在那一张卡里 ─────────────────────────── */
+.sub-preview {
+  display: flex; flex-direction: column; gap: var(--space-4);
+  margin: calc(var(--space-2) * -1) 0 0;
+  padding: var(--space-5); border-radius: var(--radius-thumb);
+  background: var(--bg-surface-alt);
+}
+.sub-preview-head { margin: 0; font-size: var(--text-subhead); font-weight: 600; }
+.sub-preview-fact { margin: 0; font-size: var(--text-footnote); color: var(--text-secondary); }
+.sub-benefits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.sub-benefits li { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-footnote); color: var(--text-secondary); }
+.sub-benefits svg { flex: 0 0 auto; color: var(--danger); }
+.sub-preview-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+
+/* ── 全部取消后的空状态 ─────────────────────────────────────────────── */
+.sub-empty { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-start; }
+.sub-empty-mark {
+  width: 44px; height: 44px; border-radius: var(--radius-pill);
+  display: grid; place-items: center; background: var(--success-tint); color: var(--success);
+}
+.sub-empty h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
+.sub-empty p { margin: 0; max-width: 52ch; font-size: var(--text-subhead); color: var(--text-secondary); }
+.sub-empty-facts { display: flex; gap: var(--space-8); flex-wrap: wrap; }
+.sub-empty-facts > div { display: flex; flex-direction: column; gap: var(--space-2); }

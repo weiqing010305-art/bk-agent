@@ -1,0 +1,50 @@
+/* overview.css —— 概览页自己新增的两块：主卡里的关联账户拆分、演示占位说明条。
+   只写本页新类名，不改 views.css / pages.css 里已有的零件。
+   颜色一律 var()/color-mix(tokens)，禁止字面量。 */
+
+/* ── 关联账户拆分 ─────────────────────────────────────────────────────
+   主卡内的一小段列表：不画分隔线，靠行距分组（与 .row-list 同一条规矩）。 */
+.acct-split {
+  list-style: none; margin: var(--space-2) 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+/* 科目名与它的金额是同一行、同一条基线。金额是这一行的主语，所以它更大更重、
+   靠右对齐成一列；科目名向左收，占满剩下的宽度，太长就省略而不是把金额挤到下一行。 */
+.acct-split li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); }
+.acct-name {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  min-width: 0; overflow: hidden; white-space: nowrap;
+  font-size: var(--text-footnote); opacity: .82;
+}
+/* 圆点区分两个子账户，比缩进更容易扫 */
+.acct-name::before {
+  content: ''; width: 6px; height: 6px; flex: 0 0 auto;
+  border-radius: var(--radius-pill); background: currentColor; opacity: .5;
+}
+.acct-name .masked-num { font-weight: 500; opacity: .9; }
+.acct-amt { flex: 0 0 auto; font-size: var(--text-callout); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ── 演示占位说明条 ───────────────────────────────────────────────────
+   宫格里没有页面的格子点下去落到这里：说清楚"没有接入"，不假装成功。
+   用页面内的说明条而不是浮层 toast，因为它是"这一格是什么"的说明，不是一次性通知。 */
+.demo-strip {
+  display: flex; align-items: center; gap: var(--space-3);
+  margin: 0; padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-thumb); background: var(--fill-4);
+  color: var(--text-secondary); font-size: var(--text-footnote);
+}
+.demo-strip svg { flex: 0 0 auto; color: var(--text-tertiary); }
+
+/* 窄屏不再把科目名压到金额上面 —— 那正是「位置放得不好」的来源：
+   科目名跑到数字上方，读起来像标题，而它其实是这一行的主语。
+   窄屏要省的是科目名的宽度（省略号），不是它的位置。 */
+@media (max-width: 640px) {
+  .acct-split { gap: var(--space-2); }
+}
+/* ── 代扣预授权的三枚 16px 头像 ────────────────────────────────────────
+   冻结金额是一个抽象数字；把签约的三个订阅摆成行内头像（§D.5 的 16px 规格），
+   「待扣 ¥72.00」就变成三件具体的事：云空间、光影视频、随听音乐。 */
+.recur-marks {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  margin-left: var(--space-2); vertical-align: -2px;
+}

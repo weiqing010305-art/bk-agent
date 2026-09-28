@@ -1,0 +1,201 @@
+/**
+ * charts.css —— 手绘 SVG / CSS 图表，以及账单页的形态与明细。
+ * 零依赖、零硬编码颜色：一律 var()。
+ *
+ * 层次：形态栏（一排胶囊） → 图形区 → 读数区 → 图例。
+ * 只有图形区随形态变，读数区与图例不动，所以切换形态时高亮与读数不会闪。
+ */
+
+.chart { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* ── 形态栏 ────────────────────────────────────────────────────────── */
+.chart-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.chart-tabs {
+  display: inline-flex; gap: 2px; padding: 3px; max-width: 100%;
+  border-radius: var(--radius-pill); background: var(--fill-4); overflow-x: auto;
+}
+.chart-tab {
+  height: 28px; padding: 0 var(--space-4); border: none; border-radius: var(--radius-pill);
+  background: transparent; color: var(--text-secondary); font-size: var(--text-caption);
+  white-space: nowrap; transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.chart-tab.on { background: var(--bg-surface); color: var(--text-primary); font-weight: 500; box-shadow: var(--shadow-1); }
+.chart-hint { font-size: var(--text-caption); color: var(--text-tertiary); }
+
+/* ── 图形区：固定最小高度，换形态时下面的东西不跳 ────────────────────── */
+.chart-stage { min-height: 172px; display: flex; align-items: center; justify-content: center; }
+.chart-track { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* ── 读数区：六种形态共用同一个位置 ─────────────────────────────────── */
+.chart-readout {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3);
+  min-height: var(--hit-min); padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-thumb); background: var(--fill-4); font-size: var(--text-subhead);
+}
+.chart-readout b { font-weight: 600; }
+.chart-readout-amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+.chart-readout-note { color: var(--text-tertiary); font-size: var(--text-caption); }
+.chart-readout-lead { flex-basis: 100%; color: var(--text-body); }
+.chart-locate {
+  margin-left: auto; height: 28px; padding: 0 var(--space-4); border: none;
+  border-radius: var(--radius-pill); background: var(--accent); color: var(--accent-on);
+  font-size: var(--text-caption); transition: transform var(--duration-instant) var(--ease-out);
+}
+.chart-locate:active { transform: scale(.96); }
+.readout-tag {
+  display: inline-flex; align-items: center; gap: var(--space-2); height: 26px; padding: 0 var(--space-3);
+  border: none; border-radius: var(--radius-pill); background: var(--bg-surface);
+  color: var(--text-secondary); font-size: var(--text-caption);
+}
+.readout-tag i { width: 8px; height: 8px; border-radius: 2px; }
+
+/* ── 图例：常驻，且本身就是筛选器 ───────────────────────────────────── */
+.chart-legend {
+  list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 2px;
+}
+.chart-legend-item {
+  display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: var(--space-3);
+  width: 100%; min-height: 36px; padding: 0 var(--space-3); border: none;
+  border-radius: var(--radius-thumb); background: transparent; font-size: var(--text-subhead); text-align: left;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.chart-legend-item.on { background: var(--bg-hover); }
+.chart-legend-item.picked .chart-legend-name { color: var(--accent); font-weight: 500; }
+.chart-swatch { width: 10px; height: 10px; border-radius: 3px; }
+.chart-legend-name { color: var(--text-secondary); }
+.chart-legend-pct { color: var(--text-faint); font-size: var(--text-caption); font-variant-numeric: tabular-nums; }
+.chart-legend-item b { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ── 圆环 ──────────────────────────────────────────────────────────── */
+.chart-donut svg { width: 196px; max-width: 100%; height: auto; overflow: visible; }
+.chart-seg {
+  cursor: pointer; transform-box: view-box; transform-origin: 66px 66px;
+  transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+}
+.chart-seg.on { transform: scale(1.05); }   /* 高亮的那一块向外膨一点，不改变别的段 */
+.chart-seg.is-dim { opacity: .3; }
+.chart-seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 圆心三行只是读数，不该抢走环上的指针事件 */
+.chart-center-label { text-anchor: middle; font-size: 10px; fill: var(--text-tertiary); pointer-events: none; }
+.chart-center-value { text-anchor: middle; font-size: 15px; font-weight: 600; fill: var(--text-primary);
+  font-variant-numeric: tabular-nums; pointer-events: none; }
+.chart-center-sub { text-anchor: middle; font-size: 9px; fill: var(--text-faint); pointer-events: none; }
+
+/* ── 条形 ──────────────────────────────────────────────────────────── */
+.chart-bars { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+.chart-bar {
+  display: grid; grid-template-columns: 3rem 1fr 2.6rem auto; align-items: center; gap: var(--space-4);
+  width: 100%; min-height: 34px; padding: 0 var(--space-3); border: none;
+  border-radius: var(--radius-thumb); background: transparent; text-align: left;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.chart-bar.on { background: var(--bg-hover); }
+.chart-bar-label { font-size: var(--text-footnote); color: var(--text-secondary); }
+.chart-bar-track { height: 10px; border-radius: var(--radius-pill); background: var(--fill-4); overflow: hidden; }
+.chart-bar-fill { display: block; height: 100%; border-radius: var(--radius-pill);
+  transition: width var(--duration-slow) var(--ease-spring); }
+.chart-bar-pct { font-size: var(--text-caption); color: var(--text-faint); font-variant-numeric: tabular-nums; text-align: right; }
+.chart-bar b { font-size: var(--text-footnote); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ── 环比：两条轨，上面是上一期，下面是本期 ─────────────────────────── */
+.chart-compare { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+.compare-key { display: flex; gap: var(--space-5); margin: 0 0 var(--space-2); font-size: var(--text-caption); color: var(--text-tertiary); }
+.compare-dot { display: inline-block; width: 10px; height: 4px; border-radius: 2px; margin-right: var(--space-2);
+  background: var(--fill-1); vertical-align: middle; }
+.compare-dot--cur { background: var(--text-tertiary); }
+.chart-compare--solo .compare-row { grid-template-columns: 3rem 1fr; }
+.compare-row {
+  display: grid; grid-template-columns: 3rem 1fr auto; align-items: center; gap: var(--space-4);
+  width: 100%; min-height: 40px; padding: 0 var(--space-3); border: none;
+  border-radius: var(--radius-thumb); background: transparent; text-align: left;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.compare-row.on { background: var(--bg-hover); }
+.compare-tracks { display: flex; flex-direction: column; gap: 3px; }
+.compare-track { height: 7px; border-radius: var(--radius-pill); background: var(--fill-4); overflow: hidden; }
+.compare-track i { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--fill-1); }
+.compare-delta { font-size: var(--text-caption); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ── 占比：时间轴上每周一根 100% 高的条 ─────────────────────────────── */
+.chart-stack { display: flex; align-items: flex-end; gap: var(--space-4); width: 100%; max-width: 560px; }
+.stack-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.stack-bar { width: 100%; height: 140px; display: flex; flex-direction: column-reverse; gap: 1px;
+  border-radius: var(--radius-sm); overflow: hidden; }
+.stack-seg { flex-basis: 0; min-height: 3px; padding: 0; border: none; cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-out); }
+.stack-seg.on { box-shadow: inset 0 0 0 2px var(--bg-surface); }
+.stack-label { font-size: var(--text-caption-2); color: var(--text-tertiary); white-space: nowrap; }
+.stack-total { font-size: var(--text-caption); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ── 热力：周一开头的日历格 ─────────────────────────────────────────── */
+.heat-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; max-width: 392px; }
+.heat-dow { text-align: center; padding-bottom: 2px; font-size: var(--text-caption-2); color: var(--text-faint); }
+.heat-cell {
+  aspect-ratio: 1; border: none; border-radius: var(--radius-sm); background: var(--fill-4);
+  color: var(--text-faint); font-size: var(--text-caption-2); font-variant-numeric: tabular-nums;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.heat-cell--pad { background: transparent; }
+/* 日号要一直读得清，所以只有最深的一档换白字，其余都保持深色 */
+.heat-cell[data-level="1"] { background: color-mix(in srgb, var(--accent) 16%, var(--bg-surface)); color: var(--text-primary); }
+.heat-cell[data-level="2"] { background: color-mix(in srgb, var(--accent) 34%, var(--bg-surface)); color: var(--text-primary); }
+.heat-cell[data-level="3"] { background: color-mix(in srgb, var(--accent) 62%, var(--bg-surface)); color: var(--text-primary); }
+.heat-cell[data-level="4"] { background: var(--accent); color: var(--accent-on); }
+@media (hover: hover) and (pointer: fine) { .heat-cell:hover { box-shadow: inset 0 0 0 2px var(--bg-surface); } }
+.heat-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── 趋势 ──────────────────────────────────────────────────────────── */
+.chart-trend { width: 100%; display: flex; flex-direction: column; gap: var(--space-2); }
+.chart-line { width: 100%; height: auto; aspect-ratio: 520 / 168; overflow: visible; }
+.chart-area { fill: var(--accent-tint); }
+.chart-stroke { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round;
+  vector-effect: non-scaling-stroke; }
+.chart-dot { fill: var(--bg-surface); stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.chart-dot--on { fill: var(--accent); }
+.chart-dot--peak { fill: var(--accent); stroke: var(--bg-surface); stroke-width: 3; }
+.chart-guide { stroke: var(--divider); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.chart-mark { font-size: 11px; fill: var(--text-tertiary); }
+.chart-axis { display: flex; justify-content: space-between; font-size: var(--text-caption-2); color: var(--text-faint); }
+
+/* ── 账单页：账期胶囊 + 按日分组 ─────────────────────────────────────── */
+.month-pills { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--radius-pill); background: var(--fill-4); }
+.month-pill {
+  height: 28px; padding: 0 var(--space-5); border: none; border-radius: var(--radius-pill);
+  background: transparent; color: var(--text-secondary); font-size: var(--text-footnote);
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.month-pill.on { background: var(--bg-surface); color: var(--text-primary); font-weight: 600; box-shadow: var(--shadow-1); }
+.month-pill--still { display: inline-flex; align-items: center; }
+
+.bills-day {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4);
+  position: sticky; top: 0; z-index: 1; padding: var(--space-2) 0; background: var(--bg-surface);
+}
+.bills-day h3 { margin: 0; font-size: var(--text-footnote); font-weight: 600; color: var(--text-secondary); }
+.bills-day b { font-size: var(--text-caption); font-weight: 500; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+/* 共享高亮：命中项留下，其余退到背景里。只动 opacity，不动布局 */
+.row-item--dim, .row-item--hit {
+  transition: opacity var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+}
+.row-item--dim { opacity: .5; }
+.row-item--hit { background: var(--bg-hover); }
+
+@media (max-width: 640px) {
+  .chart-stage { min-height: 150px; }
+  .chart-tab { padding: 0 var(--space-3); }   /* 六个形态在窄屏也要一条排得下 */
+  .chart-tabs { flex-wrap: wrap; overflow: visible; }
+  .chart-donut svg { width: 148px; }
+  .chart-bar { grid-template-columns: 2.6rem 1fr 2.4rem auto; gap: var(--space-2); }
+  .chart-legend { grid-template-columns: 1fr; }
+  .chart-stack { gap: var(--space-2); }
+  .stack-bar { height: 108px; }
+  .chart-locate { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-seg, .chart-bar-fill, .stack-seg, .chart-locate,
+  .row-item--dim, .row-item--hit { transition: none; }
+}

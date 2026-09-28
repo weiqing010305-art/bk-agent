@@ -1,0 +1,290 @@
+/**
+ * tokens.css —— 设计令牌唯一来源
+ * ============================================================================
+ * 规约（AGENTS.md §3）：组件样式内禁止出现硬编码颜色字面量。
+ * `#hex` / `rgb()` 只允许出现在本文件。
+ *
+ * 取值来源（全部实查，见 doc/research/）：
+ *  · Apple HIG Foundations —— Typography / Color / Materials / Layout
+ *    （doc/research/apple-design-tokens.md §7，原始镜像在 doc/research/_raw/apple-hig-*.md）
+ *  · iOS System Colors 2025-06-09 WWDC25 刷新值
+ *  · apple.com 网页色板（naplesblue/apple-design-skill、rukkiecodes/claude-apple-design-system 交叉印证）
+ *  · 弹簧曲线为按阻尼谐振子数值积分生成的 linear()，非近似 cubic-bezier
+ *
+ * ⚠️ 最重要的一条规则 —— Apple 的「两层模型」（2025 结构变化）：
+ *    内容层（文字/列表/业务卡片/聊天区）→ 只用标准材质，**绝不能用玻璃**。
+ *    功能层（顶栏/侧栏/输入框/浮层/CTA）→ 玻璃只属于这里。
+ *    把业务卡片做成毛玻璃是违规的，视觉上也会糊成一团。**同屏玻璃 ≤ 3 个。**
+ */
+
+:root {
+  color-scheme: light;
+  /* ponytail: 暗色模式是 PRD 的 P1，令牌已分层、切换成本低，但未经验证故不预置。加时只需补一个 @media (prefers-color-scheme: dark) 覆盖本文件。 */
+
+  /* ── 字体 ────────────────────────────────────────────────────────────── */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+               "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  /* SF Pro Text / Display 是旧的离散光学尺寸，现代 SF Pro 是可变字体，不再手动切换 */
+
+  /* ── 字号阶梯（HIG Dynamic Type，Large 默认档，1rem = 16px）─────────── */
+  /* ZA 实测英雄金额约 40pt、占屏宽 44%，比 Apple 的 LargeTitle(34pt) 还大一档。
+     第一屏只回答一个问题，字号就是那个答案。 */
+  --text-hero: 2.5rem;
+  --text-large-title: 2.125rem;   /* 34pt · Bold */
+  --text-title-1:     1.75rem;    /* 28pt · Bold */
+  --text-title-2:     1.375rem;   /* 22pt · Bold */
+  --text-title-3:     1.25rem;    /* 20pt · Semibold */
+  --text-headline:    1.0625rem;  /* 17pt · Semibold */
+  --text-body:        1.0625rem;  /* 17pt · Regular */
+  --text-callout:     1rem;       /* 16pt */
+  --text-subhead:     0.9375rem;  /* 15pt */
+  --text-footnote:    0.8125rem;  /* 13pt */
+  /* caption 是 caption-1 的别名。它被 12 处以上引用过却从来没定义，
+     浏览器会静默丢掉整条 font-size 声明，字号退回继承值 —— 肉眼几乎看不出，最难查。 */
+  --text-caption:     var(--text-caption-1);
+  --text-caption-1:   0.75rem;    /* 12pt */
+  --text-caption-2:   0.6875rem;  /* 11pt */
+
+  --leading-hero: 1.08;
+  --leading-large-title: 1.21;  --leading-title-1: 1.21;
+  --leading-title-2: 1.27;      --leading-title-3: 1.25;
+  --leading-headline: 1.29;     --leading-body: 1.29;
+  --leading-callout: 1.31;      --leading-subhead: 1.33;
+  --leading-footnote: 1.38;     --leading-caption-1: 1.33;
+  --leading-caption-2: 1.18;    --leading-relaxed: 1.6;
+
+  /* Tracking：HIG SF Pro 官方表。12pt 为零点，12–22pt 为负字距，17pt 最紧。
+     注意这与「大标题用负字距」的网页教程相反 —— 那是 apple.com 营销页做法，不是 App 界面做法。 */
+  --tracking-caption-2:  0.005em;   /* 11pt */
+  --tracking-caption-1:  0em;       /* 12pt */
+  --tracking-footnote:  -0.006em;   /* 13pt */
+  --tracking-subhead:   -0.016em;   /* 15pt */
+  --tracking-callout:   -0.020em;   /* 16pt */
+  --tracking-body:      -0.026em;   /* 17pt ← 正文基准 */
+  --tracking-title-3:   -0.023em;   /* 20pt */
+  --tracking-title-2:   -0.012em;   /* 22pt */
+  --tracking-title-1:    0.014em;   /* 28pt */
+  --tracking-large-title: 0.012em;  /* 34pt */
+
+  /* ── 间距（4/8pt 网格）───────────────────────────────────────────────── */
+  --space-1: 2px;   --space-2: 4px;   --space-3: 8px;   --space-4: 12px;
+  --space-5: 16px;  --space-6: 20px;  --space-7: 24px;  --space-8: 32px;
+  --space-9: 40px;  --space-10: 48px; --space-12: 64px;
+
+  --pad-container: 22px;
+  --max-read:  780px;   /* 阅读列宽（对话流） */
+  --max-grid: 1080px;
+  --hit-min:    44px;   /* HIG 触控目标最小命中区 */
+
+  /* ── 圆角（语义分层，不自创中间值）───────────────────────────────────── */
+  --radius-chip:  6px;    --radius-sm: 8px;     --radius-thumb: 12px;
+  --radius-md:   14px;    --radius-sheet: 16px; --radius-card: 18px;
+  --radius-lg:   20px;    --radius-panel: 22px; --radius-hero: 26px;
+  --radius-2xl:  28px;    --radius-pill: 999px;
+  /* 连续圆角近似：CSS 正圆角与超椭圆视觉差约 20%，故 CSS 半径 = 设计半径 × 1.2 */
+
+  /* ── 阴影（永远两层：紧贴接触影 + 柔和环境影；禁止单层硬阴影）───────── */
+  --shadow-hairline: 0 0 0 .5px rgba(0,0,0,.06);
+  --shadow-1:    0 1px 2px rgba(0,0,0,.04), 0 1px 1px rgba(0,0,0,.06);
+  --shadow-card: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+  --shadow-panel:0 1px 3px rgba(0,0,0,.05), 0 14px 40px rgba(0,0,0,.05);
+  --shadow-lift: 0 12px 32px rgba(0,0,0,.10);          /* 配 translateY(-3px) */
+  --shadow-overlay: 0 2px 8px rgba(0,0,0,.10), 0 30px 80px rgba(0,0,0,.24);
+
+  /* ── 材质（玻璃只用于功能层）─────────────────────────────────────────── */
+  --material-thin-tint:    rgba(255,255,255,.60);
+  --material-regular-tint: rgba(255,255,255,.72);
+  --blur-thin: 14px;  --blur-regular: 20px;  --blur-thick: 34px;
+  --glass-saturate: 180%;
+  /* 边框用的那一个像素。四个文件引用过它却从来没定义 ——
+     缺失时整条 border 声明被丢弃，边框退化成 currentColor（近黑），比想要的重得多。 */
+  --glass-border: rgba(0,0,0,.07);
+  /* Apple 唯一公布的 Liquid Glass 数值：clear 变体在明亮背景上叠 35% 暗化层 */
+  --glass-dim: .35;
+  /* 玻璃四层模型：tint + blur/saturate + 顶部高光（最高杠杆的一行）+ 边缘/浮动影 */
+  --glass-rim-light:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 0 0 .5px rgba(255,255,255,.18),
+    0 0 0 .5px rgba(0,0,0,.06);
+  --shadow-glass: 0 8px 32px rgba(0,0,0,.18);
+  --glass-shadow: var(--glass-rim-light), var(--shadow-glass);
+
+  /* ── 色彩 · 骨架（apple.com 网页色板）───────────────────────────────── */
+  --bg-app:         #f5f5f7;   /* 页面底 · 冷灰白，绝不偏暖 */
+  --bg-surface:     #ffffff;   /* 卡片 / 面板 —— 内容层一律不透明 */
+  --bg-surface-alt: #fafafc;
+  --bg-hover:       #fbfbfd;
+  --bg-track:       #e8e8ed;
+  --bg-ambient:     linear-gradient(160deg, #f3f7ff 0%, #f5f5f7 42%, #f4f2fb 100%);
+
+  --text-primary:     #1d1d1f;   /* 近黑，不是纯黑 */
+  --text-body:        #424245;
+  --text-secondary:   #6e6e73;
+  --text-tertiary:    #86868b;
+  --text-placeholder: #aeaeb2;
+  --text-faint:       #d2d2d7;
+
+  --hairline:     rgba(0,0,0,.07);
+  --divider:      #e0e0e0;
+  --separator:    rgba(60,60,67,.29);
+
+  /* Apple 语义填充色层级（UIKit fill-1..4），用于次级按钮、图标底、禁用态 */
+  --fill-1: rgba(120,120,128,.20);
+  --fill-2: rgba(120,120,128,.16);
+  --fill-3: rgba(120,120,128,.12);
+  --fill-4: rgba(120,120,128,.08);
+
+  /* 氛围背景的冷色两角（另外两角由 accent / accent-2 用 color-mix 派生） */
+  --ambient-teal: rgba(140,215,235,.22);
+  --ambient-pink: rgba(255,190,225,.16);
+
+  --scrollbar-thumb: rgba(0,0,0,.14);
+
+  /* ── 强调色（每屏最多 1–2 个填充色按钮）─────────────────────────────── */
+  --accent:       #0071e3;
+  --accent-hover: #0077ed;
+  --accent-press: #006edb;
+  --accent-link:  #0066cc;
+  --accent-on:    #ffffff;
+  --accent-tint:  rgba(0,113,227,.10);
+  /* 单一色相。以前第二停靠点是靛紫 #5e5ce6 —— 紫是这套配色里唯一的外来色，
+     换掉它，整个品牌的色相就统一在蓝上了。 */
+  --accent-2:     #0f5fa8;
+  --grad-brand:   linear-gradient(135deg, #0a84ff 0%, #0f5fa8 100%);
+  /* 余额主卡：低饱和板岩蓝，白字实测 5.7:1（原 #0a84ff→#5e5ce6 太艳） */
+  /* 竖直角对角，不是 135 度 —— 135 度会把最暗的那个角正好放在最先读到的位置。
+     白字对比度 9.10:1 到 15.88:1。 */
+  --grad-hero:    linear-gradient(to bottom, #1b4a7a 0%, #12365e 52%, #0b233d 100%);
+  /* 侧边栏品牌标记：与主卡同族，没有紫尾 */
+  --grad-brand-mark: linear-gradient(135deg, #1b4a7a 0%, #0f2f4f 100%);
+  /* 侧边栏「首页」块的高亮底。它压在玻璃上不在白底上，所以比主卡浅一档；
+     白字实测 6.31:1，仍远超 4.5:1。 */
+  --grad-hero-soft:  linear-gradient(135deg, #2b6396 0%, #1b4a7a 100%);
+
+  /* ── 状态色（iOS System Colors 2025 刷新值；只表达状态，不做装饰）──── */
+  --success: #34c759;  --success-tint: rgba(52,199,89,.12);
+  --warning: #ff8d28;  --warning-tint: rgba(255,141,40,.12);
+  --danger:  #ff383c;  --danger-tint:  rgba(255,56,60,.10);
+  --info:    #0088ff;  --info-tint:    rgba(0,136,255,.10);
+
+  --scrim: rgba(0,0,0,.45);   /* 浮层遮罩 —— 深度靠它，不靠阴影 */
+
+  /* ── 交易分类色（iOS System Colors 2025 同族，与上面的 success/warning/accent-2 同一支）──
+     只表达"这是哪一类"，不表达状态。底座形状遵循 ZA Bank 的双图标语言：
+     圆形 = 动作（钱在动），方形 = 对象（有具体的消费品）。 */
+  --cat-transfer:  #0088ff;   /* 蓝 · 资金流动 */
+  --cat-dining:    #ff8d28;   /* 橙 · 食欲 */
+  --cat-shopping:  #ff2d92;   /* 粉 · 消费冲动 */
+  --cat-transport: #30b0c7;   /* 青 · 移动 */
+  --cat-subscribe: #5e5ce6;   /* 靛 · 长期扣费 */
+  --cat-income:    #34c759;   /* 绿 · 入账 */
+
+  --cat-transfer-tint:  color-mix(in srgb, var(--cat-transfer)  12%, transparent);
+  --cat-dining-tint:    color-mix(in srgb, var(--cat-dining)    12%, transparent);
+  --cat-shopping-tint:  color-mix(in srgb, var(--cat-shopping)  12%, transparent);
+  --cat-transport-tint: color-mix(in srgb, var(--cat-transport) 12%, transparent);
+  --cat-subscribe-tint: color-mix(in srgb, var(--cat-subscribe) 12%, transparent);
+  --cat-income-tint:    color-mix(in srgb, var(--cat-income)    12%, transparent);
+
+  /* 餐饮的 6 个变体：同一家店永远是同一套色（见 product.jsx 的 diningLook） */
+  --cat-dining-b: #a2845e;   /* 咖啡 / 烘焙 */
+  --cat-dining-c: #ff383c;   /* 披萨 / 火锅 */
+  --cat-dining-d: #ffcc00;   /* 面食 / 汤 */
+  --cat-dining-e: #ff6482;   /* 甜品 / 奶茶 */
+  --cat-dining-f: #30b0c7;   /* 海鲜 / 日料 */
+
+  /* ── 动效补充 ───────────────────────────────────────────────── */
+  /* 强缓动。CSS 内置的 ease-in-out 太弱（emilkowalski 的规则：produce 出来的曲线才够） */
+  --ease-in-out: cubic-bezier(.77, 0, .175, 1);   /* 屏内移动 / 循环类动效 */
+  --dur-float:  2800ms;   /* 云漂浮一个来回 */
+  --dur-eq:      720ms;   /* 均衡器一格 */
+  --dur-sheen:  1400ms;   /* 一道扫光。太快会像故障闪烁，慢下来才是「光影」 */
+  --sheen-video: linear-gradient(100deg, transparent 32%, rgba(255,255,255,.62) 50%, transparent 68%);
+
+  /* ── 卡面 ───────────────────────────────────────────────────── */
+  /* 几何全部来自 ZA Card 官方截图的逐像素实测：1.669 宽高比、约 20px 圆角、
+     渐变是角对角（不是 135deg）。ZA 卡面本身零高光零纹理，--card-gloss 是我们主动加的。 */
+  /* 低饱和浅色卡 + 深色文字。
+     两个原因：① 大面积高饱和是"太艳"的主因；
+     ② 白字压在薄荷绿上只有 2.7:1，达不到 craft floor 的 3:1，浅底深字能到 7:1。 */
+  --card-0-a: #b9ebd7;  --card-0-b: #8fdcc0;  --on-card-0: #0c4634;
+  --card-1-a: #cfe0f8;  --card-1-b: #afc8ef;  --on-card-1: #16345f;
+  --card-2-a: #3a3a50;  --card-2-b: #20202e;  --on-card-2: #f2f2f7;
+  --card-frost: rgba(255,255,255,.10);
+  /* 卡面顶部高光（浅底卡用低 alpha，不用 mix-blend-mode 以免发灰） */
+  --card-gloss-soft: linear-gradient(to bottom, rgba(255,255,255,.42), rgba(255,255,255,0) 34%);
+  --card-gloss:
+    linear-gradient(to bottom, rgba(255,255,255,.34), rgba(255,255,255,0) 26%),
+    linear-gradient(115deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,0) 44%);
+
+  /* 深色底上的叠加层（余额主卡里的次级按钮） */
+  --on-dark-fill:       rgba(255,255,255,.18);
+  --on-dark-fill-hover: rgba(255,255,255,.26);
+
+  /* 卡面渐变（卡 1 = 品牌渐变，卡 2 = 备用卡） */
+  --grad-card-1: var(--grad-brand);
+  --grad-card-2: linear-gradient(135deg, #30d158 0%, #0a84ff 100%);
+
+  /* ── 动效 ────────────────────────────────────────────────────────────── */
+  --duration-instant: 100ms;   /* 按压反馈 */
+  --duration-fast:    200ms;
+  --duration-base:    300ms;
+  --duration-slow:    450ms;   /* modal / sheet / 抽屉 */
+  --duration-exit:    260ms;   /* 退场比进场快，且走同一条路径 */
+
+  --ease-spring:    cubic-bezier(.32,.72,0,1);   /* 进场主力（iOS sheet 曲线） */
+  --ease-out-quart: cubic-bezier(.25,1,.5,1);    /* 小位移：hover、分段滑动 */
+  --ease-out:       cubic-bezier(.23,1,.32,1);
+
+  /* linear() 真弹簧：按阻尼谐振子数值积分生成，时间百分比 → 必须配 duration。
+     house rule：只在手势带速度时才允许过冲。 */
+  --ease-spring-critical: linear(
+    0 0%, .019 3%, .067 7%, .131 10%, .205 13%, .282 17%, .358 20%,
+    .431 23%, .499 27%, .562 30%, .619 33%, .670 37%, .715 40%, .755 43%,
+    .790 47%, .821 50%, .848 53%, .870 57%, .890 60%, .907 63%, .921 67%,
+    .934 70%, .944 73%, .953 77%, .960 80%, .967 83%, .972 87%, .977 90%,
+    .981 93%, .984 97%, .986);
+  --dur-spring-critical: 350ms;
+  --ease-spring-sheet: linear(
+    0 0%, .034 3%, .115 7%, .223 10%, .340 13%, .457 17%, .565 20%,
+    .662 23%, .744 27%, .813 30%, .869 33%, .913 37%, .947 40%, .971 43%,
+    .989 47%, 1.001 50%, 1.008 53%, 1.013 57%, 1.015 60%, 1.015 63%, 1.014 67%,
+    1.013 70%, 1.011 73%, 1.010 77%, 1.008 80%, 1.006 83%, 1.005 87%, 1.004 90%,
+    1.003 93%, 1.002 97%, 1.001);
+  --dur-spring-sheet: 400ms;
+}
+
+/* ── 无障碍：三个独立信号，都要处理 ─────────────────────────────────── */
+/* 1) reduced motion —— 原文："reduced motion means gentler, not none"，
+      所以保留静态的「生成中」指示，只去掉位移与缩放。 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  /* 上面这条漏了 animation-delay：错峰入场的第 9 项会先隐形 320ms 再瞬间弹出。
+     降级的正确含义是「直接到位」，不是「先隐形再出现」。 */
+  .page-head, .page-body > *, .turn, .panel, .balance-hero,
+  .tx-row, .sub-row, .a2ui-card, .a2ui-surface, .cat-tile {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+/* 2) reduced transparency（仅 Chromium）—— 玻璃退化为不透明膜 */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --material-thin-tint:    #ffffff;
+    --material-regular-tint: #ffffff;
+    --blur-thin: 0px; --blur-regular: 0px; --blur-thick: 0px;
+  }
+}
+/* 3) 不支持 backdrop-filter —— 同样退化为不透明膜，不用纯色硬盖 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --material-thin-tint:    rgba(255,255,255,.92);
+    --material-regular-tint: rgba(255,255,255,.94);
+  }
+}
