@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { BadgeCheck, Search } from 'lucide-react';
+import { ArrowUpRight, BadgeCheck, Search, Star, Tag } from 'lucide-react';
 import { Page, Panel, Empty, StatBar } from '../parts.jsx';
 import { DEMO_DATE, MAX_TRANSFER } from '../../services/banking.js';
 import './payees.css';
@@ -8,8 +8,16 @@ import './payees.css';
  * 收款人。
  *
  * 这一页回答三个问题，别的都不回答：**这是谁、上次给了他多少、现在还能不能再转**。
- * 所以每行第一眼是人（首字母头像 + 名字 + 关系），第二眼是最近一次往来（日期 / 金额 / 用途），
+ * 所以每行第一眼是人（首字母头像 + 名字 + 关系），第二眼是最近一次往来（日期 / 金额 / 笔数），
  * 第三眼才是动作。卡号只在"没有往来"时出现，而且要用来转账时才需要它。
+ *
+ * 文案口径：行的内容是数据（名字、日期、金额、用途），不是界面文案 ——
+ * 页面上的字只负责「这是哪一组」「这个按钮做什么」。
+ *   · 关系标签、往来记录、用途都由排版承担：标签在名字右边，金额与日期同一行，
+ *     用途前面放一个 Tag 图标就不必写「用途」两个字；
+ *   · 两个动作各自一个图标按钮（title + aria-label 兜住可读性），
+ *     十行完全一样的文字按钮会把列表读成一堵墙。
+ * 时间词只留「今天 / 昨天 / 日期」，不再写「上次」：收支后面跟一个日期，那就是上次。
  *
  * 每个动作都走已有的内核，不新造一套：
  *   再转一笔 → startTransfer({ payeeHint })，转账流程会带着这个人直接落到「转多少」；
@@ -25,7 +33,7 @@ const group = n => String(n).replace(/\s/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')
 /* 头像色只表达"这是同一个人"：名字散列到 5 个色号，改一次名字不会让整列跳色 */
 const tone = name => [...name].reduce((h, c) => (h * 31 + c.codePointAt(0)) >>> 0, 7) % 5;
 
-/** 关系标签。演示名录里没有这个字段，在这张十行的表里维护，改一处即可。 */
+/** 关系标签。账本里没有这个字段，在这张十行的表里维护，改一处即可。 */
 const RELATION = {
   landlord: '房东', zhang: '同事', li: '家人', chen: '同事', lin: '家人',
   zhao: '同事', zhou: '朋友', wu: '朋友', sun: '家人', xu: '朋友',
@@ -54,7 +62,7 @@ export default function Payees({ ctx }) {
     const last = out[0] || null;
     return {
       ...p,
-      relation: RELATION[p.id] || '名录',
+      relation: RELATION[p.id] || '收款人',
       saved: savedIds.has(p.id),
       last,
       count: out.length,
@@ -79,14 +87,14 @@ export default function Payees({ ctx }) {
   /** 设为常用走 App 已有的事件，写状态与提示都在那边，本页不自己维护联系人列表 */
   const save = id => handleAction('page-payees', { name: 'transfer.save-payee', context: { contactId: id } });
 
-  /* 查号：本地演示名录。接后端时换成 POST /api/recipients/lookup
+  /* 查号：账本自带的收款人名录。接后端时换成 POST /api/recipients/lookup
      （见 doc/plans/2026-09-27-bank-directory-design.md），本页只改这个函数。 */
   const lookup = () => {
     const n = cardNo.replace(/\s/g, '');
-    if (!/^\d{16,19}$/.test(n)) { setFound(null); return setMsg('请输入 16–19 位数字的演示卡号'); }
+    if (!/^\d{16,19}$/.test(n)) { setFound(null); return setMsg('卡号要 16–19 位'); }
     const hit = directory.find(p => p.number === n) || null;
     setFound(hit);
-    return setMsg(hit ? '' : '演示名录里没有这个卡号，换一个再试');
+    return setMsg(hit ? '' : '没有这个卡号');
   };
 
   const chips = ['全部', '常用', ...RELATIONS].map(id => ({
@@ -96,7 +104,8 @@ export default function Payees({ ctx }) {
   const row = p => (
     <li className="payee-item" key={p.id}>
       <span className="payee-avatar" data-tone={tone(p.name)} aria-hidden="true">{p.name.slice(0, 1)}</span>
-      <div className="payee-main">
+      {/* 这一列整列都是行数据：名字 / 关系 / 上次往来 / 用途 */}
+      <div className="payee-main" data-data>
         <div className="payee-line">
           <strong>{p.name}</strong>
           <span className="payee-tag">{p.relation}</span>
@@ -104,22 +113,28 @@ export default function Payees({ ctx }) {
         </div>
         <small className="payee-meta">
           {p.last
-            ? '上次 ' + dayLabel(p.last.date) + ' · ' + fmt(Math.abs(p.last.amount)) + (p.count > 1 ? ' · 共 ' + p.count + ' 笔' : '')
-            : '还没有往来 · 尾号 ' + String(p.number).slice(-4)}
+            ? dayLabel(p.last.date) + ' · ' + fmt(Math.abs(p.last.amount)) + (p.count > 1 ? ' ×' + p.count : '')
+            : '•••• ' + String(p.number).slice(-4)}
         </small>
-        {p.uses.length > 0 && <small className="payee-uses">用途「{p.uses.join('」「')}」</small>}
+        {p.uses.length > 0 && <small className="payee-uses">
+          <Tag size={12} aria-hidden="true"/>{p.uses.join(' · ')}
+        </small>}
       </div>
+      {/* 十行一模一样的一个图标，比十行一模一样的四个字更像一份清单；
+          动作名进 title 与 aria-label，鼠标悬停和读屏都拿得到 */}
       {p.saved
-        ? <button className="a2ui-btn a2ui-btn--secondary" onClick={() => startTransfer({ payeeHint: p.name })}>再转一笔</button>
-        : <button className="a2ui-btn a2ui-btn--secondary" onClick={() => save(p.id)}>设为常用</button>}
+        ? <button className="payee-act" title="再转一笔" aria-label={'给 ' + p.name + ' 再转一笔'}
+                  onClick={() => startTransfer({ payeeHint: p.name })}><ArrowUpRight size={18} aria-hidden="true"/></button>
+        : <button className="payee-act" title="设为常用" aria-label={'把 ' + p.name + ' 设为常用收款人'}
+                  onClick={() => save(p.id)}><Star size={18} aria-hidden="true"/></button>}
     </li>
   );
 
-  return <Page title="收款人" subtitle={saved + ' 位常用 · 演示名录 ' + people.length + ' 位'}>
-    <StatBar left={{ label: '常用收款人', value: saved + ' 位', note: '名录里还有 ' + (people.length - saved) + ' 位' }}
-             right={{ label: '本月转出', value: fmt(monthOut), note: '现在最多能转 ' + fmt(canSend) }}/>
+  return <Page title="收款人">
+    <StatBar left={{ label: '常用', value: saved + ' 位', note: '还有 ' + (people.length - saved) + ' 位' }}
+             right={{ label: '转出合计', value: fmt(monthOut), note: '最多可转 ' + fmt(canSend) }}/>
 
-    <Panel title="往来与名录" aside={<span className="panel-hint">{shown.length} / {people.length} 位</span>}>
+    <Panel>
       <div className="payee-tools">
         <label className="payee-search">
           <Search size={16} aria-hidden="true"/>
@@ -130,14 +145,13 @@ export default function Payees({ ctx }) {
             aria-pressed={who === c.id} onClick={() => setWho(c.id)}>{c.id}<span className="chip-n">{c.n}</span></button>)}
         </div>
       </div>
-      {shown.length ? <ul className="payee-list">{shown.map(row)}</ul>
-                    : <Empty>没有匹配的收款人。换个名字，或只用卡号后四位试试。</Empty>}
+      {shown.length ? <ul className="payee-list">{shown.map(row)}</ul> : <Empty>没找到</Empty>}
     </Panel>
 
-    <Panel title="新增收款人" aside={<span className="panel-hint">按完整卡号查演示名录</span>}>
+    <Panel title="新增">
       <form className="lookup" onSubmit={e => { e.preventDefault(); if (!composing.current) lookup(); }}>
         <input className="a2ui-input" value={cardNo} inputMode="numeric" aria-label="收款人卡号"
-               placeholder="16–19 位演示卡号，可含空格"
+               placeholder="卡号，如 9900 0000 0000 2601"
                onChange={e => setCardNo(e.target.value)}
                onCompositionStart={() => { composing.current = true; }}
                onCompositionEnd={() => { composing.current = false; }}/>
@@ -146,21 +160,16 @@ export default function Payees({ ctx }) {
 
       {found && <div className="lookup-result">
         <span className="payee-avatar" data-tone={tone(found.name)} aria-hidden="true">{found.name.slice(0, 1)}</span>
-        <div className="lookup-main">
+        <div className="lookup-main" data-data>
           <strong>{found.name}</strong>
           <small className="masked-num">{group(found.number)}</small>
-          <small>{RELATION[found.id] || '名录'} · 青禾演示名录</small>
+          <small>{RELATION[found.id] || '收款人'}</small>
         </div>
         {savedIds.has(found.id)
           ? <span className="lookup-ok"><BadgeCheck size={15} aria-hidden="true"/>已是常用</span>
-          : <button className="a2ui-btn a2ui-btn--primary" onClick={() => save(found.id)}>保存为常用</button>}
+          : <button className="a2ui-btn a2ui-btn--primary" onClick={() => save(found.id)}>保存</button>}
       </div>}
       {msg && <p className="lookup-msg" role="status">{msg}</p>}
-
-      <p className="page-note">
-        人物与卡号均为虚构，不要输入真实银行卡号。
-        <button className="link-btn" onClick={() => { setCardNo('9900 0000 0000 2601'); setFound(null); setMsg(''); }}>填一个演示卡号</button>
-      </p>
     </Panel>
   </Page>;
 }

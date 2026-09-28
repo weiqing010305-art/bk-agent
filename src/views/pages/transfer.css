@@ -1,4 +1,4 @@
-/* transfer.css —— 转账页本页自己的参照面板
+/* transfer.css —— 转账页本页自己的参照层
    中间的流程卡仍然是 A2UI surface（样式在 a2ui.css），这里只画它之外的那一层。
    规约：禁止硬编码颜色，一律 var()。 */
 
@@ -7,21 +7,6 @@
    这是「这一组内容叫什么」，不是标题上方的装饰。 */
 .tf-group { display: flex; flex-direction: column; gap: var(--space-3); }
 .tf-label { display: block; font-size: var(--text-caption); color: var(--text-tertiary); }
-
-/* ── 四种方式的差别：一行一种，左侧是方式与到账，右侧是限额与手续费 ──── */
-.tf-facts { list-style: none; margin: 0; padding: 0; }
-.tf-facts > li + li { border-top: 1px solid var(--hairline); }
-.tf-fact {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--space-5);
-  width: 100%; padding: var(--space-4) var(--space-3); border: none; border-radius: var(--radius-thumb);
-  background: transparent; text-align: left;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-.tf-fact strong { display: block; font-size: var(--text-subhead); font-weight: 500; }
-.tf-fact small { display: block; font-size: var(--text-caption); color: var(--text-tertiary); }
-.tf-fact-meta { text-align: right; }
-.tf-fact-meta b { display: block; font-size: var(--text-caption); font-weight: 600; font-variant-numeric: tabular-nums; }
-@media (hover: hover) and (pointer: fine) { .tf-fact:hover { background: var(--bg-hover); } }
 
 /* ── 收款人胶囊 ──────────────────────────────────────────────────────
    和 surface 里的可点胶囊同一条语言：只留一圈细边，不叠阴影（ghost card 是禁的），
@@ -37,7 +22,6 @@
   .tf-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-1), 0 0 0 1px var(--hairline); }
 }
 .tf-chip:active { transform: scale(.97); transition-duration: var(--duration-instant); }
-.tf-none { align-self: center; font-size: var(--text-footnote); color: var(--text-tertiary); }
 
 /* ── 校验提示：贴着出错的那一步，不用浮层打断 ─────────────────────── */
 .tf-notice {
@@ -45,22 +29,16 @@
   background: var(--danger-tint); font-size: var(--text-footnote);
 }
 
-/* ── 搜索框 ────────────────────────────────────────────────────────── */
-.tf-search { display: flex; flex-direction: column; gap: var(--space-3); }
-.tf-search input {
-  width: 100%; height: var(--hit-min); padding: 0 var(--space-5);
-  border: 1px solid var(--hairline); border-radius: var(--radius-thumb);
-  background: var(--bg-surface-alt);
-  font-size: max(16px, var(--text-callout));   /* 小于 16px 会让 iOS Safari 聚焦时放大整页 */
+/* ── 撞上订阅扣款时的警示条：图标 + 两个数，不写「建议把金额改小」 ─────
+   颜色是加强，不是唯一信号：图标也换了（三角警示）。 */
+.tf-gap {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  margin: 0; padding: var(--space-4) var(--space-5); border-radius: var(--radius-thumb);
+  background: var(--danger-tint); font-size: var(--text-subhead);
 }
-.tf-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
-
-/* ── 核对前的三条结论 ──────────────────────────────────────────────── */
-.tf-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
-.tf-checks li { display: flex; gap: var(--space-4); align-items: flex-start; font-size: var(--text-subhead); color: var(--text-secondary); }
-.tf-checks svg { flex: 0 0 auto; margin-top: 3px; color: var(--success); }
-.tf-checks li.warn { color: var(--text-primary); }
-.tf-checks li.warn svg { color: var(--warning); }
+.tf-gap svg { flex: 0 0 auto; color: var(--danger); }
+.tf-gap-label { color: var(--text-secondary); }
+.tf-gap b { font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
   .tf-chip:hover { transform: none; }

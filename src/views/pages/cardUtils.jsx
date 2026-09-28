@@ -21,12 +21,21 @@ export function cycle(profile) {
   const last = day >= billDay ? thisMonthBill : shift(thisMonthBill, -1);
   const next = shift(last, 1);
   const due = dueOffset ? new Date(next.getFullYear(), next.getMonth(), next.getDate() + dueOffset) : null;
-  const days = Math.ceil((next - TODAY) / DAY);
   return {
-    last: fmt(last), next: fmt(next), nextShort: (next.getMonth() + 1) + ' 月 ' + next.getDate() + ' 日',
-    due: due ? fmt(due) : null, dueShort: due ? (due.getMonth() + 1) + ' 月 ' + due.getDate() + ' 日' : null,
-    daysLeft: days, left: Math.max(0, Math.min(1, (TODAY - last) / Math.max(1, next - last))),
+    last: fmt(last), next: fmt(next),
+    due: due ? fmt(due) : null,
+    dueShort: due ? (due.getMonth() + 1) + ' 月 ' + due.getDate() + ' 日' : null,
+    nextShort: (next.getMonth() + 1) + ' 月 ' + next.getDate() + ' 日',
   };
+}
+
+/**
+ * 账期进度：从本期账单日走到还款日（借记卡走到下次出账）已完成的比例。
+ * 账期条的填充宽度就是它 —— 这一行替掉了「距账单日还有 N 天，M 月 D 日还款」两句说明。
+ */
+export function periodProgress(info) {
+  const from = ymd(info.last), to = ymd(info.due || info.next);
+  return Math.max(0, Math.min(1, (TODAY - from) / Math.max(1, to - from)));
 }
 
 /** 本期小结：账期内的消费笔数与金额，以及上一期同口径对比。 */
@@ -42,6 +51,8 @@ export function summary(card, c) {
   return { spend: sum(now), count: now.length, prev: sum(prev), diff: sum(now) - sum(prev), since: c.last };
 }
 
-export const fmtDate = s => { const [y, m, d] = s.split('-'); return y + ' 年 ' + Number(m) + ' 月 ' + Number(d) + ' 日'; };
-export const shortDate = s => { const [, m, d] = s.split('-'); return Number(m) + ' 月 ' + Number(d) + ' 日'; };
-export const addDays = (s, n) => fmt(new Date(ymd(s).getTime() + n * DAY));
+/**
+ * 时间线上的日期：'2026-08-14' → '08-14'，与流水行的格式一致。
+ * 跨年的条目补两位年份（'24-03-11'）—— 时间线从 2024 年读起，只留月日会读不出先后。
+ */
+export const tickDate = s => (s.startsWith(String(TODAY.getFullYear())) ? s.slice(5) : s.slice(2));

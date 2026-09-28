@@ -162,12 +162,24 @@ BUILDERS.cards = (_slots, ctx) => {
 
 BUILDERS.ledger = (_slots, ctx) => composeSpending(ctx);
 
-/** 跨场景联动。定时转账与 AA 走转账四步流程（由 useTurnRunner 路由过去）。 */
 BUILDERS.occasion = (slots, ctx) => composeOccasion(ctx, slots);
+
+/**
+ * 定时转账与 AA 收款。
+ *
+ * 这两条**曾经缺失** —— ACTIONS 目录里有它们、FlowLauncher 也渲染了入口，
+ * 但 BUILDERS 里没有条目，于是 runAction 落到 BUILDERS.unknown，
+ * 把一个「说了做不到」的入口摆在了用户面前（点下去画出来的是另一排业务卡片）。
+ *
+ * 它们本来就是转账的近亲：共用同一条四步流程，区别只在意图与任务编排。
+ * 这里给的是流程入口，`useTurnRunner` 会为它们建 DAG 并带上任务图。
+ */
+BUILDERS['transfer.scheduled'] = (slots, ctx) => buildTransfer({ ...slots, type: 'scheduled' }, ctx, 'type');
+BUILDERS['transfer.aa'] = (slots, ctx) => buildTransfer({ ...slots, type: 'collect' }, ctx, 'type');
 
 BUILDERS.unknown = (_slots, ctx) => envelope(ctx, [
   Column('root', ['say', 'chips'], { gap: 'var(--space-4)' }),
-  Text('say', '我可以帮你处理这四类演示业务。选一个继续吧：', 'body'),
+  Text('say', '选一件事，我带你走完：', 'body'),
   Row('chips', ACTIONS.map(a => 'chip-' + a.id), { gap: 'var(--space-3)', wrap: true }),
   ...ACTIONS.flatMap(a => [
     Card('chip-' + a.id, 'chip-row-' + a.id, { action: { event: 'open.' + a.id } }),

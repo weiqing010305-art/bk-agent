@@ -83,8 +83,7 @@ function stepType(draft, ctx) {
       Text('opt-label-' + t.id, t.label, 'body'),
       Text('opt-hint-' + t.id, t.hint, 'caption'),
     ]),
-    Text('note', '演示环境 · 不产生真实交易', 'caption2'),
-  ], { ...ctx.dataModel, step: 'type', ...draft });
+      ], { ...ctx.dataModel, step: 'type', ...draft });
 }
 
 /* ── 02 转给谁 ─────────────────────────────────────────────────────────── */
@@ -106,7 +105,7 @@ function stepRecipient(draft, ctx) {
     ]),
     TextField('manual', {
       label: '或手动输入完整卡号', value: bind('/manualCardNumber'),
-      placeholder: '16–19 位演示卡号，可含空格', inputMode: 'numeric', maxLength: 32, testId: 'manual-card',
+      placeholder: '16–19 位卡号', inputMode: 'numeric', maxLength: 32, testId: 'manual-card',
     }),
     ActionGroup('actions', [{ label: '下一步', event: 'transfer.next', variant: 'primary' }]),
   ], { ...ctx.dataModel, step: 'recipient', manualCardNumber: draft.manualCardNumber || '', ...draft });

@@ -42,7 +42,7 @@ export default function Composer({ ctx }) {
       <form className="composer" onSubmit={submit}>
         <textarea
           ref={ref} rows={1} aria-label="输入消息"
-          placeholder="说一句话就开始，比如「给张三转 100 元」"
+          placeholder="给王佩兰转 100 元"
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
@@ -51,7 +51,10 @@ export default function Composer({ ctx }) {
         />
         <button className="send" type="submit" disabled={!draft.trim()} aria-label="发送"><ArrowUp size={18}/></button>
       </form>
-      <p className="hint">演示对话由预设规则驱动，暂未接入真实 AI 或银行系统</p>
+      {/* 这里曾经有一行「演示对话由预设规则驱动，暂未接入真实 AI 或银行系统」。
+          删掉的理由不是"少写一个字"，而是：**输入框下面挂免责声明，是在用文字替设计道歉。**
+          placeholder 已经把「能做什么」示范清楚了（给张三转 100 元）。
+          边界说明属于交付文档，不属于界面。 */}
     </div>
   </div>;
 }

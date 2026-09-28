@@ -157,33 +157,38 @@ a { text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .balance-hero > strong, .cat-amt, .sub-right b, .masked-num,
 .a2ui-meter .a2ui-text--amount { font-variant-numeric: tabular-nums; }
 
-/* ── 常驻动线入口 ────────────────────────────────────────────────────
-   对话流会滚走，但"我现在能做什么"必须一直在。 */
-.launcher { flex: 0 0 auto; padding: 0 var(--pad-container); }
-.launcher-inner { max-width: var(--max-read); margin: 0 auto; }
-.launcher-label {
-  margin: 0 0 var(--space-3); font-size: var(--text-caption-2);
-  color: var(--text-tertiary); letter-spacing: .04em;
+/* ── 常驻入口 ────────────────────────────────────────────────────────
+   它不是菜单 —— 菜单在左侧导航里，那是另一层的东西。
+   它是「这个对话框现在能开的业务面」，所以没有标题：一排带图标的按钮紧贴输入框，
+   位置本身就说明了它是什么。
+   材质用不透明白而不是玻璃：这一屏已经有顶栏和输入框两块玻璃，同屏玻璃 ≤ 3。 */
+.launcher { flex: 0 0 auto; display: flex; justify-content: center; padding: 0 var(--pad-container); }
+.launcher-row {
+  width: 100%; max-width: var(--max-read);
+  display: flex; gap: var(--space-3); overflow-x: auto;
 }
-.launcher-row { display: flex; gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-2); }
 .launcher-row::-webkit-scrollbar { height: 0; }
 .flow-chip {
-  flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--space-3);
-  height: 38px; padding: 0 var(--space-5) 0 var(--space-3);
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--space-2);
+  height: 34px; padding: 0 var(--space-5) 0 var(--space-2);
   border: none; border-radius: var(--radius-pill);
-  background: var(--bg-surface); box-shadow: var(--shadow-1), 0 0 0 1px var(--hairline);
-  font-size: var(--text-subhead); color: var(--text-primary);
-  transition: transform var(--duration-base) var(--ease-spring), box-shadow var(--duration-base) var(--ease-out);
+  background: var(--bg-surface); box-shadow: 0 0 0 1px var(--hairline);
+  font-size: var(--text-footnote); color: var(--text-secondary);
+  transition: transform var(--duration-base) var(--ease-spring),
+              box-shadow var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out);
 }
 .flow-chip i {
-  width: 24px; height: 24px; border-radius: var(--radius-chip);
+  width: 22px; height: 22px; border-radius: var(--radius-chip);
   display: grid; place-items: center; background: var(--accent-tint); color: var(--accent);
 }
-.flow-chip em { font-style: normal; font-size: var(--text-caption-2); color: var(--text-tertiary); margin-left: var(--space-2); }
 @media (hover: hover) and (pointer: fine) {
-  .flow-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-card), 0 0 0 1px var(--hairline); }
+  .flow-chip:hover {
+    transform: translateY(-1px); color: var(--text-primary);
+    box-shadow: 0 0 0 1px var(--hairline), var(--shadow-1);
+  }
 }
-.flow-chip:active { transform: scale(.97); transition-duration: var(--duration-instant); }
+.flow-chip:active { transform: scale(.96); transition-duration: var(--duration-instant); }
 
 /* ══ 加载态：生成中的骨架 ════════════════════════════════════════════ */
 .surface-skeleton {
@@ -231,7 +236,7 @@ p, .a2ui-text--body, .row-main small, .page-note { text-wrap: pretty; }
   display: flex; flex-direction: column; justify-content: center;
 }
 
-.turn-strip { flex: 0 0 auto; padding: 0 var(--pad-container) var(--space-2); }
+.turn-strip { flex: 0 0 auto; padding: 0 var(--pad-container) var(--space-4); }
 .turn-strip-inner {
   max-width: var(--max-read); margin: 0 auto;
   display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: 2px;

@@ -619,14 +619,21 @@ flowchart TB
 flowchart TB
     PAGE["views/pages/cards.jsx"] --> W["卡包：横向 scroll-snap，选中浮起 10px"]
     W --> SEL["选中卡"]
-    SEL --> F["CardFace 卡面<br/>EMV 芯片 / 非接波纹 / 持卡人 / 卡组织"]
-    SEL --> SB["StatBar 可用额度 / 本月消费"]
-    SEL --> PRO["cardProfile 档案<br/>账单日 / 还款日 / 单笔与日累计限额"]
-    SEL --> CH["ChannelBoard 四类渠道逐项开关"]
-    SEL --> ACT["操作宫格：冻结 / 限额 / 挂失 / 流水"]
-    SEL --> HIST["状态历史时间线"]
+    SEL --> F["CardFace 卡面<br/>EMV 芯片 / 非接波纹 / 有效期 / 卡组织"]
+    SEL --> RUL["LimitMeter 额度尺<br/>可用额度 + 已用块 + 今日上限针"]
+    SEL --> CYC["CardCycle 账期条<br/>账单日 → 还款日的进度"]
+    SEL --> FACT["CardFacts 档案<br/>图标即标签：账户 / 账单日 / 有效期 / 上期账单"]
+    SEL --> CH["ChannelBoard 四类渠道<br/>图标 + 使用条 + 剩余额 + 开关"]
+    SEL --> LIM["LimitRows 三档限额就地展开"]
+    SEL --> ACT["操作：冻结 / 限额 / 流水"]
+    SEL --> HIST["状态历史时间线<br/>节点图标 + 日期 + 两个字的动作"]
     SEL --> ACTI["这张卡自己的动账"]
 ```
+
+**这一页的文案纪律（唯一一条）**：能画出来的不写出来。额度尺回答「还剩多少」、
+账期条回答「什么时候还」、渠道使用条回答「今天还能刷多少」、时间线回答「经历过什么」——
+这四张图各自替掉了原来的一段说明句。界面文案因此从 613 字降到 133 字
+（口径见 `npm run test:text`：标签 / 标题 / 说明句 / 按钮，不含列表行与金额）。
 
 **冻结是一条流程而不是一个开关**：
 
@@ -850,108 +857,104 @@ Get-ChildItem src -Recurse -Include *.css |
 
 ## 10. 文件职责表
 
-**硬约束：单文件不超过 300 行。** 当前最大 `styles/wallet.css` 277 行。
+**硬约束：单文件不超过 300 行。** 行数不写死在这里 —— 手写的行数每次改动都要同步，注定腐烂。
 
-### 协议层 a2ui/
+```powershell
+Get-ChildItem src -Recurse -File |
+  Sort-Object FullName |
+  ForEach-Object { $_.FullName.Replace((Get-Location).Path + "\src\", "") + "  " + (Get-Content $_.FullName | Measure-Object -Line).Lines }
+```
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `protocol.js` | 123 | 17 个组件白名单 + 构造器 + 信封统一封装 |
-| `apply.js` | 206 | `applyMessages` / `resolveTree` / 校验。**纯函数，零 React** |
-| `render.jsx` | 148 | 白名单的 React 实现 |
+下面按**职责**分组，不按行数。想知道当前行数就跑上面那条命令。
 
-### Agent 层 agent/
+### 协议层 a2ui/ —— 组件白名单与渲染
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `planner.js` | 155 | `parseIntent` / `fromText` / `fromAction` / `plan` |
-| `brief.js` | 246 | **六个统合视图**：首页 / 账单 / 订阅 / 核对 / 回执 / 跨场景 |
-| `transferFlow.js` | 131 | 转账四步流程 |
-| `taskGraph.js` | 178 | 任务 DAG：拓扑排序 + 中断 / 回退 / 接管 |
+| 文件 | 职责 |
+| --- | --- |
+| `protocol.js` | 17 个组件白名单 + 构造器 + 信封统一封装 |
+| `apply.js` | `applyMessages` / `resolveTree` / 校验。**纯函数，零 React** |
+| `render.jsx` | 白名单的 React 实现 |
 
-### 业务层 services/ + domain/
+### Agent 层 agent/ —— 意图、统合、流程、任务图
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `banking.js` | 182 | `buildDataModel` **唯一事实来源** + 跨域汇总 + 校验 |
-| `policy.js` | 94 | **权限分级**：三级分档 + 19 个操作目录 |
-| `audit.js` | 82 | 审计：决策链路 + 安全锁定 |
-| `guard.js` | 54 | 注入防御：越权 / 诱导两类模式 |
-| `limits.js` | 99 | 限额一等对象 + 时间窗 + `checkLimits` |
-| `anomalyRules.js` | 226 | 12 条异常规则 + 统计工具 |
-| `anomaly.js` | 216 | 检测 → 评分 → 分档 → 误报抑制 |
-| `domain/bank.js` | 137 | 账本：四则余额模型 + 原子转账 |
-| `domain/conversations.js` | 80 | 会话持久化 |
+| 文件 | 职责 |
+| --- | --- |
+| `planner.js` | `parseIntent` / `fromText` / `fromAction` / `plan`；`ACTIONS` 目录 |
+| `brief.js` | **六个统合视图**：首页 / 账单 / 订阅 / 核对 / 回执 / 跨场景 |
+| `transferFlow.js` | 转账四步流程（定时与 AA 共用它） |
+| `taskGraph.js` | 任务 DAG：拓扑排序 + 中断 / 回退 / 接管 |
 
-### 状态层 state/
+### 业务层 services/ + domain/ —— 唯一事实来源
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `useConversations.js` | 27 | 会话持久化（含函数式补丁） |
-| `useTurnRunner.js` | 107 | 回合执行：输入 → 计划 → 信封 → 落进会话 |
-| `useTransferFlow.js` | 97 | 转账四步状态机 |
-| `useSecurity.js` | 61 | **安全门禁**：三级路由 + 锁定 |
-| `useUndoWindow.js` | 34 | 5 秒可撤销窗口 |
-| `useThreadScroll.js` | 74 | 滚动锚定（非对称迟滞 + 意图优先） |
-| `useBackendBank.js` | 43 | 后端模式同步 |
+| 文件 | 职责 |
+| --- | --- |
+| `banking.js` | `buildDataModel` **唯一事实来源** + 跨域汇总 + 校验 |
+| `policy.js` | **权限分级**：三级分档 + 操作目录 |
+| `audit.js` | 审计：决策链路 + 安全锁定 |
+| `guard.js` | 注入防御：越权 / 诱导两类模式 |
+| `limits.js` | 限额一等对象 + 时间窗 + `checkLimits` |
+| `anomalyRules.js` | 12 条异常规则 + 统计工具 |
+| `anomaly.js` | 检测 → 评分 → 分档 → 误报抑制 |
+| `domain/bank.js` | 账本：四则余额模型 + 原子转账 |
+| `domain/conversations.js` | 会话持久化 |
+
+### 状态层 state/ —— 每个 hook 一个状态机
+
+| 文件 | 职责 |
+| --- | --- |
+| `useConversations.js` | 会话持久化（含函数式补丁） |
+| `useTurnRunner.js` | 回合执行：输入 → 计划 → 信封 → 落进会话 |
+| `useTransferFlow.js` | 转账四步状态机 |
+| `useSecurity.js` | **安全门禁**：三级路由 + 锁定 |
+| `useUndoWindow.js` | 5 秒可撤销窗口 |
+| `useThreadScroll.js` | 滚动锚定（非对称迟滞 + 意图优先） |
+| `useBackendBank.js` | 后端模式同步 |
 
 ### 视图层 views/
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `AssistantView.jsx` | 100 | 业务层：工作区 + 历史条 + 任务图 |
-| `product.jsx` | 19 | 产品层路由 |
-| `parts.jsx` | 103 | 共用零件：Page / Panel / StatBar / IconTile / Row / CountUp |
-| `shared.jsx` | 34 | 分类视觉语言的兼容层（实现已搬到 avatars） |
-| `avatars.jsx` | 201 | **16 类 PFC 头像体系** + 品牌色常量 |
-| `charts.jsx` | 246 | **六种图表形态**，共享高亮状态 |
-| `pages/overview.jsx` | 121 | 概览：余额主卡 + 4×3 宫格 |
-| `pages/feed.jsx` | 170 | 动态：三段时间轴 + 可展开 |
-| `pages/bills.jsx` | 208 | 账单：结论 → 结构 → 节奏 → 明细 |
-| `pages/subscriptions.jsx` | 198 | 订阅：一项一张身份卡 |
-| `pages/cards.jsx` | 132 | 卡包 + 档案 + 操作 |
-| `pages/cardFace.jsx` | 126 | 卡面组件（助手侧也用它） |
-| `pages/cardProfile.jsx` | 132 | 额度尺 / 渠道板 / 状态历史 |
-| `pages/cardFreeze.jsx` | 74 | 冻结流程 |
-| `pages/cardData.jsx` | 167 | 演示扩展数据（补进账本） |
-| `pages/cardUtils.jsx` | 43 | 账期模型 |
-| `pages/payees.jsx` | 149 | 收款人 |
-| `pages/transfer.jsx` | 238 | 转账页（渲染同一套 A2UI surface） |
-| `pages/receipts.jsx` | 23 | 回执 |
+| 文件 | 职责 |
+| --- | --- |
+| `AssistantView.jsx` | 业务层：工作区 + 历史条 + 任务图 + 被拦提示 |
+| `product.jsx` | 产品层路由 |
+| `parts.jsx` | 共用零件：Page / Panel / StatBar / IconTile / Row / CountUp |
+| `shared.jsx` | 分类视觉语言的兼容层（实现已搬到 avatars） |
+| `avatars.jsx` | **16 类 PFC 头像体系** + 品牌色常量 |
+| `charts.jsx` | **六种图表形态**，共享高亮状态 |
+| `pages/overview.jsx` | 概览：余额主卡 + 宫格 |
+| `pages/feed.jsx` | 动态：三段时间轴 + 可展开 |
+| `pages/bills.jsx` | 账单：结论 → 结构 → 节奏 → 明细 |
+| `pages/subscriptions.jsx` | 订阅：一项一张身份卡 |
+| `pages/cards.jsx` + `cardProfile` + `cardFreeze` + `cardFace` | 卡包 / 档案 / 冻结流程 / 卡面 |
+| `pages/cardData.jsx` + `cardUtils.jsx` | 卡片演示数据与账期模型 |
+| `pages/payees.jsx` | 收款人 |
+| `pages/transfer.jsx` | 转账页（渲染同一套 A2UI surface） |
+| `pages/receipts.jsx` | 回执 |
 
 ### 外壳 components/
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `App.jsx` | 266 | 状态编排；产出 `ctx`；派发 action |
-| `Sidebar.jsx` | 69 | 首页块 + 功能列表 + 历史对话 |
-| `Composer.jsx` | 53 | 输入区（IME 三级防护 + autosize） |
-| `FlowLauncher.jsx` | 37 | 常驻「可以让他做什么」 |
-| `TaskGraph.jsx` | 66 | 任务 DAG 呈现 + 三个控制 |
-| `AuthDialog.jsx` | 104 | 多因子认证 |
-| `AppOverlays.jsx` | 31 | 浮层栈（纯组合，无逻辑） |
-| `UndoBar.jsx` | 29 | 5 秒可撤销条 |
-| `ConfirmDialog.jsx` | 31 | 确认弹窗 |
-| `TransferDialog.jsx` | 45 | 后端模式核对 / 验证码 |
-| `Toast.jsx` | 7 | 轻提示 |
+| 文件 | 职责 |
+| --- | --- |
+| `App.jsx` | 状态编排；产出 `ctx`；派发 action |
+| `Sidebar.jsx` | 首页块 + 功能列表 + 历史对话 |
+| `Composer.jsx` | 输入区（IME 三级防护 + autosize） |
+| `FlowLauncher.jsx` | 常驻入口（4 项动作） |
+| `TaskGraph.jsx` | 任务 DAG 呈现 + 三个控制 |
+| `AuthDialog.jsx` | 多因子认证 |
+| `BlockedNotice.jsx` | 被拦下的请求：拦了什么 / 为什么 / 依据 |
+| `AppOverlays.jsx` | 浮层栈（纯组合，无逻辑） |
+| `UndoBar.jsx` / `ConfirmDialog.jsx` / `TransferDialog.jsx` / `Toast.jsx` | 其余浮层 |
 
 ### 样式 styles/
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `tokens.css` | 260 | **设计令牌唯一来源** |
-| `wallet.css` | 277 | 卡片与卡包 |
-| `pages.css` | 259 | 侧边栏 / 视图头 / 面板 / 卡面 |
-| `app.css` | 240 | 外壳 / 背景 / 浏览器表面 |
-| `motion.css` | 189 | 对焦切换 / 错峰 / 分类签名动作 |
-| `charts.css` | 185 | 六种图表 |
-| `a2ui.css` | 168 | A2UI 协议组件 |
-| `views.css` | 161 | StatBar / IconTile / Row / 按日分组 / 撤销条 |
-| `avatars.css` | 119 | 头像形状系统 |
-| `auth.css` | 51 | 多因子认证 |
-| `taskgraph.css` | 36 | 任务图 |
-
----
+| 文件 | 职责 |
+| --- | --- |
+| `tokens.css` | **设计令牌唯一来源** |
+| `app.css` | 外壳 / 背景 / 浏览器表面 |
+| `pages.css` | 侧边栏 / 视图头 / 面板 / 卡面 |
+| `views.css` | StatBar / IconTile / Row / 按日分组 / 撤销条 |
+| `motion.css` | 对焦切换 / 错峰 / 分类签名动作 |
+| `a2ui.css` / `charts.css` / `wallet.css` / `avatars.css` | 各模块自己的样式 |
+| `auth.css` / `taskgraph.css` / `blocked.css` | 三个浮层 |
 
 ## 11. 已知限制与升级路径
 

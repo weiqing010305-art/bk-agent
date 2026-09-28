@@ -30,8 +30,8 @@ const look = card => {
   const t = TEMPLATE[card.id] || TEMPLATE_FALLBACK;
   return { tone: card.tone || t.tone, org: card.org || t.org };
 };
-const HOLDER = 'ZHANG MINGYUAN';
-const EXPIRY = '09 / 29';
+/* 助手侧的 dataModel 只有 name / tail / type，没有有效期，读不到时用这张兜底。 */
+const EXPIRY_FALLBACK = '09 / 29';
 
 /**
  * 卡面。
@@ -83,15 +83,16 @@ export function CardFace({ card = {}, hidden = false, frozen = false, still = fa
          }}>
       <span className="card-face-top">
         <span className="bank-card-logo" aria-hidden="true">青</span>
-        <span className="bank-card-brand">青禾<em> BANK</em></span>
+        <span className="bank-card-brand" aria-hidden="true">青禾<em> BANK</em></span>
         <span className="card-chip" aria-hidden="true"><i/><i/><i/><i/></span>
         <Wifi className="card-wave" size={17} aria-hidden="true"/>
       </span>
       <strong className="bank-card-num">{hidden ? '••••  ••••  ••••  ••••' : '••••  ••••  ••••  ' + tail}</strong>
+      {/* 卡面下半部只留「有效期 · 卡组织」两项。持卡人三张卡是同一个人、三个字段名三张卡各写一遍，
+          在卡包里是零信息；卡类型与状态分别由色调和磨砂表达，档案区里也不再重抄一次。 */}
       <span className="card-face-foot">
-        <span className="bank-card-field"><i>持卡人</i><b>{HOLDER}</b></span>
-        <span className="bank-card-field"><i>有效期</i><b>{EXPIRY}</b></span>
-        <span className="bank-card-field"><i>卡组织</i><b>{org}</b></span>
+        <b>{card.expiry || EXPIRY_FALLBACK}</b>
+        <b>{org}</b>
       </span>
       {frozen && <span className="card-frost" aria-hidden="true"/>}
       <span className="card-glare" aria-hidden="true"/>

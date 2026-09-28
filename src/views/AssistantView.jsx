@@ -9,16 +9,55 @@ import BlockedNotice from '../components/BlockedNotice.jsx';
 /**
  * 业务层：对话入口。
  *
- * **布局模型（这轮最重要的改动）**
- * 之前是一条会不断变长的聊天流 —— 每办一件事就多一张卡，看到第三张就得往上滑。
- * 那违背了最小操作原则：信息应该是"被送到面前"，而不是"用户去翻"。
+ * **布局模型**：工作区（当前这件事的统合视图，一屏看全）+ 历史条（不滚动的过去）。
+ * 不是一条会不断变长的聊天流 —— 那违背最小操作原则：信息要"被送到面前"，
+ * 而不是"用户自己往上翻"。**不滚动的历史，可切换的现在。**
  *
- * 现在改成两区：
- *   工作区  —— 当前这一件事的统合视图，占满主要面积，一屏看全
- *   历史条  —— 以往的问句折成一行 chips，点一下就换回当时那张视图
- *
- * 换句话说：**不滚动的历史，可切换的现在**。
+ * **这个文件同时是文案的最后一道闸**：什么该上屏幕由视图层决定。
+ * 上游（brief.js / planner.js / services）产出的"用文字解释界面"的句子在这里被拦下 ——
+ * 界面本身已经在做那件事了，再说一遍就是认知负荷。
  */
+
+/** 不渲染的引导语，只列纯引导。
+ *  带数字的一句都不删（那是事实）；安全提示（"不会扣款""需验证后记账"）一句都不删（那是责任）。
+ *  ponytail: 精确匹配，上游改文案这里就失效 —— 上限在此；治本是协议层给 Text 加 kind:'hint'。 */
+const HINTS = new Set([
+  '这是你现在的全部状况，不需要再点进任何页面',
+  '先选一种方式，我带你走完剩下的步骤。',
+  '每月固定支出，取消前先看看它占多少',
+  '我可以帮你处理这四类演示业务。选一个继续吧：',
+]);
+
+/** 屏幕上不出现产品自述词。只抠词，不删事实 —— 括号里只剩自述的，连括号一起走。 */
+const SELF_REF = /演示|模拟|预设规则|占位|尚未接入/;
+const strip = s => typeof s !== 'string' ? s
+  : s.replace(/[（(](?:演示|模拟|测试)[^）)]*[）)]/g, '')
+     .replace(/演示|模拟|预设规则|占位|尚未接入/g, '')
+     .replace(/\s{2,}/g, ' ')
+     .trim();
+
+/** 账本出处：第一句必然是自述（「本机演示账本，数据截至 …」）。
+ *  整句丢掉比抠词可读 —— 抠完剩「本机账本，数据截至 …」反而更怪。 */
+const source = s => typeof s !== 'string' ? s
+  : s.split('，').filter(p => p.trim() && !SELF_REF.test(p)).join('，') || strip(s);
+
+/** 渲染前裁剪：引导语不给节点，自述词不给上屏。
+ *  除了 HINTS，还有一条结构性规则：**以冒号收尾的正文是"下面这些"的引子**——
+ *  引子由界面自己说，不用文字说（「选一件事，我带你走完：」下面就是那排业务卡片）。
+ *  规则比字面量耐改：上游换一句话，这里不用跟着改。 */
+function trim(node) {
+  if (!node) return null;
+  if (node.type === 'Text') {
+    if (HINTS.has(node.text)) return null;
+    if (node.variant === 'body' && /[：:]$/.test(String(node.text))) return null;
+    const t = strip(node.text);
+    return t ? (t === node.text ? node : { ...node, text: t }) : null;
+  }
+  if (node.children) return { ...node, children: node.children.map(trim).filter(Boolean) };
+  if (node.child) return { ...node, child: trim(node.child) };
+  return node;
+}
+
 export default function AssistantView({ ctx }) {
   const { turns, a2ui, handleAction, busy, previewId, setPreviewId, taskControl } = ctx;
 
@@ -31,22 +70,28 @@ export default function AssistantView({ ctx }) {
     const i = turns.findIndex(t => t.id === turn.id);
     const ask = [...turns.slice(0, i)].reverse().find(t => t.role === 'user');
     if (ask) return ask.text;
+    /* 在整张 surface 里找第一个 headline。以前只查 root 的直接子节点，
+       而首页的标题裹在 Row 里，查不到就退回「概览」—— 于是历史条上写着「概览」，
+       用户不知道那一条是什么。 */
     const s = a2ui.surfaces[turn.surfaceId];
-    const root = s && s.components && s.components.root;
-    const titleId = root && root.children && root.children.find(id => (s.components[id] || {}).variant === 'headline');
-    const t = titleId && s.components[titleId] && s.components[titleId].text;
-    return typeof t === 'string' ? t : '概览';
+    const comps = (s && s.components) || {};
+    const first = (s && s.components && s.components.root && s.components.root.children || [])
+      .map(id => comps[id]).find(c => c && c.variant === 'headline');
+    const t = first && first.text;
+    return typeof t === 'string' ? t : '开始';
   };
 
-  const surface = shown && a2ui.surfaces[shown.surfaceId];
+  const raw = shown && a2ui.surfaces[shown.surfaceId];
   const isStale = Boolean(previewId && shown && latest && shown.id !== latest.id);
+  /* 出处标签就地改掉会污染会话里那份 surface —— 复制一层，只改渲染用的副本 */
+  const prov = raw && raw.meta && raw.meta.provenance;
+  const surface = prov ? { ...raw, meta: { ...raw.meta, provenance: { ...prov, label: source(prov.label) } } } : raw;
+  const tree = surface ? trim(resolveTree(surface)) : null;
 
   return <>
+    {/* 页面标题就是这一页的全部说明。要不要点进功能页，左侧导航的位置已经说完了 */}
     <header className="view-head">
-      <div>
-        <h1>青禾助手</h1>
-        <p>说一句话，我把相关的业务一次整理给你。左边还能直接进各个功能页。</p>
-      </div>
+      <h1>青禾助手</h1>
       {isStale && (
         <button className="a2ui-btn a2ui-btn--secondary" onClick={() => setPreviewId(null)}>回到最新</button>
       )}
@@ -63,18 +108,19 @@ export default function AssistantView({ ctx }) {
           onRollback={() => taskControl(shown.id, 'rollback')}
           onHandoff={() => taskControl(shown.id, 'handoff')}
         />}
-        {/* 三条分支要分清：「被拦下」有话说，「正在生成」是骨架，「有 surface」才渲染。
-            曾经把前两者混在一起，导致拦截后是一个转不完的圈。 */}
+        {/* 三条分支要分清：「被拦下」有话说，「正在生成」是骨架，「有树」才渲染。
+            曾经把前两者混在一起，导致拦截后是一个转不完的圈。
+            判据用 tree 而不是 surface：root 缺失时也走「打不开」，不留空白屏。 */}
         {shown && shown.blocked
           ? <BlockedNotice blocked={shown.blocked} onDismiss={() => setPreviewId(null)}/>
           : shown && shown.pending
             ? <SurfaceSkeleton/>
-            : surface
+            : tree
               ? <SurfaceView key={(surface.dataModel.step || '') + shown.id}
                              surface={surface}
-                             tree={resolveTree(surface)}
+                             tree={tree}
                              onAction={e => handleAction(shown.surfaceId, e)}/>
-              : <p className="a2ui-text a2ui-text--caption">这个视图不可用，换一句试试。</p>}
+              : <p className="a2ui-text a2ui-text--caption">这个视图打不开</p>}
       </div>
     </div>
 
@@ -103,6 +149,7 @@ export default function AssistantView({ ctx }) {
 /**
  * 生成中的骨架。既是加载态（craft-floor 要求的四态之一），
  * 也让对话有节奏 —— 卡片是被想出来的，不是瞬间贴上来的。
+ * 它一个字都不说：形态本身说明"正在生成"。
  */
 function SurfaceSkeleton() {
   return <div className="surface-skeleton" aria-label="正在生成">

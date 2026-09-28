@@ -19,6 +19,5 @@ export default function Receipts({ ctx }) {
               value={yuan(Math.abs(t.amount))}/>;
           })}
         </ul></Panel>}
-    <p className="page-note">演示环境不产生真实交易凭证</p>
   </Page>;
 }

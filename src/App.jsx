@@ -146,7 +146,7 @@ export default function App() {
   const commitTransfer = useCallback(action => {
     try {
       setBank(prev => applyTransfer(prev, action));
-      setToast('已模拟转账 ' + yuan(action.amount) + ' 给 ' + action.recipientName);
+      setToast('已转出 ' + yuan(action.amount) + ' 给 ' + action.recipientName);
       if (flow) {
         paintFlow(flow.surfaceId, 'done', {
           ...draftRef.current,
@@ -172,7 +172,7 @@ export default function App() {
 
   const toggleCard = useCallback(cardId => {
     setBank(prev => ({ ...prev, cards: prev.cards.map(c => c.id === cardId ? { ...c, status: c.status === 'active' ? 'frozen' : 'active' } : c) }));
-    setToast('卡片状态已更新（模拟）');
+    setToast('卡片状态已更新');
   }, []);
 
   const handleAction = useCallback((surfaceId, event) => {
@@ -224,7 +224,7 @@ export default function App() {
       busyRef.current = true; setBusy(true);
       try {
         await api('/session/reset', {});
-        setBank(seed()); await refreshBank(); setConfirm(null); history.create(); setToast('已创建新的演示账户');
+        setBank(seed()); await refreshBank(); setConfirm(null); history.create(); setToast('已切换到新账户');
       } catch (err) { setConnection('error'); setConfirm(null); setToast(err.message); }
       finally { busyRef.current = false; setBusy(false); }
       return;
@@ -243,7 +243,7 @@ export default function App() {
       }));
       setToast(canceled ? action.name + ' 已取消，后续不再扣费' : action.name + ' 已恢复续费');
     } else if (action.type === 'reset') {
-      setBank(seed()); history.create(); setToast('演示数据已重置');
+      setBank(seed()); history.create(); setToast('已恢复初始状态');
     }
   }, [confirm, history, refreshBank, openUndo, yuan]);
 

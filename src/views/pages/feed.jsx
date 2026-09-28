@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, CreditCard, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, CreditCard, ShieldCheck } from 'lucide-react';
 import { Amount, Empty } from '../parts.jsx';
 import { avatarOf, TxAvatar } from '../avatars.jsx';
 import { DEMO_DATE } from '../../services/banking.js';
 import './feed.css';
 
 /**
- * 动态流。三流合一：即将扣费（未来）→ 账户（卡片状态）→ 按日的历史交易。
+ * 动态流。三流合一：即将扣费（未来）→ 卡片（状态）→ 按日的历史交易。
  *
  * 两条来自真实产品的结论决定了这一版的结构：
  *   ① 每条动账都有形象（Brandfetch 的 transaction enrichment：有品牌就上品牌标，
@@ -15,6 +15,17 @@ import './feed.css';
  *   ② 日期分组头用「名单底上的小字 + 右侧日小计」（bank_ui_kit 的
  *      BankTransactionGroupHeader：贴着小字排版、不画灰条、日小计用等宽数字、
  *      零小数位不显示）。所以日期不重复出现在每一行里，行只用来说「这是什么」。
+ *
+ * 本轮改的是**这一屏该承担多少**，四处全是删：
+ *   ① 概览不是账本。这里只铺「即将扣费 + 卡片 + 最近三个有动账的日子」，
+ *      全量明细在账单页（那一页有六种图形与分类筛选，筛选入口贴在数据旁边）。
+ *   ② 于是筛选胶囊整排删除：那些计数（全部 148 / 支出 137 / 餐饮 58）与下面的日小计、
+ *      账单页的结论说的是同一批数字，多出来的只是一排要读的字。
+ *   ③ 合计条与分类条同样删除：两者都是"整个账本的报表"，账单页的结论 StatBar 与
+ *      图形已经把这件事说得更好；动态只回答"最近动了什么"。
+ *   ④ 展开里的「方向」一条删除：行首的箭头与金额的正负号已经说了同一件事。
+ *
+ * 于是这一屏的文字只剩：面板名 + 三个分组名。其余全是头像、金额与日期。
  */
 
 const fmt = c => '¥' + (c / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -27,7 +38,8 @@ const dayLabel = date => (date === DEMO_DATE ? '今天' : date === YESTERDAY ? '
   : Number(date.slice(5, 7)) + ' 月 ' + Number(date.slice(8)) + ' 日');
 const shortDate = date => date.slice(5).replace('-', '/');
 
-const FILTERS = [['all', '全部'], ['in', '入账'], ['out', '支出'], ['dining', '餐饮'], ['sub', '订阅'], ['card', '卡片']];
+/** 概览只看最近这几天有动账的日子：再往前的交给账单页。 */
+const RECENT_DAYS = 3;
 
 function FeedRow({ r, open, onToggle, onGo }) {
   const Dir = r.positive ? ArrowDownLeft : ArrowUpRight;
@@ -63,16 +75,19 @@ function groupOf(list) {
     out[at.get(key)].list.push(r);
   }
   /* 账本按"录入顺序"存，不是按日期 —— 不排一次的话分组头会读成 10 日、12 日、昨天、23 日。
-     排序只按组头的语义：即将扣费在最上，账户次之，日期一律新到旧。 */
+     排序只按组头的语义：即将扣费在最上，卡片次之，日期一律新到旧。 */
   const rank = s => (s.key === 'soon' ? 0 : s.key === 'card' ? 1 : 2);
-  return out
-    .sort((a, b) => rank(a) - rank(b) || (rank(a) === 2 ? b.key.localeCompare(a.key) : 0))
+  const sorted = out.sort((a, b) => rank(a) - rank(b) || (rank(a) === 2 ? b.key.localeCompare(a.key) : 0));
+  /* 未来与卡片两组永远在（它们不属于任何一天），日期组只留最近 RECENT_DAYS 天。 */
+  return [...sorted.filter(s => rank(s) < 2), ...sorted.filter(s => rank(s) === 2).slice(0, RECENT_DAYS)]
     .map(s => ({ ...s, ...headOf(s.key, s.list) }));
 }
 
+/* 分组头只说两件事：这一组是什么、这一组多少钱。计数不写 —— 行就在下面，
+   数一遍比读一个数字快，而那个数字还要随筛选变。 */
 function headOf(key, list) {
-  if (key === 'soon') return { label: '即将扣费', note: list.length + ' 项代扣签约' };
-  if (key === 'card') return { label: '账户', note: '卡片状态' };
+  if (key === 'soon') return { label: '即将扣费', note: '−' + tiny(-list.reduce((n, r) => n + r.cents, 0)) };
+  if (key === 'card') return { label: '卡片', note: tiny(list.reduce((n, r) => n + r.used, 0)) };
   const income = list.filter(r => r.cents > 0).reduce((n, r) => n + r.cents, 0);
   const spend = list.filter(r => r.cents < 0).reduce((n, r) => n + r.cents, 0);
   const parts = [];
@@ -83,22 +98,20 @@ function headOf(key, list) {
 
 export default function Feed({ ctx }) {
   const { bank, dataModel: d, setRoute } = ctx;
-  const [filter, setFilter] = useState('all');
   const [open, setOpen] = useState(null);
 
-  const streams = useMemo(() => {
+  const rows = useMemo(() => {
     const allSubs = bank.subscriptions;
     const spentByCat = new Map(d.categories.map(c => [c.name, c.amount]));
     const tx = d.transactions.map(t => {
       const note = (bank.transactions.find(x => x.id === t.id) || {}).note;
       const look = avatarOf(t, allSubs);
-      const facts = [['日期', t.date], ['分类', look.label],
-        ['方向', t.positive ? '入账，钱回到这个账户' : '出账，钱离开这个账户']];
+      const facts = [['日期', t.date], ['分类', look.label]];
       if (!t.positive && spentByCat.get(t.category)) {
         facts.push(['占本月' + look.label, Math.round(Math.abs(t.amount) / spentByCat.get(t.category) * 100) + '%']);
       }
       if (note) facts.push(['备注', note]);
-      return { id: 'tx-' + t.id, kind: 'tx', date: t.date, category: t.category, cents: t.amount,
+      return { id: 'tx-' + t.id, kind: 'tx', date: t.date, cents: t.amount,
         name: look.title, positive: t.positive, amountText: t.amountText, look, facts,
         sub: look.label + (look.recurring ? ' · 周期' : '') + ' · ' + (t.positive ? '入账' : '出账'),
         action: { label: '去看这一类明细', route: 'bills' } };
@@ -109,7 +122,7 @@ export default function Feed({ ctx }) {
       .map(s => {
         const look = avatarOf({ name: s.name, category: '订阅', positive: false }, allSubs);
         const days = Math.round((Date.parse(s.date) - Date.parse(DEMO_DATE)) / 86400000);
-        return { id: 'sub-' + s.id, kind: 'sub', date: s.date, category: '订阅', cents: -s.amount, name: look.title,
+        return { id: 'sub-' + s.id, kind: 'sub', date: s.date, cents: -s.amount, name: look.title,
           sub: shortDate(s.date) + ' · 每月固定', amountText: fmt(s.amount), positive: false, look,
           facts: [['下次扣费', s.date + (days >= 0 ? '，还有 ' + days + ' 天' : '')], ['每月', fmt(s.amount)],
             ['一年', fmt(s.amount * 12)], ['取消', '扣费日之前都可以取消，取消后不再扣款']],
@@ -117,7 +130,7 @@ export default function Feed({ ctx }) {
       });
     /* 卡片不是交易，但它和交易共用同一套头像底座：形状说性质、颜色说身份。 */
     const cards = bank.cards.map(c => ({
-      id: 'card-' + c.id, kind: 'card', date: null, cents: null, category: null,
+      id: 'card-' + c.id, kind: 'card', date: null, cents: null,
       name: c.name + ' •• ' + c.tail, sub: (c.status === 'active' ? '正常使用' : '已冻结') + ' · ' + c.type,
       usedText: fmt(c.used || 0), used: c.used || 0,
       look: { tone: 'subscribe', shape: 'circle', Icon: CreditCard, person: null, brand: null,
@@ -127,49 +140,22 @@ export default function Feed({ ctx }) {
         ['可用', fmt(c.limit - (c.used || 0))], ['可用渠道', c.channels.join('、')], ['发卡日', c.since]],
       action: { label: '去卡片页', route: 'cards' },
     }));
-    return { all: [...subRows, ...cards, ...tx], in: tx.filter(t => t.positive), out: tx.filter(t => !t.positive),
-      dining: tx.filter(t => t.category === '餐饮'), sub: subRows, card: cards };
+    return [...subRows, ...cards, ...tx];
   }, [d, bank]);
 
-  const list = streams[filter];
-  const sections = groupOf(list);
-  /* 小计只算已经发生的交易：即将扣费与卡片状态不是钱，混进合计会让"出了多少"失真。 */
-  const money = list.filter(r => r.kind === 'tx');
-  const earned = money.filter(r => r.cents > 0).reduce((n, r) => n + r.cents, 0);
-  const spent = money.filter(r => r.cents < 0).reduce((n, r) => n + r.cents, 0);
-  const cats = [...money.reduce((m, r) => m.set(r.look.label, (m.get(r.look.label) || 0) + r.cents), new Map())]
-    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-
-  const monthly = list.filter(r => r.kind === 'sub').reduce((n, r) => n - r.cents, 0);
-  const cells = filter === 'card'
-    ? [['卡片', list.length + ' 张'], ['本月已用', fmt(list.reduce((n, r) => n + r.used, 0))]]
-    : filter === 'sub'
-      ? [['订阅', list.length + ' 项'], ['每月固定', fmt(monthly)], ['下次扣费', list.length ? shortDate(list[0].date) : '暂无']]
-      : [['交易', money.length + ' 笔'], ['入账', '+' + fmt(Math.abs(earned))], ['出账', '−' + fmt(Math.abs(spent))],
-        ['净额', (earned + spent >= 0 ? '+' : '−') + fmt(Math.abs(earned + spent))]];
+  const sections = groupOf(rows);
 
   return <section className="panel">
     <div className="panel-head">
       <h2>动态</h2>
-      <button className="link-btn" onClick={() => setRoute('bills')}>全部明细</button>
+      {/* 「全部明细」四个字换成一个箭头：去处是账单页，那里才是明细该待的地方 */}
+      <button className="link-btn feed-more" onClick={() => setRoute('bills')} aria-label="全部明细">
+        <ChevronRight size={16}/>
+      </button>
     </div>
     <div className="panel-body">
-      <div className="chips-row">
-        {FILTERS.map(([id, label]) => <button key={id} type="button" aria-pressed={filter === id}
-          className={'chip' + (filter === id ? ' on' : '')} onClick={() => { setFilter(id); setOpen(null); }}>
-          {label}<span className="chip-n">{streams[id].length}</span>
-        </button>)}
-      </div>
-
-      <div className="feed-tally">
-        {cells.map(([k, v]) => <div key={k}><span>{k}</span><b>{v}</b></div>)}
-      </div>
-      {cats.length > 0 && <p className="feed-cats">
-        {cats.map(([name, cents]) => <span key={name}>{name}<b>{fmt(Math.abs(cents))}</b></span>)}
-      </p>}
-
-      {list.length === 0
-        ? <Empty>这一流里暂时没有动账。</Empty>
+      {rows.length === 0
+        ? <Empty>还没有动账。</Empty>
         : <div className="day-groups">
             {sections.map(s => <section className="day-group" key={s.key}>
               <header className="day-head feed-day"><h3>{s.label}</h3><b>{s.note}</b></header>

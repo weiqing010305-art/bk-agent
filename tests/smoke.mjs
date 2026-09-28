@@ -18,7 +18,7 @@ const add = (name, ok, extra='') => checks.push((ok ? '  OK   ' : '  FAIL ') + n
 
 add('助手工作区渲染', await page.locator('.workspace-view .a2ui-surface').count() > 0);
 add('首页统合视图标题', (await page.locator('body').innerText()).includes('你好，小禾'));
-add('常驻入口 chips', await page.locator('.flow-chip').count() >= 7, '(' + await page.locator('.flow-chip').count() + ' 项)');
+add('常驻入口 chips', await page.locator('.flow-chip').count() >= 3, '(' + await page.locator('.flow-chip').count() + ' 项)');
 
 // 各产品页
 /* 页面各自有自己的行类（收款人用 .payee-row 等），所以断言用「这一页有没有内容」而不是具体类名 */

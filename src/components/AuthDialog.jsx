@@ -85,12 +85,15 @@ export default function AuthDialog({ request, onPass, onFail, onClose }) {
 
       <div className="auth-body">
         {factor === 'sms' && <>
-          <label className="auth-field">
+          <label className="auth-field" htmlFor="auth-code">
             <span>{FACTORS[0].hint}</span>
-            <input className="a2ui-input" inputMode="numeric" maxLength={6} placeholder="6 位验证码"
-                   value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} autoFocus/>
+            <span className="code-row">
+              <input id="auth-code" className="a2ui-input" inputMode="numeric" maxLength={6} placeholder="6 位验证码"
+                     value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} autoFocus/>
+              {/* 演示里验证码必须可见，否则流程走不下去；但「演示」两个字不上界面 */}
+              <strong>{DEMO_CODE}</strong>
+            </span>
           </label>
-          <p className="auth-demo">演示环境验证码：<b>{DEMO_CODE}</b></p>
           <button className="primary-btn" onClick={submitSms}>验证并执行</button>
         </>}
 
@@ -115,7 +118,7 @@ export default function AuthDialog({ request, onPass, onFail, onClose }) {
       </div>
 
       {error && <p className="api-error" role="alert">{error}</p>}
-      <p className="auth-note">验证失败累计 3 次会触发安全锁定，需手动解除。</p>
+      <p className="auth-note">连续 3 次失败将锁定账户</p>
     </div>
   </div>;
 }

@@ -13,8 +13,10 @@ export default function ConfirmDialog({ ctx }) {
     <div className="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={e => e.stopPropagation()}>
       <button className="icon-btn" aria-label="关闭" onClick={() => setConfirm(null)} style={{ alignSelf: 'flex-end' }}><X size={16}/></button>
       <span className="modal-icon"><ShieldCheck size={22}/></span>
-      <h2 id="confirm-title">{isTransfer ? '核对转账信息' : '重置演示数据'}</h2>
-      <p>{isTransfer ? '确认后将更新模拟余额和账单，并写入回执。' : '余额、账单、订阅与卡片会恢复到初始样例。'}</p>
+      {/* 标题加一句话说明，本来就是「用文字补设计」。
+          转账的详情已经逐项列在下面了 —— 那就是说明。
+          重置是破坏性操作，只保留一句「会恢复初始」就够，不需要罗列恢复了什么。 */}
+      <h2 id="confirm-title">{isTransfer ? '核对转账信息' : '恢复初始状态？'}</h2>
       {isTransfer && <div className="confirm-detail">
         <div><span>收款人</span><strong>{confirm.recipientName}</strong></div>
         <div><span>收款账户</span><strong>{confirm.recipientNumber}</strong></div>
@@ -25,7 +27,7 @@ export default function ConfirmDialog({ ctx }) {
         <button className="ghost-btn" onClick={() => setConfirm(null)}>返回修改</button>
                 {/* 必须包一层：onClick 会把点击事件当第一个参数传进去，
             而 applyConfirmation 的第一个参数是「显式指定的 action」 */}
-        <button className="primary-btn" disabled={busy} onClick={() => applyConfirmation()}>确认模拟操作 <ArrowRight size={15} style={{ verticalAlign: '-3px' }}/></button>
+        <button className="primary-btn" disabled={busy} onClick={() => applyConfirmation()}>{isTransfer ? '确认转账' : '恢复'} <ArrowRight size={15} style={{ verticalAlign: '-3px' }}/></button>
       </div>
     </div>
   </div>;

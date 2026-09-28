@@ -13,7 +13,7 @@ await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(1400);
 await page.screenshot({ path: 'artifacts/v11/1-home.png' });
 
-await page.locator('.flow-chip', { hasText: '卡片' }).first().click();
+await page.locator('.side-item', { hasText: '卡片' }).first().click();
 await page.waitForTimeout(1200);
 await page.screenshot({ path: 'artifacts/v11/2-cards-in-assistant.png' });
 console.log('助手里的卡面:', await page.locator('.assistant-card, .card-tile, .cf-card').count());

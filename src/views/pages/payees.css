@@ -20,7 +20,9 @@
 .chip-n { margin-left: var(--space-2); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 .chip.on .chip-n { color: var(--accent-on); opacity: .78; }
 
-/* ── 行：第一眼是人，第二眼是往来，第三眼才是动作 ─────────────────── */
+/* ── 行：第一眼是人，第二眼是往来，第三眼才是动作 ───────────────────
+   两行小字之间不留空隙，靠字号与颜色分层（0.9375rem 主 / 0.75rem 次 / 0.6875rem 更次），
+   不用分隔线，也不给每一行加标签 —— 位置本身就是标签。 */
 .payee-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .payee-item {
   display: flex; align-items: center; gap: var(--space-4);
@@ -53,7 +55,21 @@
 }
 .payee-tag--saved { background: var(--accent-tint); color: var(--accent); font-weight: 500; }
 .payee-meta { font-size: var(--text-caption); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.payee-uses { font-size: var(--text-caption-2); color: var(--text-tertiary); }
+/* 用途前面那个 Tag 图标替代了「用途」两个字 */
+.payee-uses { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-caption-2); color: var(--text-tertiary); }
+.payee-uses svg { flex: 0 0 auto; }
+
+/* ── 行尾的动作：一个图标按钮。命中区取 --hit-min，和行高同高，不额外撑开列表 ── */
+.payee-act {
+  flex: 0 0 auto; width: var(--hit-min); height: var(--hit-min);
+  display: grid; place-items: center; border: none; border-radius: var(--radius-pill);
+  background: transparent; color: var(--text-secondary);
+  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .payee-act:hover { background: var(--fill-3); color: var(--accent); }
+}
+.payee-act:active { transform: scale(.96); transition-duration: var(--duration-instant); }
 
 /* ── 查号：卡号 → 结果 → 保存 ─────────────────────────────────────── */
 .lookup { display: flex; align-items: center; gap: var(--space-3); }
@@ -74,6 +90,9 @@
 
 @media (max-width: 640px) {
   .payee-item { flex-wrap: wrap; }
-  .payee-item .a2ui-btn { margin-left: calc(40px + var(--space-4)); }
   .lookup, .lookup-result { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payee-act:active { transform: none; }
 }

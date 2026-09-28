@@ -87,7 +87,7 @@ export function useTransferFlow({ history, a2ui, turns, ctxFor, record, resumeFo
     const check = validateTransferSlots({ recipient, amountText: d.amountText, balance: bank.balance });
     if (!check.ok) return setToast(check.error);
     const contact = manual ? directory.find(c => c.number === check.cardNumber) : contacts.find(c => c.id === d.contactId);
-    if (!contact) return setToast('未找到该演示收款人，请核对完整卡号');
+    if (!contact) return setToast('这个卡号不在名录里');
     /* 不自己决定走哪道门 —— 交给 App 的策略门禁。
        本 hook 只负责「表单填对了」，风险分级是 policy 层的事。 */
     return onDraft({
