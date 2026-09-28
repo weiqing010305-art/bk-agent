@@ -1,7 +1,7 @@
 /* avatars.css —— 交易头像体系（doc/research/revolut-ai-and-za-deep-dive.md §D）。
    · 本文件不含任何颜色字面量：类别色由 tokens.css 的 --cat-* 用 color-mix 得到，
      商户品牌色由 avatars.jsx 的品牌表以 --av-brand 内联注入（品牌色是数据，不是主题）。
-   · 规格（§D.5）：桌面 40px · 移动 36px · 行内徽标 16px · 与文字间距 12px（.row-item 的 --space-4）。
+   · 规格（§D.5）：桌面 40px · 移动 36px · 与文字间距 12px（.row-item 的 --space-4）。
    · 红与绿只留给金额：类别色盘里没有纯红、没有纯绿。 */
 
 .av.av {           /* 双类选择器：要盖过 pages.css 的 .tx-icon / .tx-icon--* 单类规则 */
@@ -68,21 +68,6 @@
 
 /* 人物头像位：转账给人的是「人」，不是图标 —— 真银行 App 的收款人头像就是这个字 */
 .av-initial { font-size: var(--text-subhead); font-weight: 600; }
-
-/* ── 行内徽标 16px（§D.5）：右上角 = 这笔在周期里，右下角 = 这是谁 ──────
-   两套语言不打架：地铁这类高频小额两个都不加，头像要最简。 */
-.av-badge, .av-seal {
-  position: absolute; z-index: 2; display: grid; place-items: center; line-height: 1;
-  border-radius: var(--radius-pill);
-  background: var(--bg-surface); color: currentColor;
-  font-size: var(--text-caption-2); font-weight: 600;
-  box-shadow: 0 0 0 1.5px var(--bg-surface), var(--shadow-hairline);
-}
-.av-badge { right: -5px; top: -5px; width: 16px; height: 16px; }
-.av-seal { right: -4px; bottom: -4px; min-width: 17px; height: 17px; padding: 0 3px; }
-.av-seal--glyph { min-width: 15px; height: 15px; padding: 0; }
-/* 小标不参与分类签名动作：跟着图标一起摆会让它看起来在抖 */
-.row-item:hover .av-seal svg, .row-item:hover .av-badge svg { animation: none; }
 
 /* ── 工资：把「发薪」做成一次事件（§D.4：工资要有发薪的感觉，不是普通入账）──
    ① 全站唯一一个实心头像：金币 ② 双环（纪念章式） ③ 绶带：clip-path 画的燕尾带

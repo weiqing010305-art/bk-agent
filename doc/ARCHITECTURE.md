@@ -562,11 +562,11 @@ flowchart LR
     IDX --> B["图例：餐饮高亮"]
     IDX --> C["读数区：餐饮 ¥1,191，23%，N 笔"]
     IDX --> D["明细：餐饮行高亮"]
-    CLICK["点击该段"] --> PICK["只看这一类 + 滚动到明细"]
+    CLICK["点击该段"] --> PICK["只看这一类，视口保持原位"]
 ```
 
-> **hover 不触发滚动，只有点击才滚动** —— 频率门：hover 一天几十次，
-> 让页面自己跳比不动更糟。
+> 图形、图例和分类按钮都只更新筛选状态，不改变滚动位置。读数区保留统一最小高度，
+> 使不同类目的文字长短不会带动下方区域跳动。
 
 ### 7.6 异常交易识别（anomaly.js）
 
@@ -644,11 +644,12 @@ stateDiagram-v2
 **助手侧的卡面**：`CardFace` 已进 A2UI 白名单，所以助手说的卡片视图里
 渲染的是**真卡面**而不是「一个图标 + 两行灰字」。
 
-### 7.9 收款人
+### 7.9 转账页内的收款人名录
 
 ```mermaid
 flowchart TB
-    PAGE["views/pages/payees.jsx"] --> Q{"这一页回答什么"}
+    TRANSFER["views/pages/transfer.jsx"] --> PAGE["views/pages/payees.jsx 名录区"]
+    PAGE --> Q{"名录区回答什么"}
     Q --> Q1["这是谁"]
     Q --> Q2["上次给了他多少"]
     Q --> Q3["还能不能再转"]
@@ -688,27 +689,27 @@ flowchart TB
 
 ### 7.12 助手工作区的布局
 
-**不是一条会不断变长的聊天流。**每办一件事就多一张卡，看到第三张就得往上滑 —— 那违背最小操作原则。
+按会话顺序渲染完整消息流。新对话的第一条助手消息提供欢迎语和七列卡片式功能入口；用户消息用浅蓝气泡靠右，助手消息及对应的 A2UI 业务 surface 靠左。消息下方不显示复制、编辑图标，助手对话中的 surface 不显示来源页脚；来源元数据仍由协议保留。不显示助手头像和消息时间。桌面侧栏宽度为 `clamp(260px, 16vw, 340px)`；对话与输入区共用居中的 1040px 最大宽度，输入框默认最小高度 124px，窄屏降为 96px。消息区独立滚动并留有底部空间，输入框以透明外层浮在对话区上方。交易明细由账单页提供。
 
 ```mermaid
 flowchart TB
     subgraph W["AssistantView"]
         direction TB
-        H["view-head 标题"]
-        WS["**工作区**：当前这件事的统合视图，占满主要面积，一屏看全"]
-        TG["TaskGraph（仅复杂任务）"]
-        HIST["**历史条**：以往问句折成一行 chips，点一下换回当时那张视图"]
-        FL["FlowLauncher 可以让他做什么"]
+        WS["对话流：按时间顺序渲染所有回合"]
+        WELCOME["欢迎消息 + FlowLauncher 七项功能"]
+        USER["用户气泡：右侧"]
+        AGENT["助手回复 + A2UI surface：左侧"]
+        TG["TaskGraph：仅复杂任务"]
         CP["Composer"]
     end
-    H --> WS
-    WS --> TG
-    TG --> HIST
-    HIST --> FL
-    FL --> CP
+    WS --> WELCOME
+    WS --> USER
+    WS --> AGENT
+    AGENT --> TG
+    WS --> CP
 ```
 
-> **不滚动的历史，可切换的现在。**
+> 历史保留在原位；会话切换仍由侧栏负责。
 
 ### 7.13 多因子认证
 
@@ -899,11 +900,11 @@ Get-ChildItem src -Recurse -Include *.css |
 
 | 文件 | 行数 | 职责 |
 | --- | ---: | --- |
-| `AssistantView.jsx` | 100 | 业务层：工作区 + 历史条 + 任务图 |
+| `AssistantView.jsx` | 70 | 业务层：完整消息流 + 欢迎入口 + 任务图 |
 | `product.jsx` | 19 | 产品层路由 |
 | `parts.jsx` | 103 | 共用零件：Page / Panel / StatBar / IconTile / Row / CountUp |
 | `shared.jsx` | 34 | 分类视觉语言的兼容层（实现已搬到 avatars） |
-| `avatars.jsx` | 201 | **16 类 PFC 头像体系** + 品牌色常量 |
+| `avatars.jsx` | 192 | **16 类 PFC 头像体系** + 品牌色常量；头像描述只供主图标、形状和颜色使用，不生成角标 |
 | `charts.jsx` | 246 | **六种图表形态**，共享高亮状态 |
 | `pages/overview.jsx` | 121 | 概览：余额主卡 + 4×3 宫格 |
 | `pages/feed.jsx` | 170 | 动态：三段时间轴 + 可展开 |
@@ -915,7 +916,7 @@ Get-ChildItem src -Recurse -Include *.css |
 | `pages/cardFreeze.jsx` | 74 | 冻结流程 |
 | `pages/cardData.jsx` | 167 | 演示扩展数据（补进账本） |
 | `pages/cardUtils.jsx` | 43 | 账期模型 |
-| `pages/payees.jsx` | 149 | 收款人 |
+| `pages/payees.jsx` | 收款人名录区 | 嵌入转账页；搜索、常用设置与卡号查询 |
 | `pages/transfer.jsx` | 238 | 转账页（渲染同一套 A2UI surface） |
 | `pages/receipts.jsx` | 23 | 回执 |
 

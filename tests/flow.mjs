@@ -13,7 +13,7 @@ const page = await browser.newPage({ viewport: { width: 1560, height: 1000 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
 
-const surface = () => page.locator('.workspace-view .a2ui-surface');
+const surface = () => page.locator('.assistant-thread .a2ui-surface').last();
 const step = async (label, mustMatch) => {
   await page.waitForTimeout(600);
   const t = await surface().innerText();
@@ -29,7 +29,7 @@ try {
 
   // 产品层入口直接开转账：应停在第一步
   /* 用精确名字：加了「定时转账」之后 hasText 会同时命中两个 */
-  await page.getByRole('button', { name: '转账 4 步' }).click();
+  await page.locator('.flow-chip', { hasText: '转账' }).first().click();
   await step('01 怎么转', /你想怎么转/);
   assert.equal(await surface().locator('.a2ui-card--interactive').count(), 4, '第一步应有 4 种方式');
   assert.equal(await surface().locator('.a2ui-progress-seg').count(), 4, '进度条应有 4 段');

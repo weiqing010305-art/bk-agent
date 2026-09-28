@@ -2,6 +2,9 @@
    颜色一律 var()/color-mix(tokens)，禁止字面量；hover 一律 gate 在 hover:hover 里。 */
 
 /* ── 工具行：搜索 + 关系筛选 ──────────────────────────────────────── */
+.payees-embedded { margin-top: var(--space-6); }
+.payees-embedded h2 { margin: 0 0 var(--space-2); font-size: var(--text-title-3); }
+.payees-embedded > .page-note { margin: 0 0 var(--space-5); }
 .payee-tools { display: flex; flex-direction: column; gap: var(--space-4); }
 .payee-search {
   display: flex; align-items: center; gap: var(--space-3);

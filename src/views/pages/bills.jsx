@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Page, Panel, StatBar, Row, Empty } from '../parts.jsx';
 import { CategoryIcon, CATS } from '../shared.jsx';
 import { SpendingChart } from '../charts.jsx';
@@ -10,7 +10,7 @@ import { SpendingChart } from '../charts.jsx';
  *   旧顺序是「统计 → 图 → 筛选 → 明细」，筛选单独占一排 chips，于是「我要看餐饮」
  *   要跨三个区域操作三次。现在页面上只有一个「当前分类」状态：滑过图形、图例、
  *   读数区里的任一处都在改它，明细里对应的行随之高亮；点一下则只看这一类，
- *   并把明细送到眼前。筛选的入口就在数据旁边，不必再单列一排。
+ *   明细同步筛选，但视口保持在原处。筛选的入口就在数据旁边，不必再单列一排。
  *   账期用胶囊切换（不给月份做一个大下拉框）：账本里有几个月就显示几个。
  *
  * 所有派生量都在 analyze() 里算完，它是纯函数，0 笔 / 1 笔 / 某类目为 0 都走同一条路径。
@@ -143,7 +143,6 @@ export default function Bills({ ctx }) {
   const [hover, setHover] = useState(null);
   const [filter, setFilter] = useState('全部');
   const [picked, setPicked] = useState(null);
-  const listRef = useRef(null);
 
   const months = useMemo(() => [...new Set(d.transactions.map(t => t.date.slice(0, 7)))].sort(), [d.transactions]);
   const month = picked || months[months.length - 1] || '';
@@ -161,14 +160,6 @@ export default function Bills({ ctx }) {
   }, [m.txns, filter]);
 
   const shown = groups.reduce((n, g) => n + g[1].length, 0);
-
-  /* 点了图例之后把明细送到眼前。hover 不触发滚动：一天几十次的高频交互里
-     让页面自己跳，比不动更糟（ARCHITECTURE §5A.3 的频率门）。 */
-  useEffect(() => {
-    if (filter === '全部' || !listRef.current) return;
-    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    listRef.current.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
-  }, [filter]);
 
   const label = month ? monthNum(month) + ' 月' : '本期';
 
@@ -209,7 +200,7 @@ export default function Bills({ ctx }) {
         {CATS.map(c => <button key={c} type="button" className={'chip' + (filter === c ? ' on' : '')}
           aria-pressed={filter === c} onClick={() => { setFilter(c); setHover(null); }}>{c}</button>)}
       </div>
-      <div className="day-groups" ref={listRef}>
+      <div className="day-groups">
         {groups.length === 0
           ? <Empty>这个分类下没有交易。</Empty>
           : groups.map(([date, list]) => <section className="day-group" key={date}>

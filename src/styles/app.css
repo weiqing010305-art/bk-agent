@@ -85,34 +85,13 @@ button:disabled { cursor: not-allowed; }
 .icon-btn:hover { transform: translateY(-1px); background: var(--material-regular-tint); }
 .icon-btn:active { transform: scale(.94); transition-duration: var(--duration-instant); }
 
-/* ── 对话流 ───────────────────────────────────────────────────────────── */
-.workspace { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
-.conversation { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
-.conversation::-webkit-scrollbar { width: 10px; }
-.conversation::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid transparent; background-clip: content-box; border-radius: 99px; }
-.conversation-inner {
-  max-width: var(--max-read); margin: 0 auto;
-  padding: var(--space-5) var(--pad-container) var(--space-9);
-  display: flex; flex-direction: column; gap: var(--space-6);
-}
-
-.turn { animation: rise var(--dur-spring-critical) var(--ease-spring-critical) both; }
-.turn--user { display: flex; justify-content: flex-end; }
-/* 用户消息：纯色块，无尾巴；助手消息：无气泡，直接排文字（避免 2010 IM 风） */
-.user-bubble {
-  margin: 0; max-width: 78%; padding: var(--space-4) var(--space-6);
-  border-radius: var(--radius-hero) var(--radius-hero) var(--radius-chip) var(--radius-hero);
-  background: var(--accent); color: var(--accent-on);
-  font-size: var(--text-body); line-height: var(--leading-body);
-  box-shadow: var(--shadow-1);
-}
 @keyframes rise { from { opacity: 0; transform: translateY(12px) scale(.99); } }
 
 /* ══ 响应式 ══════════════════════════════════════════════════════════ */
 @media (max-width: 1400px) { .inspector { width: 300px; } }
 @media (max-width: 1180px) {
   .inspector { display: none; }
-  .sidebar { width: 232px; }
+  .sidebar { width: 250px; }
 }
 @media (max-width: 900px) {
   .sidebar {
@@ -157,33 +136,27 @@ a { text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .balance-hero > strong, .cat-amt, .sub-right b, .masked-num,
 .a2ui-meter .a2ui-text--amount { font-variant-numeric: tabular-nums; }
 
-/* ── 常驻动线入口 ────────────────────────────────────────────────────
-   对话流会滚走，但"我现在能做什么"必须一直在。 */
-.launcher { flex: 0 0 auto; padding: 0 var(--pad-container); }
-.launcher-inner { max-width: var(--max-read); margin: 0 auto; }
-.launcher-label {
-  margin: 0 0 var(--space-3); font-size: var(--text-caption-2);
-  color: var(--text-tertiary); letter-spacing: .04em;
-}
-.launcher-row { display: flex; gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-2); }
-.launcher-row::-webkit-scrollbar { height: 0; }
+/* ── 欢迎消息内的功能入口 ─────────────────────────────────────────── */
+.launcher { width: 100%; margin-top: var(--space-4); }
+.launcher-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
 .flow-chip {
-  flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--space-3);
-  height: 38px; padding: 0 var(--space-5) 0 var(--space-3);
-  border: none; border-radius: var(--radius-pill);
-  background: var(--bg-surface); box-shadow: var(--shadow-1), 0 0 0 1px var(--hairline);
-  font-size: var(--text-subhead); color: var(--text-primary);
-  transition: transform var(--duration-base) var(--ease-spring), box-shadow var(--duration-base) var(--ease-out);
+  min-width: 0; min-height: 94px; padding: var(--space-4) var(--space-2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3);
+  border: 1px solid var(--hairline); border-radius: var(--radius-md);
+  background: var(--bg-surface); color: var(--text-primary);
+  font-size: var(--text-subhead); font-weight: 600; white-space: nowrap;
+  transition: transform var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
 }
 .flow-chip i {
-  width: 24px; height: 24px; border-radius: var(--radius-chip);
-  display: grid; place-items: center; background: var(--accent-tint); color: var(--accent);
+  display: grid; place-items: center; color: var(--accent);
 }
-.flow-chip em { font-style: normal; font-size: var(--text-caption-2); color: var(--text-tertiary); margin-left: var(--space-2); }
 @media (hover: hover) and (pointer: fine) {
-  .flow-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-card), 0 0 0 1px var(--hairline); }
+  .flow-chip:hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-tint); }
 }
 .flow-chip:active { transform: scale(.97); transition-duration: var(--duration-instant); }
+.flow-chip:disabled { opacity: .55; }
+@media (max-width: 700px) { .launcher-row { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .launcher-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* ══ 加载态：生成中的骨架 ════════════════════════════════════════════ */
 .surface-skeleton {
@@ -216,42 +189,46 @@ h1, h2, h3, .a2ui-text--title, .a2ui-text--headline, .hero-amount { text-wrap: b
 p, .a2ui-text--body, .row-main small, .page-note { text-wrap: pretty; }
 /* 标点挤压：中文标点不吃满全角，行尾更整齐 */
 .a2ui-text--body, p, .row-main strong { text-spacing-trim: space-first; }
-/* ══ 助手工作区 ══════════════════════════════════════════════════════
-   不再是"会不断变长的聊天流"，而是「当前一件事的统合视图 + 一行可切换的历史」。
-   目标：一屏看全，不用往上滑。 */
-.workspace-view {
+/* ══ 助手对话流 ══════════════════════════════════════════════════════ */
+.assistant-layout { --text-primary: var(--bank-ink); --text-secondary: var(--bank-muted); --text-tertiary: var(--bank-muted); --hairline: var(--bank-line); color: var(--bank-ink); flex: 1 1 auto; min-height: 0; display: flex; }
+.assistant-main { position: relative; background: var(--bank-canvas); flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.assistant-thread {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  display: flex; justify-content: center;
-  padding: var(--space-2) var(--pad-container) var(--space-4);
+  padding: 55px 34px 190px;
 }
-.workspace-view::-webkit-scrollbar { width: 10px; }
-.workspace-view::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid transparent; background-clip: content-box; border-radius: var(--radius-pill); }
-.workspace-inner {
-  width: 100%; max-width: var(--max-read);
-  display: flex; flex-direction: column; justify-content: center;
+.assistant-thread-inner {
+  width: 100%; max-width: var(--max-chat); margin: 0 auto;
+  display: flex; flex-direction: column; gap: var(--space-7);
 }
-
-.turn-strip { flex: 0 0 auto; padding: 0 var(--pad-container) var(--space-2); }
-.turn-strip-inner {
-  max-width: var(--max-read); margin: 0 auto;
-  display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: 2px;
+.chat-turn { display: flex; min-width: 0; }
+.chat-turn--user { flex-direction: column; align-items: flex-end; }
+.chat-response {
+  min-width: 0; width: 100%;
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3);
 }
-.turn-strip-inner::-webkit-scrollbar { height: 0; }
-.turn-chip {
-  flex: 0 0 auto; max-width: 190px; height: 28px; padding: 0 var(--space-4);
-  border: none; border-radius: var(--radius-pill);
-  background: var(--fill-4); color: var(--text-tertiary);
-  font-size: var(--text-caption);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+.chat-bubble {
+  margin: 0; padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-card); overflow-wrap: anywhere;
+  font-size: var(--text-body); line-height: var(--leading-body);
 }
-.turn-chip.on { background: var(--accent-tint); color: var(--accent); font-weight: 500; }
-@media (hover: hover) and (pointer: fine) { .turn-chip:hover:not(.on) { background: var(--fill-3); color: var(--text-secondary); } }
-.turn-chip:active { transform: scale(.97); }
-
-/* 用户说过的话在原位留一行，保证"我确实说了这句"可追溯 */
-.workspace-view .user-line {
-  align-self: flex-end; max-width: 78%; margin-bottom: var(--space-4);
-  padding: var(--space-3) var(--space-5); border-radius: var(--radius-hero) var(--radius-hero) var(--radius-chip) var(--radius-hero);
-  background: var(--accent); color: var(--accent-on); font-size: var(--text-subhead);
+.chat-bubble--assistant {
+  max-width: 64ch; background: var(--bg-surface); box-shadow: var(--shadow-1);
+}
+.chat-bubble--welcome {
+  width: min(465px, 100%); max-width: 465px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; gap: var(--space-3);
+  padding: var(--space-7); background: var(--bank-welcome); box-shadow: none;
+}
+.chat-bubble--welcome strong { font-size: var(--text-title-3); line-height: var(--leading-title-3); }
+.chat-bubble--welcome span { color: var(--text-secondary); font-size: var(--text-callout); line-height: var(--leading-relaxed); }
+.chat-bubble--user {
+  max-width: min(72%, 64ch); background: var(--chat-user); color: var(--text-primary);
+  border-radius: var(--radius-hero);
+}
+@media (max-width: 900px) { .assistant-thread { padding-top: var(--space-12); } }
+@media (max-width: 640px) {
+  .assistant-thread { padding: var(--space-12) var(--space-5) 150px; }
+  .assistant-thread-inner { gap: var(--space-5); }
+  .chat-bubble--user { max-width: 86%; }
+  .chat-bubble--welcome { min-height: 0; padding: var(--space-5); }
+  .chat-bubble--welcome strong { font-size: var(--text-headline); }
 }

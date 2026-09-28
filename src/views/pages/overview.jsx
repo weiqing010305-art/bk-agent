@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArrowLeftRight, Banknote, BarChart3, CreditCard, Download, Info, Lightbulb,
-  PiggyBank, Receipt, Repeat, Smartphone, TrainFront, Users,
+  ArrowLeftRight, Banknote, BarChart3, CreditCard, Info, Lightbulb,
+  PiggyBank, Receipt, Repeat, Smartphone, TrainFront,
 } from 'lucide-react';
 import { Page, StatBar, IconTile, CountUp } from '../parts.jsx';
 import { EyeIcon } from '../shared.jsx';
@@ -14,7 +14,7 @@ import './overview.css';
  *
  * 三段：
  *   余额主卡（可用 / 冻结 / 活期储蓄拆分 / 本月结余）
- *   → 4×3 宫格（圆形 = 钱在动，方形 = 对象，沿用 ZA 的双图标语言）
+ *   → 快捷操作宫格（圆形 = 钱在动，方形 = 对象，沿用 ZA 的双图标语言）
  *   → 动态（交易 / 即将扣费 / 卡片 三流合一，见 feed.jsx）
  */
 const fmt = c => '¥' + (c / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,7 +52,6 @@ const RecurMarks = ({ subs }) => (
  */
 const TILES = [
   { label: '转账', icon: ArrowLeftRight, tone: 'accent', route: 'transfer' },
-  { label: '收款', icon: Download, tone: 'positive', route: 'payees' },
   { label: '手机充值', icon: Smartphone, tone: 'subscribe', demo: '助手没法给手机充值：演示环境没有接入运营商，不会真的扣款' },
   { label: '生活缴费', icon: Lightbulb, tone: 'accent', demo: '助手没法缴费：演示环境没有接入水电燃气，不会真的扣费' },
   { label: '交通卡', icon: TrainFront, tone: 'positive', demo: '助手没法给交通卡充值：演示环境没有接入一卡通账户' },
@@ -60,7 +59,6 @@ const TILES = [
   { label: '账单', icon: BarChart3, tone: 'accent', square: true, route: 'bills' },
   { label: '订阅', icon: Repeat, tone: 'subscribe', square: true, route: 'subscriptions' },
   { label: '卡片', icon: CreditCard, tone: 'warning', square: true, route: 'cards' },
-  { label: '收款人', icon: Users, tone: 'positive', square: true, route: 'payees' },
   { label: '回执', icon: Receipt, tone: 'subscribe', square: true, route: 'receipts' },
   { label: '储蓄计划', icon: PiggyBank, tone: 'accent', square: true, demo: '助手还没法开储蓄计划：演示环境没有开立定投产品' },
 ];
@@ -114,7 +112,6 @@ export default function Overview({ ctx }) {
       </div>
       <div className="balance-hero-actions">
         <button className="a2ui-btn a2ui-btn--primary" onClick={() => setRoute('transfer')}>转账</button>
-        <button className="a2ui-btn a2ui-btn--secondary" onClick={() => setRoute('payees')}>收款</button>
       </div>
     </section>
 

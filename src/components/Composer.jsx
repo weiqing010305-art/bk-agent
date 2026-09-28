@@ -42,7 +42,7 @@ export default function Composer({ ctx }) {
       <form className="composer" onSubmit={submit}>
         <textarea
           ref={ref} rows={1} aria-label="输入消息"
-          placeholder="说一句话就开始，比如「给张三转 100 元」"
+          placeholder="请输入您的问题，或选择上方的快捷功能…"
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={onKeyDown}

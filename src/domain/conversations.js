@@ -5,6 +5,7 @@
  *
  * turn 只有两种：
  *   { role:'user',      text }                用户说的话（含语音转文字结果）
+ *   { role:'assistant', kind:'welcome' }      新会话欢迎消息
  *   { role:'assistant', surfaceId }           助手回的一个 A2UI surface
  *
  * 之所以不再把业务卡片塞进消息对象，是因为卡片现在是**协议产物**：
@@ -33,7 +34,7 @@ export function newConversation() {
 
 const isTurn = t => t && typeof t.id === 'string' &&
   ((t.role === 'user' && typeof t.text === 'string') ||
-   (t.role === 'assistant' && typeof t.surfaceId === 'string'));
+   (t.role === 'assistant' && (t.kind === 'welcome' || typeof t.surfaceId === 'string')));
 
 const isConversation = c => c && typeof c.id === 'string' && typeof c.title === 'string' &&
   typeof c.updatedAt === 'string' && Array.isArray(c.turns) && c.turns.every(isTurn) &&

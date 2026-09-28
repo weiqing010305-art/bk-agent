@@ -1,18 +1,18 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { BadgeCheck, Search } from 'lucide-react';
-import { Page, Panel, Empty, StatBar } from '../parts.jsx';
+import { Panel, Empty, StatBar } from '../parts.jsx';
 import { DEMO_DATE, MAX_TRANSFER } from '../../services/banking.js';
 import './payees.css';
 
 /**
- * 收款人。
+ * 转账页内的收款人名录。
  *
  * 这一页回答三个问题，别的都不回答：**这是谁、上次给了他多少、现在还能不能再转**。
  * 所以每行第一眼是人（首字母头像 + 名字 + 关系），第二眼是最近一次往来（日期 / 金额 / 用途），
  * 第三眼才是动作。卡号只在"没有往来"时出现，而且要用来转账时才需要它。
  *
  * 每个动作都走已有的内核，不新造一套：
- *   再转一笔 → startTransfer({ payeeHint })，转账流程会带着这个人直接落到「转多少」；
+ *   再转一笔 → 转账页本地流程会带着这个人直接落到「转多少」；
  *   设为常用 → App 已有的 transfer.save-payee 事件（它负责写 contacts 与提示）。
  * 没有往来的名录里的人**不给"转账"按钮**：转账流程只认得常用收款人，
  * 给了按钮也只会在下一步把人丢掉，那才是骗人。
@@ -36,8 +36,8 @@ const RELATIONS = ['房东', '家人', '同事', '朋友'];
     最重要的那个人真的成立；后端补上 recipient_id 之后可以整段删掉。 */
 const ALIAS = { landlord: /房租/ };
 
-export default function Payees({ ctx }) {
-  const { contacts, directory, bank, startTransfer, handleAction } = ctx;
+export default function Payees({ ctx, onPick }) {
+  const { contacts, directory, bank, handleAction } = ctx;
   const [q, setQ] = useState('');
   const [who, setWho] = useState('全部');
   const [cardNo, setCardNo] = useState('');
@@ -110,12 +110,14 @@ export default function Payees({ ctx }) {
         {p.uses.length > 0 && <small className="payee-uses">用途「{p.uses.join('」「')}」</small>}
       </div>
       {p.saved
-        ? <button className="a2ui-btn a2ui-btn--secondary" onClick={() => startTransfer({ payeeHint: p.name })}>再转一笔</button>
+        ? <button className="a2ui-btn a2ui-btn--secondary" onClick={() => onPick(p.id)}>再转一笔</button>
         : <button className="a2ui-btn a2ui-btn--secondary" onClick={() => save(p.id)}>设为常用</button>}
     </li>
   );
 
-  return <Page title="收款人" subtitle={saved + ' 位常用 · 演示名录 ' + people.length + ' 位'}>
+  return <section className="payees-embedded" aria-label="收款人名录">
+    <h2>收款人</h2>
+    <p className="page-note">{saved} 位常用 · 演示名录 {people.length} 位</p>
     <StatBar left={{ label: '常用收款人', value: saved + ' 位', note: '名录里还有 ' + (people.length - saved) + ' 位' }}
              right={{ label: '本月转出', value: fmt(monthOut), note: '现在最多能转 ' + fmt(canSend) }}/>
 
@@ -162,5 +164,5 @@ export default function Payees({ ctx }) {
         <button className="link-btn" onClick={() => { setCardNo('9900 0000 0000 2601'); setFound(null); setMsg(''); }}>填一个演示卡号</button>
       </p>
     </Panel>
-  </Page>;
+  </section>;
 }

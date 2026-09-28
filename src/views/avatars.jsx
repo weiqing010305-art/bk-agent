@@ -2,7 +2,7 @@ import React from 'react';
 import {
   ArrowDownLeft, ArrowLeftRight, Banknote, Beef, Beer, Bike, BookOpen, CarTaxiFront, Clapperboard,
   Cloud, Coffee, CookingPot, Fish, Hammer, HandCoins, House, IceCreamBowl, Landmark, Luggage, Music2,
-  Pizza, Receipt, Repeat, Salad, Scissors, ShieldCheck, ShoppingBag, Soup, Stethoscope, Store,
+  Pizza, Receipt, Salad, Scissors, ShieldCheck, ShoppingBag, Soup, Stethoscope, Store,
   TrainFront, TrendingUp, UtensilsCrossed, Wrench,
 } from 'lucide-react';
 import '../styles/avatars.css';
@@ -103,9 +103,6 @@ const cuisineOf = name => (RULES.find(([re, r]) => r.look !== undefined && re.te
 export const diningLook = name => { const r = cuisineOf(name); return r ? r.look : hash(name) % 6; };
 export const diningIcon = name => (cuisineOf(name) || {}).Icon || UtensilsCrossed;
 
-const METRO = /地铁|轨交|公交|一卡通|轻轨/;
-const TAXI = /打车|出租|网约|专车|顺风/;
-
 /* ── ③ 商户品牌色：手抄自 simple-icons 的 data/simple-icons.json（title + hex 两个字段）。
    只搬颜色常量，不引包、不搬 SVG —— Plaid 的商户头像是 logo，我们这里能自带的是品牌色，
    而报告实测这一招「成本最低、观感提升最大」。
@@ -133,11 +130,8 @@ const BRANDS = [
 ];
 const brandOf = name => (BRANDS.find(([re]) => re.test(name)) || [])[1] || null;
 
-/* 周期徽标的字：房租与订阅共用这一枚 16px 小标（§D.4） */
-const MARKS = [[/云|网盘|存储|空间/, '云'], [/影|视频|剧/, '影'], [/音乐|听|歌/, '乐'],
-  [/读书|阅/, '书'], [/房租|租金/, '租'], [/宽带|话费/, '月'], [/保险/, '保'], [/社保|税/, '缴']];
 const RECUR = /房租|租金|月租|物业|会员|包月|月费|连续包月|云|网盘|存储|空间|视频|影|音乐|听|读书|宽带|话费|水电|电费|水费|燃气|保险|还款|房贷|车贷|社保/;
-const SQUARE_OFF = new Set(['INCOME', 'RENT_AND_UTILITIES']);   /* 报告：工资与房租用圆 + 周期徽标 */
+const SQUARE_OFF = new Set(['INCOME', 'RENT_AND_UTILITIES']);
 const RAW_CODE = /^[A-Z0-9][A-Z0-9 .#*&'\/-]{7,}$/;            /* "WM SUPERCENTER #1700 POWAY CAUS" */
 const ORG = /房东|物业|公司|集团|有限|超市|商场|平台|医院|学校|大学|银行|保险|电力|水务|燃气|通信|运营|地铁|公交|铁路|航空|酒店|餐厅|咖啡|便利|市场|中心|科技|网络|店|行|局|厅/;
 
@@ -172,32 +166,21 @@ export function avatarOf(item = {}, subs = []) {
   const dining = pfc === 'FOOD_AND_DRINK';
   /* 规则先认领：房租那笔的收款人不是人名，不能因为写着「房东」就当成人物头像 */
   const person = who && !rule ? who : null;
-  const transit = pfc === 'TRANSPORTATION';
-  const mixed = METRO.test(raw) && TAXI.test(raw);
-  const seal = person || (transit && !mixed) || recurring ? null
-    : mixed ? <CarTaxiFront size={10}/>
-    : rule && rule.payday ? '薪'
-    : (brand || (rule && rule.store)) && name ? [...name][0] : null;
   return {
     pfc, detail: (rule && rule.detail) || pfc, label: meta.label, tone: meta.tone,
     title: name || meta.label, brand, recurring, person, payday: !!(rule && rule.payday),
     toneIndex: dining ? diningLook(raw) : null,
     Icon: person ? null : (rule && rule.Icon) || meta.Icon,
     shape: person ? 'person' : recurring && !SQUARE_OFF.has(pfc) ? 'squircle' : 'circle',
-    badge: recurring && !(rule && rule.payday)
-      ? ((MARKS.find(([re]) => re.test(raw)) || [])[1] || <Repeat size={10}/>) : null,
-    seal,
   };
 }
 
 /**
- * 头像本体。40px（移动 36），行内徽标 16px，与文字的间距由 .row-item 的 --space-4(12px) 给。
+ * 头像本体。40px（移动 36），与文字的间距由 .row-item 的 --space-4(12px) 给。
  * 装饰性内容 —— 名字与类别都在旁边的文字里，所以整块 aria-hidden，避免读屏念两遍。
  */
 export const TxAvatar = ({ look, small = false, mini = false, iconSize = 20, className = '' }) => {
-  const { Icon, tone, shape, brand, seal, badge, payday, person, toneIndex } = look;
-  const glyph = typeof seal === 'string' ? <span className="av-seal">{seal}</span>
-    : seal ? <span className="av-seal av-seal--glyph">{seal}</span> : null;
+  const { Icon, tone, shape, brand, payday, person, toneIndex } = look;
   return <span aria-hidden="true" data-tone={toneIndex ?? undefined}
     className={'av av--' + tone + ' av--' + shape + ' tx-icon tx-icon--' + tone
       + (mini ? ' av--mini' : small ? ' av--sm' : '') + (payday ? ' av--payday' : '')
@@ -205,7 +188,5 @@ export const TxAvatar = ({ look, small = false, mini = false, iconSize = 20, cla
     style={brand ? { '--av-brand': '#' + brand } : undefined}>
     {person ? <b className="av-initial">{[...person][0]}</b> : <Icon size={iconSize} strokeWidth={1.9}/>}
     {payday && !mini && <span className="av-sheen"/>}
-    {badge && <span className="av-badge">{badge}</span>}
-    {!mini && glyph}
   </span>;
 };

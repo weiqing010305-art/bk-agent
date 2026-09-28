@@ -16,7 +16,7 @@
 .a2ui-text { display: block; }
 .a2ui-text--title   { font-size: var(--text-title-1); line-height: var(--leading-title-1); letter-spacing: var(--tracking-title-1); font-weight: 700; }
 .a2ui-text--headline{ font-size: var(--text-headline); line-height: var(--leading-headline); letter-spacing: var(--tracking-body); font-weight: 600; }
-.a2ui-text--body    { font-size: var(--text-body); line-height: var(--leading-relaxed); letter-spacing: var(--tracking-body); color: var(--text-body); }
+.a2ui-text--body    { font-size: var(--text-body); line-height: var(--leading-relaxed); letter-spacing: var(--tracking-body); color: var(--color-body); }
 .a2ui-text--label   { font-size: var(--text-footnote); line-height: var(--leading-footnote); letter-spacing: var(--tracking-footnote); color: var(--text-secondary); }
 .a2ui-text--caption { font-size: var(--text-caption); line-height: var(--leading-caption-1); color: var(--text-tertiary); }
 .a2ui-text--caption2{ font-size: var(--text-caption-2); line-height: var(--leading-caption-2); color: var(--text-tertiary); }
@@ -94,6 +94,16 @@
 /* ── 输入区（功能层 → 玻璃胶囊）────────────────────────────────────── */
 .composer-wrap { flex: 0 0 auto; padding: var(--space-3) var(--pad-container) calc(var(--space-6) + env(safe-area-inset-bottom)); }
 .composer-inner { max-width: var(--max-read); margin: 0 auto; }
+.assistant-main .composer-wrap {
+  position: absolute; inset: auto 0 0; z-index: 2;
+  padding: var(--space-4) 34px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent calc(100% - 40px), var(--bank-canvas) calc(100% - 40px));
+  pointer-events: none;
+}
+.assistant-main .hint { margin-top: var(--space-3); color: var(--bank-muted); }
+.assistant-main .composer-inner { max-width: calc(var(--max-chat) + 64px); margin: 0 auto; pointer-events: auto; }
+.assistant-main .composer { box-shadow: var(--shadow-card); background: var(--bank-canvas); border-color: var(--bank-line); min-height: 124px; }
+.assistant-main .composer textarea { color: var(--bank-ink); align-self: flex-start; }
 .composer {
   display: flex; align-items: flex-end; gap: var(--space-3);
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6);
@@ -122,6 +132,10 @@
 .send:active:not(:disabled) { transform: scale(.95); transition-duration: var(--duration-instant); }
 .send:disabled { background: var(--fill-2); color: var(--text-tertiary); }
 .hint { margin: var(--space-3) 0 0; text-align: center; font-size: var(--text-caption-2); color: var(--text-faint); }
+@media (max-width: 640px) {
+  .assistant-main .composer-wrap { padding-left: var(--space-5); padding-right: var(--space-5); }
+  .assistant-main .composer { min-height: 96px; }
+}
 
 /* ── 抽屉 / 浮层（功能层 → 玻璃）────────────────────────────────────── */
 .nav-scrim { position: fixed; inset: 0; z-index: 20; border: none; background: var(--scrim); }
@@ -161,7 +175,6 @@
 .empty-note { color: var(--text-tertiary); font-size: var(--text-subhead); }
 
 @media (max-width: 640px) {
-  .conversation-inner { padding: var(--space-4) var(--space-5) var(--space-8); gap: var(--space-5); }
   .a2ui-card { padding: var(--space-5); border-radius: var(--radius-sheet); }
   .a2ui-row { gap: var(--space-2); }
   .composer-wrap { padding: var(--space-2) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom)); }

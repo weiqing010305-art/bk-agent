@@ -137,12 +137,12 @@ function Node({ node, onAction }) {
  * 渲染一个 surface。
  * diagnostics 里属于本 surface 的问题会在开发态提示，但**绝不渲染未知内容**。
  */
-export default function SurfaceView({ surface, tree, onAction }) {
+export default function SurfaceView({ surface, tree, onAction, showProvenance = true }) {
   if (!surface || !tree) return null;
   return (
     <div className="a2ui-surface" data-surface-id={surface.id} data-step={surface.dataModel.step || undefined}>
       <Node node={tree} onAction={onAction}/>
-      {surface.meta && surface.meta.provenance && (
+      {showProvenance && surface.meta && surface.meta.provenance && (
         <p className="a2ui-provenance" title="数据来源">
           {surface.meta.provenance.label}
         </p>

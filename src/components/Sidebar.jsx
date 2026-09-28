@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-  ArrowUpRight, BarChart3, Clock, CreditCard, LayoutDashboard,
-  MessageCircle, Plus, Receipt, RotateCcw, Trash2, Users, X,
+  ArrowUpRight, BarChart3, Clock, CreditCard, House,
+  MessageCircle, Plus, Receipt, RotateCcw, Trash2, X,
 } from 'lucide-react';
 
 /**
@@ -16,7 +16,7 @@ import {
  * 分隔线只画在"这一段与下一段毫无关系"的地方 —— 没有标题文案，结构自己说话。
  */
 const HOME = [
-  { id: 'overview', label: '概览', icon: LayoutDashboard },
+  { id: 'overview', label: '概览', icon: House },
   { id: 'assistant', label: '青禾助手', icon: MessageCircle },
 ];
 
@@ -24,7 +24,6 @@ const PRODUCTS = [
   { id: 'bills', label: '账单', icon: BarChart3 },
   { id: 'subscriptions', label: '订阅', icon: RotateCcw },
   { id: 'cards', label: '卡片', icon: CreditCard },
-  { id: 'payees', label: '收款人', icon: Users },
   { id: 'receipts', label: '回执', icon: Receipt },
   { id: 'transfer', label: '转账', icon: ArrowUpRight },
 ];
@@ -35,7 +34,7 @@ export default function Sidebar({ ctx }) {
   const inHome = HOME.some(n => n.id === route);
 
   const go = id => { setRoute(id); closeNav(); };
-  const item = n => <button key={n.id} className={'side-item' + (route === n.id ? ' current' : '')}
+  const item = n => <button key={n.id} className={'side-item' + (n.id === 'assistant' ? ' side-item--assistant' : '') + (route === n.id ? ' current' : '')}
     aria-current={route === n.id ? 'page' : undefined} onClick={() => go(n.id)}>
     <n.icon size={17}/><strong>{n.label}</strong>
   </button>;
@@ -44,7 +43,7 @@ export default function Sidebar({ ctx }) {
     <div className="sidebar-head">
       <div className="brand">
         <div className="brand-symbol">青</div>
-        <div className="brand-text"><strong>青禾</strong><small>AI BANKING</small></div>
+        <div className="brand-text"><strong>青禾银行</strong></div>
       </div>
       <button className="icon-btn sidebar-close" aria-label="关闭导航" onClick={closeNav}><X size={16}/></button>
     </div>

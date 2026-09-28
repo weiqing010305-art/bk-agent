@@ -80,7 +80,8 @@ export default function App() {
   const { turns, a2ui, draft } = history.current;
 
   /* 滚动锚定必须早于 runText/runAction —— useCallback 的依赖数组在渲染期立即求值 */
-  const scrollSignal = turns.length + ':' + (turns.at(-1)?.surfaceId || '') + ':' + Object.keys(a2ui.surfaces).length;
+  const scrollSignal = history.current.id + ':' + turns.length + ':' + (turns.at(-1)?.pending || false)
+    + ':' + (turns.at(-1)?.surfaceId || '') + ':' + Object.keys(a2ui.surfaces).length;
   const { scrollRef, resumeFollow } = useThreadScroll(scrollSignal);
 
   useEffect(() => {
@@ -159,11 +160,12 @@ export default function App() {
   }, [yuan, flow, paintFlow, draftRef]);
   commitTransferRef.current = commitTransfer;
 
-  /** 每个会话第一件事：播一次欢迎视图。用 ref 记住已经播过的会话，避免重复。 */
+  /** 每个会话先显示一次欢迎消息。用 ref 记住已经显示过的会话，避免重复。 */
   useEffect(() => {
     const id = history.current.id;
     if (seededRef.current === id) return;
     seededRef.current = id;
+    if (turns.length) return;
     runAction('welcome');
   }, [turns.length, history, runAction]);
 

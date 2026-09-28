@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, CreditCard, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, CreditCard } from 'lucide-react';
 import { Amount, Empty } from '../parts.jsx';
 import { avatarOf, TxAvatar } from '../avatars.jsx';
 import { DEMO_DATE } from '../../services/banking.js';
@@ -121,8 +121,7 @@ export default function Feed({ ctx }) {
       name: c.name + ' •• ' + c.tail, sub: (c.status === 'active' ? '正常使用' : '已冻结') + ' · ' + c.type,
       usedText: fmt(c.used || 0), used: c.used || 0,
       look: { tone: 'subscribe', shape: 'circle', Icon: CreditCard, person: null, brand: null,
-        recurring: false, payday: false, badge: null,
-        seal: c.status === 'active' ? <ShieldCheck size={10}/> : '冻' },
+        recurring: false, payday: false },
       facts: [['卡号', '•• ' + c.tail], ['类型', c.type], ['额度', fmt(c.limit)], ['本月已用', fmt(c.used || 0)],
         ['可用', fmt(c.limit - (c.used || 0))], ['可用渠道', c.channels.join('、')], ['发卡日', c.since]],
       action: { label: '去卡片页', route: 'cards' },
