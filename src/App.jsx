@@ -25,6 +25,7 @@ import './styles/charts.css';
 import './styles/wallet.css';
 import './styles/auth.css';
 import './styles/taskgraph.css';
+import './styles/blocked.css';
 import './styles/a2ui.css';
 import './styles/motion.css';
 

@@ -4,6 +4,7 @@ import SurfaceView from '../a2ui/render.jsx';
 import Composer from '../components/Composer.jsx';
 import FlowLauncher from '../components/FlowLauncher.jsx';
 import TaskGraph from '../components/TaskGraph.jsx';
+import BlockedNotice from '../components/BlockedNotice.jsx';
 
 /**
  * 业务层：对话入口。
@@ -62,14 +63,18 @@ export default function AssistantView({ ctx }) {
           onRollback={() => taskControl(shown.id, 'rollback')}
           onHandoff={() => taskControl(shown.id, 'handoff')}
         />}
-        {shown && shown.pending
-          ? <SurfaceSkeleton/>
-          : surface
-            ? <SurfaceView key={(surface.dataModel.step || '') + shown.id}
-                           surface={surface}
-                           tree={resolveTree(surface)}
-                           onAction={e => handleAction(shown.surfaceId, e)}/>
-            : <SurfaceSkeleton/>}
+        {/* 三条分支要分清：「被拦下」有话说，「正在生成」是骨架，「有 surface」才渲染。
+            曾经把前两者混在一起，导致拦截后是一个转不完的圈。 */}
+        {shown && shown.blocked
+          ? <BlockedNotice blocked={shown.blocked} onDismiss={() => setPreviewId(null)}/>
+          : shown && shown.pending
+            ? <SurfaceSkeleton/>
+            : surface
+              ? <SurfaceView key={(surface.dataModel.step || '') + shown.id}
+                             surface={surface}
+                             tree={resolveTree(surface)}
+                             onAction={e => handleAction(shown.surfaceId, e)}/>
+              : <p className="a2ui-text a2ui-text--caption">这个视图不可用，换一句试试。</p>}
       </div>
     </div>
 
