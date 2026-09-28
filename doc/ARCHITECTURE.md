@@ -737,7 +737,55 @@ stateDiagram-v2
     locked --> [*]: 只能手动解除
 ```
 
-### 7.14 注入防御与安全锁定
+### 7.14 理财：收益长图 + 行为数据榜单 + 申购四步
+
+理财域是整个项目里**唯一一个先做调研、再按真实产品逻辑建起来**的域。
+依据是 `doc/research/za-design-and-wealth.md` §B（众安理财逻辑的深挖）。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Shelf: 理财主页（收益长图 + 里程碑 + 榜单）
+    Shelf --> Fund: 点榜单某一行
+    Fund --> Amount: 申购
+    Amount --> Amount: 未达起购 → 就地校验
+    Amount --> Reject: 超单笔上限 / 活期不足
+    Reject --> Amount: 改小金额
+    Amount --> Review: 下一步
+    Review --> Auth: 确认（提交后不可取消）
+    Auth --> Book: **多因子通过**
+    Book --> Done: 扣活期 + 加持仓
+    Done --> Shelf: 回理财
+```
+
+**四条照抄自众安的产品逻辑**：
+
+| 结论 | 为什么这样做 |
+| --- | --- |
+| **榜单标题写「别人在干什么」**（近两周买最多 / 持有人赚最多 / 金融业的都在买），全是**行为数据**，**零评级语义** | 银行不能推荐「好」的产品，只能呈现「别人在做什么」。措辞一变法律性质就变了 |
+| **收益是「可滚动的大数字长图」**（每页 = 大数字 + 一句结论 + 一行脚注 + 一个动作），不是表格 | 众安的《基金服務報告》就是 11 页长图 |
+| **一个数字有多套算法时全部列出**（七日年化的复利 / 单利 / 万份折算 / 含分红再投四套结果互不相同） | 挑一套假装唯一是在误导 |
+| **资金直连活期账户，没有投资钱包** | 众安原文 "Direct trading, no need to deposit in advance" |
+
+申购是**高风险操作**，走 `services/policy.js` 的三级门禁 —— 这一点在界面上是可验证的：
+点确认后弹的是**多因子认证**，不是普通确认框。
+
+### 7.15 空 / 错 / 加载三态
+
+三态有**唯一实现**（`components/StateBlock.jsx`），口径照抄众安**真实上线**的文案结构
+（一手证据：投资子站的 887 条 UI 字串表）。
+
+| 态 | 结构 | 众安原文 | 本项目 |
+| --- | --- | --- | --- |
+| 空 | `[4 字状态] + [1 个按钮]` | `頁面不見了` / `暫無記錄` | `暂无支出` / `暂无回执` + 一个出路按钮 |
+| 错 | `[拟人化短标题] + [错误码] + [1 个动作]` | `服務器開小差了` / `錯誤碼：{code}` / `刷新` | `页面开小差了` / `错误码：{surfaceId}` / `刷新` |
+| 加载 | **零文字** | 887 条字串里 loading 只命中 3 处且都与 PDF 有关 | 纯骨架，文案只进 `aria-label` |
+
+**两条从众安量化出来的预算规则**：
+- **插画只投给情绪峰值**（众安 105 条插画资产里 70+ 用于抽奖领奖，常规空态只有 1 张）
+  → 本项目不引插画（零依赖），改用一枚 44px 图标底座
+- **错误从不解释技术原因，道歉不超过一句**；**拒绝 = 原因 + 补救路径**
+
+### 7.16 注入防御与安全锁定
 
 ```mermaid
 flowchart TB
@@ -777,6 +825,9 @@ stateDiagram-v2
 
 「先占位再填充」的两个作用：**加载态**（craft-floor 要求的四态之一），
 以及**让对话有节奏** —— 卡片是被想出来的，不是瞬间贴上来的。
+
+骨架本身由 `components/StateBlock.jsx` 的 `Loading` 渲染（见 §9.5）：**零文字**，
+形态自己说明"正在生成"。视图建不起来时走同一个文件的 `Failed`，不是留一个转不完的圈。
 
 ### 8.2 滚动锚定
 
@@ -853,6 +904,27 @@ Get-ChildItem src -Recurse -Include *.css |
 
 **类别色盘不含红与绿** —— 红绿留给金额方向。
 
+### 9.5 空 / 错 / 载三态与数值对齐
+
+三态**只有一份实现**：`src/components/StateBlock.jsx`（样式在 `styles/state.css`），
+页面从 `views/parts.jsx` 拿到 `Empty / Failed / Loading` 三个零件，不各写各的。
+
+口径照众安银行**真实上线**的 i18n 字串（证据：`doc/research/za-design-and-wealth.md` §A.4）：
+
+| 态 | 公式 | ZA 官方原文 | 本项目 |
+| --- | --- | --- | --- |
+| 空 | `[4 字状态] + [1 个按钮回主路径]`，不写引导句 | 頁面不見了 / 暫無任務，盡請期待 / 暫無記錄 | 暂无回执 / 暂无动态 / 暂无支出 / 暂无交易 / 没有结果 / 都取消了 |
+| 错 | `[拟人化短标题] + [错误码独立一行] + [1 个动作]`，不解释技术原因 | 服務器開小差了 / 錯誤碼：{code} / 刷新 | 页面开小差了 / 错误码：{surfaceId} / 刷新 |
+| 载 | **零文字**（887 条字串里 loading 只命中 3 处，且都与 PDF 有关） | —— | `Loading`：4 根骨架 + 抖光，正文一个字都没有；"正在生成"只进 `aria-label` |
+
+**插画一律不引**（报告 §A.5：ZA 的 105 条图片资产有 70+ 投给了抽奖领奖，常规空态只有 1 张）。
+替代物是一枚 44px 的图标底座 —— 图标说的是「这里没有东西」，不是「我很伤心」。
+
+**数值对齐**（Material 3 / M2 数据表）：数字一律 `tabular-nums`；**金额右对齐，表头也跟着右对齐**，
+数值列不居中。政策集中在 `styles/state.css` 末节，用 `:where()`（特异度 0）声明，
+页面要覆盖永远覆盖得动；各页面文件里原先那 40 多处分散声明现在是冗余的。
+两处**故意居中**：热力图的日号（对齐的是日历格）与占比图的合计（对齐的是柱子）。
+
 ---
 
 ## 10. 文件职责表
@@ -895,6 +967,8 @@ Get-ChildItem src -Recurse -File |
 | `limits.js` | 限额一等对象 + 时间窗 + `checkLimits` |
 | `anomalyRules.js` | 12 条异常规则 + 统计工具 |
 | `anomaly.js` | 检测 → 评分 → 分档 → 误报抑制 |
+| `domain/wealth.js` | 理财种子数据：7 只基金 / 持仓 / 榜单口径 |
+| `services/wealth.js` | 收益与七日年化四算法 / 榜单 / 申购校验与记账 |
 | `domain/bank.js` | 账本：四则余额模型 + 原子转账 |
 | `domain/conversations.js` | 会话持久化 |
 
@@ -916,7 +990,7 @@ Get-ChildItem src -Recurse -File |
 | --- | --- |
 | `AssistantView.jsx` | 业务层：工作区 + 历史条 + 任务图 + 被拦提示 |
 | `product.jsx` | 产品层路由 |
-| `parts.jsx` | 共用零件：Page / Panel / StatBar / IconTile / Row / CountUp |
+| `parts.jsx` | 共用零件：Page / Panel / StatBar / IconTile / Row / CountUp；三态从 StateBlock 转出 |
 | `shared.jsx` | 分类视觉语言的兼容层（实现已搬到 avatars） |
 | `avatars.jsx` | **16 类 PFC 头像体系** + 品牌色常量 |
 | `charts.jsx` | **六种图表形态**，共享高亮状态 |
@@ -928,6 +1002,7 @@ Get-ChildItem src -Recurse -File |
 | `pages/cardData.jsx` + `cardUtils.jsx` | 卡片演示数据与账期模型 |
 | `pages/payees.jsx` | 收款人 |
 | `pages/transfer.jsx` | 转账页（渲染同一套 A2UI surface） |
+| `pages/wealth.jsx` | 理财：收益长图 + 里程碑 + 3 个榜单 + 申购四步 |
 | `pages/receipts.jsx` | 回执 |
 
 ### 外壳 components/
@@ -941,6 +1016,8 @@ Get-ChildItem src -Recurse -File |
 | `TaskGraph.jsx` | 任务 DAG 呈现 + 三个控制 |
 | `AuthDialog.jsx` | 多因子认证 |
 | `BlockedNotice.jsx` | 被拦下的请求：拦了什么 / 为什么 / 依据 |
+| `StateBlock.jsx` | 空 / 错 / 加载三态的唯一实现 |
+| `StateBlock.jsx` | **空 / 错 / 载三态的唯一实现**（ZA 口径：4 字状态 + 1 个动作 / 拟人化标题 + 错误码 / 零文字） |
 | `AppOverlays.jsx` | 浮层栈（纯组合，无逻辑） |
 | `UndoBar.jsx` / `ConfirmDialog.jsx` / `TransferDialog.jsx` / `Toast.jsx` | 其余浮层 |
 
@@ -955,6 +1032,7 @@ Get-ChildItem src -Recurse -File |
 | `motion.css` | 对焦切换 / 错峰 / 分类签名动作 |
 | `a2ui.css` / `charts.css` / `wallet.css` / `avatars.css` | 各模块自己的样式 |
 | `auth.css` / `taskgraph.css` / `blocked.css` | 三个浮层 |
+| `state.css` | 空 / 错两态的外观 + **全站数值对齐政策**（等宽数字、数值列与表头右对齐） |
 
 ## 11. 已知限制与升级路径
 

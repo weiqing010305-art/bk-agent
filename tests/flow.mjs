@@ -28,8 +28,8 @@ try {
   await page.waitForTimeout(900);
 
   // 产品层入口直接开转账：应停在第一步
-  /* 用精确名字：加了「定时转账」之后 hasText 会同时命中两个 */
-  await page.getByRole('button', { name: '转账 4 步' }).click();
+  /* chips 改版后只剩 4 个，不再显示「N 步」 */
+  await page.locator('.flow-chip', { hasText: '转账' }).first().click();
   await step('01 怎么转', /你想怎么转/);
   assert.equal(await surface().locator('.a2ui-card--interactive').count(), 4, '第一步应有 4 种方式');
   assert.equal(await surface().locator('.a2ui-progress-seg').count(), 4, '进度条应有 4 段');
@@ -68,7 +68,7 @@ try {
     await page.locator('.auth-modal').getByRole('button', { name: /验证并执行/ }).click();
     console.log('  ↑ 当日累计超过 ¥1,000，门禁升级为多因子认证（预期行为）');
   } else {
-    await page.locator('.modal').getByRole('button', { name: /确认模拟操作/ }).click();
+    await page.locator('.modal').getByRole('button', { name: /确认转账/ }).click();
   }
   await page.waitForTimeout(700);
   assert.equal(await page.locator('.undo-bar').count(), 1, '通过门禁后应出现 5 秒可撤销条');

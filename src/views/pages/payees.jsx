@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, BadgeCheck, Search, Star, Tag } from 'lucide-react';
+import { ArrowUpRight, BadgeCheck, Search, SearchX, Star, Tag } from 'lucide-react';
 import { Page, Panel, Empty, StatBar } from '../parts.jsx';
 import { DEMO_DATE, MAX_TRANSFER } from '../../services/banking.js';
 import './payees.css';
@@ -145,7 +145,10 @@ export default function Payees({ ctx }) {
             aria-pressed={who === c.id} onClick={() => setWho(c.id)}>{c.id}<span className="chip-n">{c.n}</span></button>)}
         </div>
       </div>
-      {shown.length ? <ul className="payee-list">{shown.map(row)}</ul> : <Empty>没找到</Empty>}
+      {shown.length
+        ? <ul className="payee-list">{shown.map(row)}</ul>
+        : <Empty icon={SearchX} title="没有结果" action="清空筛选"
+                 onAction={() => { setQ(''); setWho('全部'); }}/>}
     </Panel>
 
     <Panel title="新增">

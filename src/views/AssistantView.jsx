@@ -5,6 +5,7 @@ import Composer from '../components/Composer.jsx';
 import FlowLauncher from '../components/FlowLauncher.jsx';
 import TaskGraph from '../components/TaskGraph.jsx';
 import BlockedNotice from '../components/BlockedNotice.jsx';
+import { Loading, Failed } from '../components/StateBlock.jsx';
 
 /**
  * 业务层：对话入口。
@@ -114,13 +115,14 @@ export default function AssistantView({ ctx }) {
         {shown && shown.blocked
           ? <BlockedNotice blocked={shown.blocked} onDismiss={() => setPreviewId(null)}/>
           : shown && shown.pending
-            ? <SurfaceSkeleton/>
+            ? <Loading/>
             : tree
               ? <SurfaceView key={(surface.dataModel.step || '') + shown.id}
                              surface={surface}
                              tree={tree}
                              onAction={e => handleAction(shown.surfaceId, e)}/>
-              : <p className="a2ui-text a2ui-text--caption">这个视图打不开</p>}
+              /* 错误态：拟人化标题 + 真实定位码 + 一个动作，不解释技术原因 */
+              : <Failed code={shown ? shown.surfaceId : 'no-surface'}/>}
       </div>
     </div>
 
@@ -146,16 +148,6 @@ export default function AssistantView({ ctx }) {
   </>;
 }
 
-/**
- * 生成中的骨架。既是加载态（craft-floor 要求的四态之一），
- * 也让对话有节奏 —— 卡片是被想出来的，不是瞬间贴上来的。
- * 它一个字都不说：形态本身说明"正在生成"。
- */
-function SurfaceSkeleton() {
-  return <div className="surface-skeleton" aria-label="正在生成">
-    <span className="sk sk--head"/>
-    <span className="sk sk--line"/>
-    <span className="sk sk--line sk--short"/>
-    <span className="sk sk--line sk--short"/>
-  </div>;
-}
+/* 加载态原来是本地的一个 SurfaceSkeleton，已并进 components/StateBlock.jsx 的 Loading ——
+   三态只能有一份实现，否则"零文字"这条口径会在下一次改动里各写各的。
+   骨架本身仍然一个字都不说：形态说明"正在生成"，也让卡片有被想出来的节奏。 */

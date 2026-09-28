@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, CreditCard, ShieldCheck } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronRight, CreditCard, Inbox, ShieldCheck } from 'lucide-react';
 import { Amount, Empty } from '../parts.jsx';
 import { avatarOf, TxAvatar } from '../avatars.jsx';
 import { DEMO_DATE } from '../../services/banking.js';
@@ -155,7 +155,7 @@ export default function Feed({ ctx }) {
     </div>
     <div className="panel-body">
       {rows.length === 0
-        ? <Empty>还没有动账。</Empty>
+        ? <Empty icon={Inbox} title="暂无动态"/>
         : <div className="day-groups">
             {sections.map(s => <section className="day-group" key={s.key}>
               <header className="day-head feed-day"><h3>{s.label}</h3><b>{s.note}</b></header>

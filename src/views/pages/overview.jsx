@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArrowLeftRight, BarChart3, CreditCard, Download, Receipt, Repeat, Users,
+  ArrowLeftRight, BarChart3, CreditCard, Download, LineChart, Receipt, Repeat, Users,
 } from 'lucide-react';
 import { Page, StatBar, IconTile, CountUp } from '../parts.jsx';
 import { EyeIcon } from '../shared.jsx';
@@ -55,6 +55,7 @@ const TILES = [
   { label: '卡片', icon: CreditCard, tone: 'warning', square: true, route: 'cards' },
   { label: '收款人', icon: Users, tone: 'positive', square: true, route: 'payees' },
   { label: '回执', icon: Receipt, tone: 'subscribe', square: true, route: 'receipts' },
+  { label: '理财', icon: LineChart, tone: 'positive', square: true, route: 'wealth' },
 ];
 
 export default function Overview({ ctx }) {

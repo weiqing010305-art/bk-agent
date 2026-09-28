@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ArrowUpRight, BarChart3, Clock, CreditCard, LayoutDashboard,
-  MessageCircle, Plus, Receipt, RotateCcw, Trash2, Users, X,
+  MessageCircle, PiggyBank, Plus, Receipt, RotateCcw, Trash2, Users, X,
 } from 'lucide-react';
 
 /**
@@ -21,6 +21,7 @@ const HOME = [
 ];
 
 const PRODUCTS = [
+  { id: 'wealth', label: '理财', icon: PiggyBank },
   { id: 'bills', label: '账单', icon: BarChart3 },
   { id: 'subscriptions', label: '订阅', icon: RotateCcw },
   { id: 'cards', label: '卡片', icon: CreditCard },

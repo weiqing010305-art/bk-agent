@@ -56,6 +56,20 @@ for (const s of ['概览', '账单', '订阅', '卡片', '收款人', '回执', 
   await page.locator('.side-item', { hasText: s }).first().click();
   await measure('产品层·' + s);
 }
+/* 理财域：从概览宫格进（它不在侧边栏里，产品层导航的 8 格之一）。
+   申购是一条 4 步动线，每一步都是一屏，所以**每一步单独量** —— 量的是"一屏"，不是"一次会话"。 */
+await page.locator('.side-item', { hasText: '概览' }).first().click();
+await page.waitForTimeout(600);
+await page.locator('.icon-tile', { hasText: '理财' }).click();
+await measure('产品层·理财');
+await page.locator('.w-rank .w-row').first().click();
+await measure('理财·详情');
+await page.locator('.page-body .a2ui-btn--primary').click();
+await page.locator('.w-input').fill('5000');
+await measure('理财·填金额');
+await page.locator('.w-go').click();
+await measure('理财·核对');
+
 // 助手侧的几个关键 surface
 await page.locator('.side-item', { hasText: '青禾助手' }).first().click();
 await page.waitForTimeout(600);

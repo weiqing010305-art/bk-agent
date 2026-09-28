@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CalendarClock, Check, Repeat, X } from 'lucide-react';
-import { Page, Panel, StatBar } from '../parts.jsx';
+import { Page, Panel, StatBar, Empty } from '../parts.jsx';
 import { subKind } from '../shared.jsx';
 import { DEMO_DATE } from '../../services/banking.js';
 import './subscriptions.css';
@@ -179,22 +179,15 @@ export default function Subscriptions({ ctx }) {
       <ul className="sub-cards sub-cards--gone">{gone.map(card)}</ul>
     </section>}
 
+    {/* 全部取消之后是一个情绪峰值：ZA 会把插画预算投在这一类地方。
+        本项目不引插画，改用"一个负号 + 一个数"—— 省下多少本身就是那句话，
+        所以「以前每年 / 现在每年」两格并排被删掉了（两个标签 8 个字，换一个负号）。 */}
     {live.length === 0 && <Panel>
-      <div className="sub-empty">
-        <span className="sub-empty-mark" aria-hidden="true">{gone.length ? <Check size={22}/> : <Repeat size={22}/>}</span>
-        <h3>{gone.length ? '都取消了' : '没有订阅'}</h3>
-        {gone.length > 0 && <div className="sub-empty-facts">
-          <div>
-            <span className="stat-label">以前每年</span>
-            <strong className="stat-num">{yuan(savedYearly)}</strong>
-          </div>
-          <div>
-            <span className="stat-label">现在每年</span>
-            <strong className="stat-num">{yuan(0)}</strong>
-          </div>
-        </div>}
-        <button className="a2ui-btn a2ui-btn--secondary" onClick={() => setRoute('bills')}>看账单</button>
-      </div>
+      <Empty icon={gone.length ? Check : Repeat}
+             title={gone.length ? '都取消了' : '没有订阅'}
+             action="看账单" onAction={() => setRoute('bills')}>
+        {gone.length > 0 && <p className="state-figure">−{yuan(savedYearly)}<i>/ 年</i></p>}
+      </Empty>
     </Panel>}
   </Page>;
 }

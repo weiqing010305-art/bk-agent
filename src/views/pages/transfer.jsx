@@ -5,7 +5,7 @@ import { updateDataModel } from '../../a2ui/protocol.js';
 import { fromAction } from '../../agent/planner.js';
 import { MAX_TRANSFER, validateTransferSlots } from '../../services/banking.js';
 import SurfaceView from '../../a2ui/render.jsx';
-import { Page, Panel, Empty } from '../parts.jsx';
+import { Page, Panel, Failed } from '../parts.jsx';
 import './transfer.css';
 
 /**
@@ -130,7 +130,9 @@ export default function Transfer({ ctx }) {
   return <Page title="转账">
     {surface
       ? <SurfaceView key={step} surface={surface} tree={resolveTree(surface)} onAction={onAction}/>
-      : <Empty>转账界面不可用</Empty>}
+      /* 这是错误态不是空态：surface 没建起来。ZA 的口径是拟人化标题 + 独立错误码 + 一个动作，
+         不解释技术原因。错误码用本页真实的 surface id，报障时念的就是它。 */
+      : <Failed code={SURFACE_ID}/>}
     {notice && <p className="tf-notice" role="status">{notice}</p>}
 
     {step === 'review' && <Shortfall bank={bank} amountText={surface && surface.dataModel.amountText} yuan={yuan}/>}

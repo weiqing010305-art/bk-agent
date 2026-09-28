@@ -110,11 +110,3 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 .sub-preview-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 
 /* ── 全部取消后的空状态 ─────────────────────────────────────────────── */
-.sub-empty { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-start; }
-.sub-empty-mark {
-  width: 44px; height: 44px; border-radius: var(--radius-pill);
-  display: grid; place-items: center; background: var(--success-tint); color: var(--success);
-}
-.sub-empty h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
-.sub-empty-facts { display: flex; gap: var(--space-8); flex-wrap: wrap; }
-.sub-empty-facts > div { display: flex; flex-direction: column; gap: var(--space-2); }

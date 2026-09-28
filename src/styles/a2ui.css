@@ -158,7 +158,6 @@
   font-size: var(--text-subhead); box-shadow: var(--shadow-overlay);
   animation: rise var(--dur-spring-critical) var(--ease-spring-critical) both;
 }
-.empty-note { color: var(--text-tertiary); font-size: var(--text-subhead); }
 
 @media (max-width: 640px) {
   .conversation-inner { padding: var(--space-4) var(--space-5) var(--space-8); gap: var(--space-5); }

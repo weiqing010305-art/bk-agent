@@ -1,0 +1,201 @@
+/* wealth.css —— 理财页本页自己的样式
+   其余零件（page / panel / row-item / a2ui-btn / chip）来自 pages.css / views.css / a2ui.css。
+   规约：本文件禁止硬编码颜色，一律 var()；选择器一律 `.w-` 前缀 ——
+   全站 CSS 是全局作用域的，不带前缀的类名会漏到别人的页面上。 */
+
+/* ══ 收益长图（§B.4.3）════════════════════════════════════════════════
+   ZA 的《基金服務報告》11 页全是「大数字 + 一句结论 + 一行脚注 + 一个动作」，
+   没有一张数据表。这里把 3 页做成一条横向 snap 长图：
+   页宽 58% —— 下一页露一条边，用户不用看提示也知道能滑（这就是"用设计代替文字"）。 */
+.w-report {
+  list-style: none; margin: 0; padding: var(--space-1) var(--space-1) var(--space-5);
+  display: grid; grid-auto-flow: column; grid-auto-columns: 58%;
+  gap: var(--space-5); overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.w-report::-webkit-scrollbar { height: 6px; }
+.w-report::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius-pill); }
+.w-report:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--radius-card); }
+.w-page {
+  scroll-snap-align: start; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-6); border-radius: var(--radius-card);
+  background: var(--bg-surface); box-shadow: var(--shadow-card);
+}
+.w-eyebrow { font-size: var(--text-caption); color: var(--text-tertiary); }
+/* 大数字是这一页唯一的主角：字号只靠对比拉开，不靠字重数量（§C.2） */
+.w-big {
+  display: flex; align-items: center; gap: var(--space-3);
+  font-size: var(--text-large-title); line-height: var(--leading-large-title);
+  font-weight: 600; letter-spacing: var(--tracking-large-title); font-variant-numeric: tabular-nums;
+}
+.w-big svg { color: var(--success); }
+.w-line {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3);
+  margin: 0; font-size: var(--text-subhead); color: var(--text-secondary);
+}
+/* 一行内两段的细竖线分隔（§C.1 手法 4）——分隔线自己会说"这是两件事" */
+.w-sep { width: 1px; height: 12px; background: var(--hairline); }
+.w-line b { font-variant-numeric: tabular-nums; }
+.w-foot { font-size: var(--text-caption); color: var(--text-tertiary); }
+/* 动作永远贴在卡片底部 —— 三页的动作在同一水平线上，滑起来才是一条"长图" */
+.w-page .link-btn { align-self: flex-start; margin-top: auto; }
+
+/* 三个数字块代替三句话（§A.2 模式三：HKD 1 起 / 0 % / 24 × 7） */
+.w-blocks { display: flex; align-items: baseline; gap: var(--space-6); }
+.w-blocks > span { display: flex; align-items: baseline; gap: var(--space-1); }
+.w-blocks b { font-size: var(--text-title-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.w-blocks i { font-style: normal; font-size: var(--text-caption); color: var(--text-tertiary); }
+
+/* 七日年化的四套算法：ZA 就是把这些公式放在**折叠条目**里（§B.4.2）——
+   结果确实不同，所以不挑一套假装唯一；但认知成本推迟到用户主动点开的那一刻。 */
+.w-algos {
+  list-style: none; margin: var(--space-2) 0 0; padding: var(--space-3) 0 0;
+  border-top: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.w-algos li { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1) var(--space-4); align-items: baseline; }
+.w-algos b { font-size: var(--text-caption); font-weight: 600; color: var(--text-secondary); }
+.w-algos code {
+  grid-column: 1 / -1; font-family: var(--font-mono);
+  font-size: var(--text-caption-2); color: var(--text-tertiary);
+}
+.w-algos span { font-size: var(--text-caption); font-variant-numeric: tabular-nums; }
+
+/* ══ 详情：一个大数字 + 三个标签 + 四列回报 ══════════════════════════ */
+.w-hero {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); flex-wrap: wrap;
+  animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.w-hero-main { display: flex; flex-direction: column; gap: var(--space-2); }
+.w-tags { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.w-tags > span {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  height: 26px; padding: 0 var(--space-4); border-radius: var(--radius-pill);
+  background: var(--fill-3); color: var(--text-secondary); font-size: var(--text-caption);
+}
+.w-periods {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);
+  padding: var(--space-5) var(--space-6); border-radius: var(--radius-card);
+  background: var(--bg-surface); box-shadow: var(--shadow-card);
+  animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.w-periods > div { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.w-periods small { font-size: var(--text-caption); color: var(--text-tertiary); }
+.w-periods b { font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
+.w-up { color: var(--success); }
+.w-down { color: var(--danger); }
+
+/* ══ 字段网格：图标就是标签（起购 / 截止 / 到账 / 认购费都不写四个字）
+   一行两段用竖线分隔、不写连接词的做法来自 §C.1；这里更进一步 —— 字段名根本不出现。 */
+.w-fields {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4) var(--space-6);
+}
+.w-cell { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.w-cell svg { flex: 0 0 auto; color: var(--text-tertiary); }
+.w-cell b {
+  font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ══ 填金额 ══════════════════════════════════════════════════════════ */
+.w-entry {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  padding: var(--space-4) var(--space-6); border-radius: var(--radius-card);
+  background: var(--bg-surface); box-shadow: var(--shadow-card);
+}
+.w-entry > span { font-size: var(--text-title-2); color: var(--text-tertiary); }
+.w-input {
+  flex: 1 1 auto; min-width: 0; border: none; background: none; color: var(--text-primary);
+  font-family: inherit; font-size: var(--text-large-title); font-weight: 600;
+  letter-spacing: var(--tracking-large-title); font-variant-numeric: tabular-nums;
+}
+.w-input:focus { outline: none; }
+.w-input::placeholder { color: var(--text-placeholder); }
+.w-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.w-inline { margin: 0; font-size: var(--text-footnote); color: var(--warning); }
+
+/* 拒绝态：拟人化短标题 + 补救路径 + 独立一行的错误码（§A.4），从不解释技术原因 */
+.w-reject {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-5); border-radius: var(--radius-thumb); background: var(--danger-tint);
+}
+.w-reject b { font-size: var(--text-subhead); }
+.w-reject p { margin: 0; font-size: var(--text-footnote); color: var(--text-secondary); }
+.w-reject small { font-family: var(--font-mono); font-size: var(--text-caption-2); color: var(--text-tertiary); }
+
+/* ══ 核对 / 回执 ═════════════════════════════════════════════════════ */
+.w-lock { margin: 0; font-size: var(--text-footnote); color: var(--warning); }
+.w-go:disabled { background: var(--fill-2); color: var(--text-tertiary); }
+.w-done {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4);
+  padding: var(--space-6); border-radius: var(--radius-card);
+  background: var(--bg-surface); box-shadow: var(--shadow-card);
+  animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.w-done-mark { width: 44px; height: 44px; border-radius: var(--radius-pill); display: grid; place-items: center; }
+.w-done-mark { background: var(--success-tint); color: var(--success); }
+.w-done h2 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
+
+/* ══ 持仓明细与空状态 ════════════════════════════════════════════════ */
+.w-holds { animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both; }
+.w-holds .w-metric { margin-left: auto; }
+/* 空态不在本文件：走 components/StateBlock.jsx 的 <Empty>（全站唯一实现，口径见 §A.4） */
+
+/* ══ 里程碑（§B.7：ZA Quest 是业务里程碑，不是浮层教学）══════════════ */
+.w-ms {
+  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+  animation: sheen var(--dur-spring-critical) var(--ease-spring-critical) both;
+}
+.w-ms h2 { margin: 0; font-size: var(--text-caption); font-weight: 600; color: var(--text-tertiary); }
+.w-ms ol { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.w-ms li {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  height: 30px; padding: 0 var(--space-4); border-radius: var(--radius-pill);
+  background: var(--fill-4); color: var(--text-tertiary);
+  font-size: var(--text-caption); font-variant-numeric: tabular-nums;
+}
+.w-ms b { font-weight: 600; }
+.w-ms-mark { width: 16px; height: 16px; border-radius: var(--radius-pill); display: grid; place-items: center; background: var(--fill-2); }
+.w-ms li[data-done] { background: var(--success-tint); color: var(--success); }
+.w-ms li[data-done] .w-ms-mark { background: var(--success); color: var(--accent-on); }
+
+/* ══ 榜单（§B.6：标题写"别人在干什么"，口径写脚注，数字右对齐）═════ */
+.w-ranks { position: relative; display: flex; flex-direction: column; gap: var(--space-6); }
+.w-ranks-hint {
+  position: absolute; top: 0; right: 0; display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-caption-2); color: var(--text-tertiary);
+}
+.w-rank { display: flex; flex-direction: column; gap: var(--space-2); }
+.w-rank + .w-rank { border-top: 1px solid var(--hairline); padding-top: var(--space-5); }
+.w-rank-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); }
+.w-rank-head h2 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
+.w-rank-def {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-caption); color: var(--text-tertiary); white-space: nowrap;
+}
+/* 整行是一个按钮：44px 命中区由 .row-item 的 padding 撑起来，键盘也能走 */
+.w-row { width: 100%; border: none; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.w-medal {
+  flex: 0 0 auto; width: 20px; height: 20px; border-radius: var(--radius-chip);
+  display: grid; place-items: center; background: var(--fill-3); color: var(--text-secondary);
+  font-size: var(--text-caption-2); font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.w-rank li:first-child .w-medal { background: var(--accent-tint); color: var(--accent); }
+/* 数字一律等宽 + 右对齐，表头也跟着右对齐（Material 2/3） */
+.w-metric, .w-ret {
+  font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.w-metric { min-width: 84px; text-align: right; color: var(--text-secondary); }
+.w-ret { min-width: 74px; justify-content: flex-end; display: inline-flex; align-items: center; gap: var(--space-2); color: var(--success); }
+.w-ret.w-down { color: var(--danger); }
+.w-ret.w-down svg { transform: scaleY(-1); }
+
+@media (max-width: 720px) {
+  .w-report { grid-auto-columns: 84%; }
+  .w-periods { grid-template-columns: repeat(2, 1fr); }
+  .w-metric { min-width: 64px; }
+  .w-ret { min-width: 62px; }
+}

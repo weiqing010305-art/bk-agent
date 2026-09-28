@@ -20,7 +20,7 @@ export const DEMO_DATE = '2026-09-25';
 export function provenance(mode, connection) {
   if (mode !== 'backend') return { label: `数据截至 ${DEMO_DATE}`, source: 'local' };
   if (connection === 'ready') return { label: `数据截至 ${DEMO_DATE}`, source: 'postgresql' };
-  return { label: '后端未连接 · 以下数字可能不是最新', source: 'stale' };
+  return { label: '数据可能不是最新', source: 'stale' };
 }
 
 const yuan = n => '¥' + money(n);

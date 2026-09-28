@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ChartPie, SearchX } from 'lucide-react';
 import { Page, Panel, StatBar, Row, Empty } from '../parts.jsx';
 import { CategoryIcon, CATS } from '../shared.jsx';
 import { SpendingChart } from '../charts.jsx';
@@ -175,7 +176,7 @@ export default function Bills({ ctx }) {
   const subtitle = m.first
     ? monthNum(month) + ' 月 ' + dayNum(m.first) + ' 日'
       + (m.first === m.last ? '' : '到 ' + dayNum(m.last) + ' 日') + ' · ' + m.txns.length + ' 笔'
-    : '还没有交易记录';
+    : '暂无记录';
 
   const dayTotal = list => {
     const n = list.reduce((a, t) => a + t.amount, 0);
@@ -201,7 +202,7 @@ export default function Bills({ ctx }) {
       {m.parts.length
         ? <SpendingChart model={m} active={hot} onHover={setHover}
             onLock={name => { setFilter(name || '全部'); setHover(null); }} filter={filter}/>
-        : <Empty>这一期还没有支出。</Empty>}
+        : <Empty icon={ChartPie} title="暂无支出"/>}
     </Panel>
 
     <Panel title="明细" aside={<span className="panel-hint">{groups.length} 天 · {shown} 笔</span>}>
@@ -211,7 +212,10 @@ export default function Bills({ ctx }) {
       </div>
       <div className="day-groups" ref={listRef}>
         {groups.length === 0
-          ? <Empty>这个分类下没有交易。</Empty>
+          /* 出路只在真有出路时给：筛选状态下给「看全部」，这一期本来就空则不给按钮 */
+          ? <Empty icon={SearchX} title="暂无交易"
+              action={filter === '全部' ? undefined : '看全部'}
+              onAction={() => { setFilter('全部'); setHover(null); }}/>
           : groups.map(([date, list]) => <section className="day-group" key={date}>
               <header className="bills-day">
                 <h3>{monthNum(date)} 月 {dayNum(date)} 日</h3>

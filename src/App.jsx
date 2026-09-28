@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import { api, backendMode, binding } from './api/client.js';
 import { contacts as demoContacts, directory, money, seed, transfer as applyTransfer } from './domain/bank.js';
 import { buildDataModel, provenance } from './services/banking.js';
+import { purchase } from './services/wealth.js';
 import { fromText, fromAction, parseIntent } from './agent/planner.js';
 import { applyMessages, resolveTree } from './a2ui/apply.js';
 import { useConversations } from './state/useConversations.js';
@@ -123,7 +124,7 @@ export default function App() {
   const commitTransferRef = useRef(() => {});
 
   /* ── 安全与权限分级（实现在 state/useSecurity.js）───────────────────── */
-  const { auth, lock, gateDraft, screen, passAuth, failAuth, doUnlock, closeAuth } = useSecurity({
+  const { auth, lock, gate, gateDraft, screen, passAuth, failAuth, doUnlock, closeAuth } = useSecurity({
     bank, setConfirm, setToast, yuan,
   });
 
@@ -242,6 +243,12 @@ export default function App() {
         subscriptions: prev.subscriptions.map(s => s.id === action.id ? { ...s, status: canceled ? 'canceled' : 'active' } : s),
       }));
       setToast(canceled ? action.name + ' 已取消，后续不再扣费' : action.name + ' 已恢复续费');
+    } else if (action.type === 'wealth.purchase') {
+      /* 理财申购 —— 高风险，走到这里说明多因子已经通过。 */
+      try {
+        setBank(prev => purchase(prev, action));
+        setToast('已申购 ' + action.name + ' ' + yuan(action.amount));
+      } catch (err) { setToast(err.message); }
     } else if (action.type === 'reset') {
       setBank(seed()); history.create(); setToast('已恢复初始状态');
     }
@@ -270,7 +277,7 @@ export default function App() {
     resetDemo: () => setConfirm({ type: 'reset' }),
     scrollRef,
     applyConfirmation, directory, yuan, contacts,
-    previewId, setPreviewId, taskControl,
+    previewId, setPreviewId, taskControl, gate,
     refreshBank,
   };
 
