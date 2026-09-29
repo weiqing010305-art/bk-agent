@@ -39,6 +39,8 @@ export default function Composer({ ctx }) {
 
   return <div className="composer-wrap">
     <div className="composer-inner">
+      {/* placeholder 保留具体例子而不是「或选择上方的快捷功能」：
+          入口在欢迎消息里，往上滚就看不见了，「上方」会变成假指路。 */}
       <form className="composer" onSubmit={submit}>
         <textarea
           ref={ref} rows={1} aria-label="输入消息"

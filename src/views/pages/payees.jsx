@@ -44,7 +44,13 @@ const RELATIONS = ['房东', '家人', '同事', '朋友'];
     最重要的那个人真的成立；后端补上 recipient_id 之后可以整段删掉。 */
 const ALIAS = { landlord: /房租/ };
 
-export default function Payees({ ctx }) {
+/**
+ * @param onPick 在**转账页内部**选中一个人（带 contactId 直接落到「转多少」）。
+ *               不传时才退回 startTransfer —— 独立成页时用那条路。
+ *               作者的产品决策：收款人从导航移除，名录嵌进转账页，
+ *               「再转一笔」在同一个页面里闭环，不跳回助手。
+ */
+export default function Payees({ ctx, onPick, embedded }) {
   const { contacts, directory, bank, startTransfer, handleAction } = ctx;
   const [q, setQ] = useState('');
   const [who, setWho] = useState('全部');
@@ -124,13 +130,14 @@ export default function Payees({ ctx }) {
           动作名进 title 与 aria-label，鼠标悬停和读屏都拿得到 */}
       {p.saved
         ? <button className="payee-act" title="再转一笔" aria-label={'给 ' + p.name + ' 再转一笔'}
-                  onClick={() => startTransfer({ payeeHint: p.name })}><ArrowUpRight size={18} aria-hidden="true"/></button>
+                  onClick={() => (onPick ? onPick(p.id) : startTransfer({ payeeHint: p.name }))}><ArrowUpRight size={18} aria-hidden="true"/></button>
         : <button className="payee-act" title="设为常用" aria-label={'把 ' + p.name + ' 设为常用收款人'}
                   onClick={() => save(p.id)}><Star size={18} aria-hidden="true"/></button>}
     </li>
   );
 
-  return <Page title="收款人">
+  /* embedded：嵌在转账页里时不要 Page 外壳（标题与副标题都是页面级的，嵌进来是重复） */
+  const Body = <>
     <StatBar left={{ label: '常用', value: saved + ' 位', note: '还有 ' + (people.length - saved) + ' 位' }}
              right={{ label: '转出合计', value: fmt(monthOut), note: '最多可转 ' + fmt(canSend) }}/>
 
@@ -174,5 +181,9 @@ export default function Payees({ ctx }) {
       </div>}
       {msg && <p className="lookup-msg" role="status">{msg}</p>}
     </Panel>
-  </Page>;
+  </>;
+
+  return embedded
+    ? <section className="payees-embedded" aria-label="收款人名录">{Body}</section>
+    : <Page title="收款人">{Body}</Page>;
 }

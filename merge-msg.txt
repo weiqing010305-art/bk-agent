@@ -1,0 +1,30 @@
+merge: 合入 work/preview-edits —— 可滚动对话流布局，同时保住设计重构与理财域
+
+作者明确了两件事：他的首页（问候 + 可滚动连续对话流）是对的；我的三个提交也必须保留。
+所以这不是一次直接合并，是**逐文件按意图取舍**。
+
+## 取他的
+- AssistantView：工作区 + 历史条 -> **可滚动的连续对话流**（chat-turn / chat-bubble）
+- FlowLauncher：常驻入口栏 -> **嵌在欢迎消息里**，7 个入口、图标 24px
+- app.css：对话流布局（.assistant-thread / .chat-turn / .chat-response）
+- useTurnRunner：welcome 走独立分支，只加一条 kind=welcome 的消息
+- App.jsx：scrollSignal 带上会话 id 与 pending；seeding 加 turns.length 判断（修了重复播欢迎）
+- Sidebar：**删掉收款人入口**（作者的产品决策），概览图标换 House
+- overview：宫格与主卡按钮**删掉收款与收款人**
+- payees：改造成 `<Payees embedded onPick>` —— **嵌进转账页**，再转一笔在本页闭环不跳回助手
+
+## 保留我的
+- 界面文案削减（全部页面 <=150）：bills / feed / payees / transfer / transfer.css
+- 演示备注清除（18 处）—— e2e 里那条「应显示演示说明」的断言改成断言反面
+- 理财域（路由 + 页面 + 侧边栏入口）
+- 三态统一：把他的 SurfaceSkeleton 换成 StateBlock 的 Loading / Failed
+- planner 的 transfer.scheduled / transfer.aa BUILDERS 修复
+- 文档与大部分测试
+
+## 顺带
+- 删掉误提交的 vs/hw.py（Python 作业题，与项目无关）
+- 度量口径修正：对话流里「一屏」= 最新那一回合，量整个容器会把全部历史算进来
+- 更新 text-audit / copy-scan / smoke / flow 的页面清单与选择器
+
+验证：单测 87-87 / e2e / smoke / flow / motion / mobile / 文档 34-34 / 渲染层禁用词零命中
+      字数：欢迎 61 / 概览 33 / 账单 146 / 订阅 60 / 卡片 133 / 回执 9 / 转账 119 / 理财 126

@@ -13,7 +13,8 @@ const page = await browser.newPage({ viewport: { width: 1560, height: 1000 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
 
-const surface = () => page.locator('.workspace-view .a2ui-surface');
+/* 对话流：最新那一回合里的 surface */
+const surface = () => page.locator('.assistant-thread .a2ui-surface').last();
 const step = async (label, mustMatch) => {
   await page.waitForTimeout(600);
   const t = await surface().innerText();

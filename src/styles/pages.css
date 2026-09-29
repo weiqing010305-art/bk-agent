@@ -2,52 +2,62 @@
 
 /* ══ 侧边栏（功能层 → 玻璃）═══════════════════════════════════════════ */
 .sidebar {
-  flex: 0 0 auto; width: 264px; display: flex; flex-direction: column; gap: var(--space-6);
-  padding: var(--space-5) var(--space-4); overflow-y: auto;
+  flex: 0 0 auto; width: clamp(260px, 16vw, 340px); display: flex; flex-direction: column; gap: var(--space-6);
+  padding: 26px 8px var(--space-5) 16px; overflow-y: auto; color: var(--bank-ink);
   background: var(--material-thin-tint);
   -webkit-backdrop-filter: blur(var(--blur-thick)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--blur-thick)) saturate(var(--glass-saturate));
   border-right: 1px solid var(--glass-border);
 }
-.sidebar-head { display: flex; align-items: center; justify-content: space-between; }
+.sidebar-head { min-height: 36px; margin-bottom: 3px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; }
 .sidebar-close { display: none; }
-.side-section { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-3); }
+.sidebar .brand-text strong { font-size: var(--text-title-3); color: var(--bank-ink); white-space: nowrap; }
+.sidebar .side-item svg { width: 21px; height: 21px; flex-shrink: 0; }
+.side-section { display: flex; flex-direction: column; gap: var(--space-1); margin-top: -24px; }
 .side-label {
   margin: 0 0 var(--space-2); font-size: var(--text-caption-2); letter-spacing: .1em;
   color: var(--text-tertiary); font-weight: 600; text-transform: uppercase;
 }
 .side-item {
   display: flex; align-items: center; gap: var(--space-4); width: 100%; text-align: left;
-  padding: var(--space-4); border: none; border-radius: var(--radius-md);
-  background: transparent; color: var(--text-secondary);
+  padding: 15px var(--space-6); border: none; border-radius: var(--radius-md);
+  background: transparent; color: var(--bank-ink);
   transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
-.side-item strong { font-size: var(--text-subhead); font-weight: 500; }
+.side-item strong { font-size: var(--text-callout); font-weight: 500; }
 .side-item:hover { background: var(--fill-4); color: var(--text-primary); }
 .side-item.current { background: var(--accent-tint); color: var(--accent); }
 
-/* ══ 首页 ══════════════════════════════════════════════════════════════
-   首页不是"功能"列表里的第五项，它是家。所以它：
-   · 排在最前且常驻（sticky）—— 滚到下面的历史里也走不丢；
-   · 装在一个容器里（下方一条 hairline）—— 切换在这块内部换高亮，
-     视觉上仍然是"在家里换了个面"，不是"离开了当前所在的地方"；
-   · 整块高亮：这一块是家，高亮说"你正在家里"，不是"你点到了哪一项"。
-   块内两项的 hover 刻意保持中性（--fill-3 / --on-dark-fill），
-   浅蓝的 --accent-tint 会把容器的深色高亮洗淡，读起来像"家里又开了一个页面"。 */
+/* 首页保持常驻，选中态只落在当前入口上。 */
 .side-home {
   display: flex; flex-direction: column; gap: var(--space-1);
   position: sticky; top: 0; z-index: 1;
-  padding: var(--space-2) var(--space-2) var(--space-4);
-  border-radius: var(--radius-sheet); border-bottom: 1px solid var(--hairline);
-  background: var(--fill-4);
+  padding: var(--space-2) 0 var(--space-4);
+  border-radius: var(--radius-sheet);
+  background: transparent;
   transition: background var(--duration-base) var(--ease-out);
 }
-.side-home .side-item { padding: var(--space-3) var(--space-3); }
+.side-home .side-item { padding: 15px var(--space-6); }
 .side-home .side-item:hover { background: var(--fill-3); }
-.side-home.current { background: var(--grad-hero-soft); }
-.side-home.current .side-item { color: var(--accent-on); }
-.side-home.current .side-item:hover { background: var(--on-dark-fill); }
-.side-home.current .side-item.current { background: var(--on-dark-fill-hover); color: var(--accent-on); font-weight: 600; }
+.side-item--assistant { position: relative; }
+.side-item--assistant:not(.current)::after {
+  content: ''; position: absolute; left: 14px; top: 50%;
+  width: 34px; height: 34px; transform: translateY(-50%);
+  border-radius: var(--radius-thumb); background: var(--accent-tint);
+}
+.side-item--assistant:not(.current) svg,
+.side-item--assistant:not(.current) strong { position: relative; z-index: 1; }
+.side-item--assistant:not(.current) svg { color: var(--accent); }
+.side-item--assistant:not(.current) strong { font-weight: 600; }
+.side-home.current .side-item.current {
+  position: relative; background: var(--bank-nav); color: var(--accent-on);
+  font-weight: 600;
+}
+.side-home.current .side-item.current::before {
+  content: ''; position: absolute; left: 0; top: var(--space-3); bottom: var(--space-3);
+  width: 4px; border-radius: var(--radius-pill); background: var(--accent);
+}
+.side-home.current .side-item.current:hover { background: var(--grad-hero-soft); }
 
 .side-history { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--space-3); min-height: 120px; margin-top: var(--space-3); border-top: 1px solid var(--hairline); padding-top: var(--space-5); }
 .side-history-head { display: flex; align-items: center; justify-content: space-between; }
@@ -89,7 +99,6 @@
   /* 抽屉本身就是浮层，块内再吸顶只会跟抽屉的滚动打架 */
   .side-home { position: static; }
   .menu-fab { display: grid; }
-  .view-head { padding-left: calc(var(--space-5) * 2 + 36px); }
   .page-head { padding-left: calc(var(--space-5) * 2 + 36px); }
 }
 
@@ -101,9 +110,15 @@
 }
 .view-head h1 { margin: 0; font-size: var(--text-title-2); line-height: var(--leading-title-2); letter-spacing: var(--tracking-title-2); }
 .view-head p { margin: var(--space-2) 0 0; font-size: var(--text-subhead); color: var(--text-secondary); }
+@media (max-width: 900px) {
+  .view-head { padding-left: calc(var(--space-5) * 2 + 36px); }
+}
 
 /* ══ 产品层页面 ══════════════════════════════════════════════════════ */
-.view-scroll { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
+.view-scroll {
+  flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
 .view-scroll::-webkit-scrollbar { width: 10px; }
 .view-scroll::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid transparent; background-clip: content-box; border-radius: 99px; }
 .view-inner { max-width: 860px; margin: 0 auto; padding: var(--space-5) var(--pad-container) var(--space-10); }

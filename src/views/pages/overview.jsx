@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArrowLeftRight, BarChart3, CreditCard, Download, LineChart, Receipt, Repeat, Users,
+  ArrowLeftRight, BarChart3, CreditCard, LineChart, Receipt, Repeat,
 } from 'lucide-react';
 import { Page, StatBar, IconTile, CountUp } from '../parts.jsx';
 import { EyeIcon } from '../shared.jsx';
@@ -48,12 +48,12 @@ const RecurMarks = ({ subs }) => (
  * 五格全删，剩下的宫格没有一格是假的 —— 7 格 = 2 个动作 + 5 个产品。
  */
 const TILES = [
+  /* 收款与收款人**不进宫格** —— 作者的产品决策：它们与转账流程内嵌的选人重复。
+     页面与路由都还在（见 product.jsx 的注释），只是不给入口。 */
   { label: '转账', icon: ArrowLeftRight, tone: 'accent', route: 'transfer' },
-  { label: '收款', icon: Download, tone: 'positive', route: 'payees' },
   { label: '账单', icon: BarChart3, tone: 'accent', square: true, route: 'bills' },
   { label: '订阅', icon: Repeat, tone: 'subscribe', square: true, route: 'subscriptions' },
   { label: '卡片', icon: CreditCard, tone: 'warning', square: true, route: 'cards' },
-  { label: '收款人', icon: Users, tone: 'positive', square: true, route: 'payees' },
   { label: '回执', icon: Receipt, tone: 'subscribe', square: true, route: 'receipts' },
   { label: '理财', icon: LineChart, tone: 'positive', square: true, route: 'wealth' },
 ];

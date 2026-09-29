@@ -30,10 +30,10 @@ const SCRIPT = `() => {
     [...n.childNodes].forEach(c => walk(c, nowData, acc));
   };
   const acc = { copy: 0, data: 0 };
-  const root = document.querySelector('.main-area');
+  const root = document.querySelector(window.__TEXT_ROOT__ || '.main-area');
   if (root) walk(root, false, acc);
   const detail = {};
-  document.querySelectorAll('.main-area *').forEach(el => {
+  document.querySelectorAll((window.__TEXT_ROOT__ || '.main-area') + ' *').forEach(el => {
     if (!el.children.length || el.matches(DATA_SEL)) return;
     const t = el.textContent || '';
     if (t.length > 60 && !el.querySelector(DATA_SEL)) {
@@ -45,22 +45,30 @@ const SCRIPT = `() => {
 }`;
 
 const rows = [];
-const measure = async (label) => {
+/**
+ * @param label 行标题
+ * @param root  量哪个容器。**对话流里必须传最新那一回合** ——
+ *              对话流是连续滚动的，量整个 .assistant-main 会把全部历史都算进来，
+ *              那不是「一屏」，是「一次会话」。量一屏才和 150 字的指标同义。
+ */
+const measure = async (label, root) => {
   await page.waitForTimeout(700);
+  await page.evaluate(r => { window.__TEXT_ROOT__ = r || null; }, root || null);
   const m = await page.evaluate(eval('(' + SCRIPT + ')'));
   rows.push({ label, ...m });
 };
+const LAST = '.chat-turn--assistant:last-of-type';
 
-await measure('助手·首页统合视图');
-for (const s of ['概览', '账单', '订阅', '卡片', '收款人', '回执', '转账']) {
+/* 助手首页现在是欢迎消息（对话流），不是统合视图 */
+await measure('助手·欢迎消息', LAST);
+/* 收款人已从导航移除（作者的产品决策），所以不在这一轮里量。
+   页面本身还在，路由保留 —— 要量它得直接 setRoute。 */
+for (const s of ['概览', '账单', '订阅', '卡片', '回执', '转账']) {
   await page.locator('.side-item', { hasText: s }).first().click();
   await measure('产品层·' + s);
 }
-/* 理财域：从概览宫格进（它不在侧边栏里，产品层导航的 8 格之一）。
-   申购是一条 4 步动线，每一步都是一屏，所以**每一步单独量** —— 量的是"一屏"，不是"一次会话"。 */
-await page.locator('.side-item', { hasText: '概览' }).first().click();
-await page.waitForTimeout(600);
-await page.locator('.icon-tile', { hasText: '理财' }).click();
+/* 理财是一条 4 步动线，每一步都是一屏，所以**每一步单独量** —— 量的是"一屏"，不是"一次会话"。 */
+await page.locator('.side-item', { hasText: '理财' }).first().click();
 await measure('产品层·理财');
 await page.locator('.w-rank .w-row').first().click();
 await measure('理财·详情');
@@ -75,7 +83,10 @@ await page.locator('.side-item', { hasText: '青禾助手' }).first().click();
 await page.waitForTimeout(600);
 await page.locator('textarea[aria-label="输入消息"]').fill('我要转账');
 await page.locator('textarea[aria-label="输入消息"]').press('Enter');
-await measure('助手·转账第 1 步');
+await measure('助手·转账第 1 步', LAST);
+await page.locator('textarea[aria-label="输入消息"]').fill('下个月 1 号自动给房东转房租');
+await page.locator('textarea[aria-label="输入消息"]').press('Enter');
+await measure('助手·任务 DAG', LAST);
 
 console.log('页面'.padEnd(24) + '界面文案  数据  文案超标');
 console.log('-'.repeat(58));

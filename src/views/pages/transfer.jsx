@@ -6,7 +6,9 @@ import { fromAction } from '../../agent/planner.js';
 import { MAX_TRANSFER, validateTransferSlots } from '../../services/banking.js';
 import SurfaceView from '../../a2ui/render.jsx';
 import { Page, Panel, Failed } from '../parts.jsx';
+import Payees from './payees.jsx';
 import './transfer.css';
+import './payees.css';
 
 /**
  * 转账（产品层入口）。
@@ -136,7 +138,9 @@ export default function Transfer({ ctx }) {
     {notice && <p className="tf-notice" role="status">{notice}</p>}
 
     {step === 'review' && <Shortfall bank={bank} amountText={surface && surface.dataModel.amountText} yuan={yuan}/>}
-    <PayeePanel step={step} saved={contacts} onPick={pick}/>
+    {/* 收款人名录嵌在这里 —— 作者的产品决策：它从导航移除，但名录必须在
+        "要用到它" 的地方。onPick 让「再转一笔」在本页内闭环，不跳回助手。 */}
+    <Payees ctx={ctx} embedded onPick={pick}/>
   </Page>;
 }
 

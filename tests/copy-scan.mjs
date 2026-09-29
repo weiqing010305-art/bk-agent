@@ -28,7 +28,8 @@ const scan = async (label) => {
 };
 
 await scan('助手·首页');
-for (const s of ['概览','理财','账单','订阅','卡片','收款人','回执','转账']) {
+for (const s of ['概览','理财','账单','订阅','卡片','回执','转账']) {
+  /* 收款人不在导航里（作者的产品决策）—— 它现在嵌在转账页中，跟着转账页一起扫。 */
   await page.locator('.side-item', { hasText: s }).first().click();
   await scan('产品层·' + s);
 }

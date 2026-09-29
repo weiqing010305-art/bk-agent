@@ -90,6 +90,12 @@ export function useTurnRunner({ history, a2ui, turns, ctxFor, record, resumeFoll
   }, [a2ui, turns, ctxFor, history, resumeFollow, record, startTransfer, screen, setPreviewId, settle]);
 
   const runAction = useCallback(actionId => {
+    if (actionId === 'welcome') {
+      resumeFollow();
+      history.patch({ turns: [...turns, { id: uid(), role: 'assistant', kind: 'welcome' }] });
+      setPreviewId(null);
+      return;
+    }
     const surfaceId = uid();
     const envelopes = fromAction(actionId, ctxFor(surfaceId));
     resumeFollow();

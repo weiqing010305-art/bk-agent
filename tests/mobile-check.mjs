@@ -10,6 +10,16 @@ await page.goto('http://127.0.0.1:5173/', { waitUntil: 'networkidle' });
 await page.evaluate(() => localStorage.clear());
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(1200);
+await page.screenshot({ path: 'artifacts/mobile/0-assistant.png' });
+const assistantOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+const assistantOverlap = await page.evaluate(() => {
+  const a = document.querySelector('.menu-fab').getBoundingClientRect();
+  const b = document.querySelector('.chat-bubble--welcome').getBoundingClientRect();
+  return !(a.right < b.left || b.right < a.left || a.bottom < b.top || b.bottom < a.top);
+});
+console.log('0-assistant', '| 菜单压标题:', assistantOverlap, '| 横向溢出:', assistantOverflow);
+if (assistantOverflow) throw new Error('助手页在窄屏下横向溢出');
+if (assistantOverlap) throw new Error('助手页的菜单按钮遮住欢迎语');
 for (const [label, name] of [['账单','1-bills'],['卡片','2-cards'],['概览','3-overview']]) {
   await page.locator('.side-item', { hasText: label }).first().click().catch(async () => {
     await page.getByRole('button', { name: '打开导航' }).click();
