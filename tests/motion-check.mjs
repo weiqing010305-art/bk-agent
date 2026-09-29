@@ -12,7 +12,11 @@ await page.waitForTimeout(900);
 // 账单页：分类 hover 动效
 await page.locator('.side-item', { hasText: '账单' }).first().click();
 await page.waitForTimeout(700);
-const cats = ['transfer','dining','shopping','transport','income'];
+/* 分类签名动效。
+   注意：'transfer' 不在这里 —— 转账给人的头像现在是**人物位**（首字母字标，av--person），
+   不再是箭头图标，所以 .tx-icon--transfer svg 不存在，那条 flow-x 也失去了目标。
+   这是头像体系的设计（形状即语义：圆=消费、圆角方=周期、人物位=转给人），不是动效回归。 */
+const cats = ['dining','shopping','transport','income'];
 for (const c of cats) {
   const icon = page.locator('.row-item .tx-icon--' + c).first();
   if (await icon.count() === 0) { console.log(c.padEnd(10), '该分类不在当前筛选里'); continue; }
