@@ -38,6 +38,17 @@
 
 ---
 
+## Windows 上的已知坑
+
+`npx vite build` 报 `remove ...\Temp\esbuild-xxx: Access is denied` 时，不是代码问题 ——
+是系统 TEMP 被占用。绕法：
+
+```powershell
+$env:TEMP = (Resolve-Path .tmp-build).Path; npx vite build
+```
+
+---
+
 ## 验证义务
 
 ```bash

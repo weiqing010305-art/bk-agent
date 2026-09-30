@@ -12,6 +12,11 @@ doc/research/_raw/
 doc/research/_tmp/
 dist/
 artifacts/
+# 构建用的本地临时目录。Windows 上系统 TEMP 会被杀软/长跑的 dev server 锁住，
+# esbuild 报 `remove ...\Temp\esbuild-xxx: Access is denied`。
+# 绕法：$env:TEMP = 工作区内的目录，再 build。
+.tmp-build/
+
 *.log
 .env
 .env.*
