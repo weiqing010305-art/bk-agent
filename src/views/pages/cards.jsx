@@ -29,13 +29,10 @@ import { CardLossSheet, ReplacementTrack } from './cardLoss.jsx';
  * ══ 挂失（不可逆）的三条纪律 ═════════════════════════════════════════════
  * 1. **风险等级不由本页声明**。本页只报「要做什么」：`ctx.gate({ op: 'card.report-loss' })`
  *    → services/policy.js 判成高风险 → 多因子认证（A-04）。门禁缺席时本页什么都不做。
- * 2. **本页不写账本**。挂失的落地口是 App.jsx 的 applyConfirmation（与理财申购同一条路），
- *    那里调 domain/bank.js 的 reportLoss。接线（本页 owner 不管 App.jsx）：
- *      import { reportLoss } from './domain/bank.js';
- *      } else if (action.type === 'card.report-loss') {
- *        setBank(prev => reportLoss(prev, action));
- *        setToast(action.name + ' 已挂失');
- *      }
+ * 2. **本页不写账本**。挂失的落地口是 App.jsx 的 applyConfirmation（与理财申购同一条路，已接线）：
+ *    认证通过后它调 domain/bank.js 的 reportLoss(state, payload) —— 页面只把 payload 交给门禁。
+ *    本页与 App 之间的契约就是那个 payload：
+ *      { type: 'card.report-loss', id, cardId, name, tail, fee, address, label, amountText }
  * 3. **结果由账本推出**。认证通过 → 账本里这张卡变 lost → 确认浮层自己消失，
  *    这一屏换成补卡进度（受理 → 制卡 → 寄出）。页面不另存一份「刚刚挂失了」的状态。
  */

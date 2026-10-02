@@ -140,8 +140,12 @@
 /* ── 抽屉 / 浮层（功能层 → 玻璃）────────────────────────────────────── */
 .nav-scrim { position: fixed; inset: 0; z-index: 20; border: none; background: var(--scrim); }
 
+/* 模态框必须在**所有页面级浮层之上**。
+   曾经它和卡片页的 .freeze-scrim 同为 30 —— 于是在卡片页点挂失时，
+   页面自己的浮层盖住了认证弹窗，关闭按钮点不到，整条路卡死。
+   规则：要求用户先处理完才能继续的层，永远在最上面。 */
 .modal-backdrop {
-  position: fixed; inset: 0; z-index: 30; display: grid; place-items: center;
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center;
   padding: var(--space-5); background: var(--scrim);
 }
 .modal {

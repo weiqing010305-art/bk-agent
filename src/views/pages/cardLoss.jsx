@@ -1,9 +1,11 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   CreditCard, Globe, Landmark, MapPin, PackageCheck, Receipt, ShieldOff, Truck, Wallet2, X, Zap,
 } from 'lucide-react';
 import { REPLACEMENT_DAYS, REPLACEMENT_STEPS, money } from '../../domain/bank.js';
 import { afterDays, monthDay, tickDate } from './cardUtils.jsx';
+import './cardLoss.css';
 
 /**
  * 挂失补卡 —— 卡片状态机里唯一不可逆的那条边。
@@ -17,13 +19,18 @@ import { afterDays, monthDay, tickDate } from './cardUtils.jsx';
  *
  * 「不要点完就没影」靠 ReplacementTrack：挂失落地后这一屏换成补卡进度，
  * 受理 → 制卡 → 寄出三个节点带着各自的日期，寄送地址也在上面。
+ *
+ * ⚠️ 浮层挂在 body 上（createPortal）而不是页面里：页面滚动容器 .view-scroll 带 transform，
+ *    祖先有 transform 时 position: fixed 的参照会变成那个祖先，浮层会被推到视口外 ——
+ *    实测过：394px 高的后果清单有 245px 在屏幕上方，用户看不见后果就得点确认。
+ *    挂到 body 之后 fixed 才是真的 fixed（与 AuthDialog / ConfirmDialog 同一套）。
  */
 
 const CH_ICON = { pos: CreditCard, online: Wallet2, abroad: Globe, cash: Landmark };
 
 /** 确认浮层：后果逐条画出来（图标 + 两个字），与冻结浮层是同一套语法。 */
 export function CardLossSheet({ card, fee = 0, address = '', replacement, lost, onConfirm, onClose }) {
-  return <div className="freeze-scrim" onClick={onClose}>
+  return createPortal(<div className="freeze-scrim" onClick={onClose}>
     <div className="freeze-sheet" role="dialog" aria-modal="true" aria-labelledby="loss-title"
          onClick={e => e.stopPropagation()}>
       <button className="icon-btn sheet-close" aria-label="关闭" onClick={onClose}><X size={16}/></button>
@@ -48,9 +55,10 @@ export function CardLossSheet({ card, fee = 0, address = '', replacement, lost, 
                 return <li key={c.id}><Icon size={16} aria-hidden="true"/>{c.label}</li>;
               })}
             </ul>
+            {/* 四条后果里只有「不可恢复」配强调色：风险要靠图标 + 文字说，不靠把整屏涂红 */}
             <ul className="sheet-loss">
               <li><Zap size={15} aria-hidden="true"/><b>即时生效</b></li>
-              <li><ShieldOff size={15} aria-hidden="true"/><b>不可恢复</b></li>
+              <li data-warn="on"><ShieldOff size={15} aria-hidden="true"/><b>不可恢复</b></li>
               <li><Truck size={15} aria-hidden="true"/><b>补卡 3–7 个工作日</b></li>
               <li><Receipt size={15} aria-hidden="true"/><b>手续费 ¥{money(fee)}</b></li>
             </ul>
@@ -68,7 +76,7 @@ export function CardLossSheet({ card, fee = 0, address = '', replacement, lost, 
             </>}
       </div>
     </div>
-  </div>;
+  </div>, document.body);
 }
 
 /**

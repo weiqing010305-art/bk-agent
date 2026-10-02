@@ -123,7 +123,8 @@ export function enrich(cards) {
          只补 seed() 那种「字符串数组 channels」的半成品。 */
       profile: (c.profile && c.profile.billDay) ? c.profile : t.profile,
       limits: isHydrated(c) ? c.limits : t.limits,
-      channels: isHydrated(c) ? c.channels : t.channels,
+      /* 挂失的卡补档案时不能把渠道开关又打开 —— 补档案只补缺的字段，不复活已经停用的卡 */
+      channels: isHydrated(c) ? c.channels : (c.status === 'lost' ? t.channels.map(x => ({ ...x, on: false })) : t.channels),
       history: (Array.isArray(c.history) && c.history.length) ? c.history : hist(t.history),
     };
   });

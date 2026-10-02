@@ -625,7 +625,7 @@ flowchart TB
     SEL --> FACT["CardFacts 档案<br/>图标即标签：账户 / 账单日 / 有效期 / 上期账单"]
     SEL --> CH["ChannelBoard 四类渠道<br/>图标 + 使用条 + 剩余额 + 开关"]
     SEL --> LIM["LimitRows 三档限额就地展开"]
-    SEL --> ACT["操作：冻结 / 限额 / 流水"]
+    SEL --> ACT["操作：冻结 / 挂失补卡 / 限额 / 流水"]
     SEL --> HIST["状态历史时间线<br/>节点图标 + 日期 + 两个字的动作"]
     SEL --> ACTI["这张卡自己的动账"]
 ```
@@ -650,6 +650,60 @@ stateDiagram-v2
 
 **助手侧的卡面**：`CardFace` 已进 A2UI 白名单，所以助手说的卡片视图里
 渲染的是**真卡面**而不是「一个图标 + 两行灰字」。
+
+卡面有三种材料（`data-state`）：**彩色渐变 = 正常**、**磨砂暗面 = 冻结**（卡还在，随时能退回）、
+**中性灰 = 挂失**（卡没了，只剩一条轮廓）。材料是状态本身，不是装饰。
+
+### 7.17 挂失补卡（状态机里唯一不可逆的那条边）
+
+赛题点名的「卡片挂失」在 D-19 之前是**看不见**的 —— 那一版只有一个点下去弹 toast 的死按钮。
+现在它是一条真流程，而且是卡片状态机上**不可逆**的那条边，所以它与冻结共用一套语法、
+但不是同一个动作：冻结随时能解冻，挂失之后原卡不再可用，只能等补卡寄到。
+
+```mermaid
+flowchart TB
+    A["active 正常"] -->|"冻结（可逆）"| F["frozen 已冻结"]
+    F -->|"解冻"| A
+    A -->|"挂失补卡"| C["确认：后果先摊开<br/>四个渠道 / 不可恢复 / 补卡 3–7 个工作日 / 手续费 ¥20"]
+    F -->|"挂失补卡"| C
+    C -->|"取消"| A
+    C -->|"确认挂失"| G{"policy 判高危<br/>A-04：页面只能报做什么"}
+    G -->|"多因子通过：短信 / 人脸 / U 盾"| L["lost 已挂失"]
+    G -->|"没走完就关闭"| A
+    L --> R["补卡进度<br/>已受理 → 制卡中 → 已寄出"]
+    L -.->|"原卡不能再用"| X["usableCards() 不再返回它<br/>渠道真关 / 限额不可调 / 没有解冻"]
+```
+
+**每个环节的落点**（页面不自己判等级、也不自己写账本）：
+
+| 环节 | 落在哪 | 说明 |
+| --- | --- | --- |
+| 入口 | `pages/cards.jsx` 的「挂失补卡」 | 与冻结并列的第二类动作，不是同一个按钮 |
+| 风险等级 | `services/policy.js` 的 `card.report-loss` | 页面调 `ctx.gate({ op })`，只报做什么（A-04） |
+| 多因子 | `components/AuthDialog.jsx` | 三种方式都可走通；关闭弹窗 = 什么都不会发生 |
+| 落账 | `domain/bank.js` 的 `reportLoss` | 卡片进 `lost`、四个渠道关掉、补卡单入账、手续费进流水。**幂等**：重试不重复扣费 |
+| 呈现 | `pages/cardLoss.jsx` | 确认前的后果清单 + 挂失后的 `ReplacementTrack`（受理 → 制卡 → 寄出） |
+
+**它的落地口是 App.jsx 的 `applyConfirmation`**（与理财申购同一条路，认证通过后执行）：
+
+```js
+} else if (action.type === 'card.report-loss') {
+  setBank(prev => reportLoss(prev, action));
+  setToast(action.name + ' 已挂失');
+}
+```
+
+**为什么挂失不能是「点一下变灰」**：
+
+| 要求 | 这一版怎么满足 |
+| --- | --- |
+| 不可逆要说清楚 | 确认浮层在按钮之前列出：四个渠道停用 / 不可恢复 / 补卡 3–7 个工作日 / 手续费 |
+| 有后果 | 账本里 `status: 'lost'` + 四个渠道 `on: false` + 一条 `挂失手续费` 流水 |
+| 能查进度 | `ReplacementTrack`：三个节点带日期 + 预计寄到 + 寄送地址 + 受理号；刷新后仍在 |
+| 原卡不能再用 | `usableCards()` 不再返回它；限额不可调、冻结那条路消失、渠道整组锁死 |
+
+> 测试：`tests/card-loss.test.js`（账本与门禁，跑在 `npm test` 里）、
+> `tests/card-loss.mjs`（界面与流程，`npm run test:card`）。
 
 ### 7.9 收款人
 
@@ -998,7 +1052,7 @@ Get-ChildItem src -Recurse -File |
 | `pages/feed.jsx` | 动态：三段时间轴 + 可展开 |
 | `pages/bills.jsx` | 账单：结论 → 结构 → 节奏 → 明细 |
 | `pages/subscriptions.jsx` | 订阅：一项一张身份卡 |
-| `pages/cards.jsx` + `cardProfile` + `cardFreeze` + `cardFace` | 卡包 / 档案 / 冻结流程 / 卡面 |
+| `pages/cards.jsx` + `cardProfile` + `cardFreeze` + `cardLoss` + `cardFace` | 卡包 / 档案 / 冻结流程 / 挂失补卡流程 / 卡面 |
 | `pages/cardData.jsx` + `cardUtils.jsx` | 卡片演示数据与账期模型 |
 | `pages/payees.jsx` | 收款人 |
 | `pages/transfer.jsx` | 转账页（渲染同一套 A2UI surface） |

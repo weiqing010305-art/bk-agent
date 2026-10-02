@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Menu } from 'lucide-react';
 import { api, backendMode, binding } from './api/client.js';
-import { contacts as demoContacts, directory, money, seed, transfer as applyTransfer } from './domain/bank.js';
+import { contacts as demoContacts, directory, money, seed, transfer as applyTransfer, reportLoss } from './domain/bank.js';
 import { buildDataModel, provenance } from './services/banking.js';
 import { purchase } from './services/wealth.js';
 import { fromText, fromAction, parseIntent } from './agent/planner.js';
@@ -251,6 +251,12 @@ export default function App() {
         setBank(prev => purchase(prev, action));
         setToast('已申购 ' + action.name + ' ' + yuan(action.amount));
       } catch (err) { setToast(err.message); }
+    } else if (action.type === 'card.report-loss') {
+      /* 挂失 —— 不可逆，高风险，走到这里说明多因子已经通过。
+         与理财申购同一条路：页面只报「要做什么」，风险由 policy 判，账本只在这里写。
+         结果不额外存状态：卡在账本里变 lost，确认浮层自己消失，页面改呈现补卡进度。 */
+      setBank(prev => reportLoss(prev, action));
+      setToast(action.name + ' 已挂失');
     } else if (action.type === 'reset') {
       setBank(seed()); history.create(); setToast('已恢复初始状态');
     }
