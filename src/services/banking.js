@@ -96,8 +96,14 @@ export function buildDataModel(bank) {
     transactionCount: bank.transactions.length,
     cards: bank.cards.map(c => ({
       id: c.id, name: c.name, type: c.type, tail: c.tail,
+      /* status 原样带给渲染层：卡面要分三种材质（正常 / 冻结 / 已挂失），
+         只给 active 布尔值的话「挂失」和「冻结」在助手侧长得一样。 */
+      status: c.status,
       active: c.status === 'active',
-      statusText: c.status === 'active' ? '● 正常使用' : '● 已冻结',
+      statusText: c.status === 'active' ? '● 正常使用'
+        : c.status === 'lost' ? '● 已挂失'
+        : c.status === 'replacing' ? '● 补卡中'
+        : '● 已冻结',
     })),
     cardCount: bank.cards.length,
   };

@@ -174,9 +174,13 @@ export default function App() {
 
 
   const toggleCard = useCallback(cardId => {
+    /* 挂失是**不可逆**的：账本里这张卡已经 lost（或补卡中），
+       这里必须挡住，否则助手侧那个「切换状态」按钮一点就把不可逆推翻了。 */
+    const c0 = bank.cards.find(c => c.id === cardId);
+    if (!c0 || c0.status === 'lost' || c0.status === 'replacing') return setToast('这张卡已挂失，不能改回正常');
     setBank(prev => ({ ...prev, cards: prev.cards.map(c => c.id === cardId ? { ...c, status: c.status === 'active' ? 'frozen' : 'active' } : c) }));
     setToast('卡片状态已更新');
-  }, []);
+  }, [bank.cards, setToast]);
 
   const handleAction = useCallback((surfaceId, event) => {
     if (!event || typeof event.name !== 'string') return;
