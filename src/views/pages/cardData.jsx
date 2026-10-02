@@ -16,6 +16,9 @@ import { money } from '../../domain/bank.js';
 /** 演示基准日，与 bank.js 样例流水同一时间轴。 */
 export const TODAY = new Date(2026, 8, 26);
 
+/** 新卡寄送地址（账本里没有地址簿，补卡按预留地址寄）。挂失与补卡开在同一张单上。 */
+export const MAIL_ADDRESS = '上海市浦东新区世纪大道 100 号 1201 室';
+
 const ch = (id, label, perTxn, dayLimit, dayUsed) => ({ id, label, perTxn, dayLimit, dayUsed, on: true });
 const CH = (a, b, c, d) => [
   ch('pos',    '境内刷卡', ...a), ch('online', '线上支付', ...b),

@@ -198,7 +198,7 @@ export default function Bills({ ctx }) {
       right={{ label: label + '收入', value: yuan(m.income),
         note: m.incomeCount + ' 笔 · 结余 ' + yuan(m.income - m.total) }}/>
 
-    <Panel title="钱花在哪了" aside={<span className="panel-hint">六种看法，共用同一个高亮</span>}>
+    <Panel title="钱花在哪了">
       {m.parts.length
         ? <SpendingChart model={m} active={hot} onHover={setHover}
             onLock={name => { setFilter(name || '全部'); setHover(null); }} filter={filter}/>

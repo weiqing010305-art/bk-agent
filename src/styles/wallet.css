@@ -253,6 +253,59 @@
 .sheet-channels[data-done] li { background: var(--fill-4); color: var(--text-tertiary); }
 .sheet-channels li svg { flex: 0 0 auto; }
 
+/* ══ 挂失：比冻结更彻底的一条边 ════════════════════════════════════════
+   冻结是换一种材料（卡还在，随时能退回），挂失是连材料都不剩 ——
+   卡面上只剩一个中性灰的轮廓，真正的内容挪到下面那张补卡进度上。 */
+.card-face[data-state="lost"] {
+  --grad-face: linear-gradient(to bottom right, var(--fill-3), var(--fill-4));
+  color: var(--text-tertiary); filter: saturate(0) contrast(.92); scale: .92;
+}
+.card-face[data-state="lost"] .bank-card-num,
+.card-face[data-state="lost"] .bank-card-logo,
+.card-face[data-state="lost"] .card-wave,
+.card-face[data-state="lost"] .card-face-foot,
+.card-face[data-state="lost"] .card-chip { opacity: .24; }
+.card-face[data-state="lost"] .card-glare { display: none; }
+.card-face-wrap[data-on] > .card-face[data-state="lost"] { transform: translateY(-10px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)); }
+/* 徽标是唯一一处用强调色说「这张卡没了」的地方，其余靠材料与位置 */
+.card-frozen-badge.is-loss { background: var(--bg-surface); color: var(--danger); }
+
+/* 挂失浮层：后果逐条画出来（四个渠道 + 四条不可逆的事实） */
+.sheet-mark.is-loss { background: var(--danger-tint); color: var(--danger); }
+.sheet-channels[data-lost] li { background: var(--danger-tint); color: var(--danger); }
+.sheet-loss { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.sheet-loss li { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-footnote); color: var(--text-secondary); }
+.sheet-loss li svg { flex: 0 0 auto; color: var(--danger); }
+.sheet-loss li b { font-weight: 600; color: var(--text-primary); }
+/* 补卡单的字段（受理号 / 地址 / 预计寄到 / 手续费）：值是数据，左右对齐读 */
+.sheet-facts { margin: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.sheet-facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-5); font-size: var(--text-footnote); }
+.sheet-facts dt { flex: 0 0 auto; color: var(--text-tertiary); }
+.sheet-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.freeze-notice.is-lost { background: var(--danger-tint); color: var(--danger); }
+.channel-board.is-lost .channel-lock { color: var(--danger); }
+
+/* ══ 补卡进度：受理 → 制卡 → 寄出 ══════════════════════════════════════
+   进度是**位置**不是百分比：三个节点串在一条线上，走过的实心、当前的是强调色。
+   假百分比只会让人问「还差多少」，节点回答的是「到哪一步了」。 */
+.replacement { display: flex; flex-direction: column; gap: var(--space-4); }
+.replacement-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); }
+.replacement-eta { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
+.replacement-eta svg { flex: 0 0 auto; color: var(--text-tertiary); }
+.replacement-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+.replacement-steps li { position: relative; display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-6); }
+/* 节点：一条底线 + 端点圆点。圆点带一圈白边，压在线上才是「节点」而不是「装饰」 */
+.replacement-steps li::before { content: ''; position: absolute; top: 5px; left: 0; right: 0; height: 2px; background: var(--bg-track); }
+.replacement-steps li::after { content: ''; position: absolute; top: 0; left: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--bg-track); box-shadow: 0 0 0 3px var(--bg-surface); }
+.replacement-steps li[data-state="done"]::before, .replacement-steps li[data-state="now"]::before { background: var(--accent); }
+.replacement-steps li[data-state="done"]::after { background: var(--accent); }
+.replacement-steps li[data-state="now"]::after { background: var(--danger); }
+.replacement-steps li b { font-size: var(--text-subhead); font-weight: 600; }
+.replacement-steps li small { font-size: var(--text-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.replacement-steps li[data-state="todo"] b { color: var(--text-tertiary); font-weight: 500; }
+.replacement-addr { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--text-caption); color: var(--text-secondary); }
+.replacement-addr svg { flex: 0 0 auto; color: var(--text-tertiary); }
+
 @media (max-width: 640px) {
   .card-face-wrap { flex-basis: 244px; }
   .channel-row { grid-template-columns: 30px 1fr auto 46px; gap: var(--space-3); }

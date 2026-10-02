@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, BadgeCheck, Search, SearchX, Star, Tag } from 'lucide-react';
-import { Page, Panel, Empty, StatBar } from '../parts.jsx';
+import { Panel, Empty, StatBar } from '../parts.jsx';
 import { DEMO_DATE, MAX_TRANSFER } from '../../services/banking.js';
 import './payees.css';
 
@@ -20,7 +20,7 @@ import './payees.css';
  * 时间词只留「今天 / 昨天 / 日期」，不再写「上次」：收支后面跟一个日期，那就是上次。
  *
  * 每个动作都走已有的内核，不新造一套：
- *   再转一笔 → startTransfer({ payeeHint })，转账流程会带着这个人直接落到「转多少」；
+ *   再转一笔 → onPick(id)，转账页本地流程会带着这个人直接落到「转多少」；
  *   设为常用 → App 已有的 transfer.save-payee 事件（它负责写 contacts 与提示）。
  * 没有往来的名录里的人**不给"转账"按钮**：转账流程只认得常用收款人，
  * 给了按钮也只会在下一步把人丢掉，那才是骗人。
@@ -45,13 +45,13 @@ const RELATIONS = ['房东', '家人', '同事', '朋友'];
 const ALIAS = { landlord: /房租/ };
 
 /**
- * @param onPick 在**转账页内部**选中一个人（带 contactId 直接落到「转多少」）。
- *               不传时才退回 startTransfer —— 独立成页时用那条路。
- *               作者的产品决策：收款人从导航移除，名录嵌进转账页，
- *               「再转一笔」在同一个页面里闭环，不跳回助手。
+ * 它是**转账页里的一段**，不是独立页面（作者决策 D-20）。
+ *
+ * @param onPick 在转账页内部选中一个人 —— 带 contactId 直接落到「转多少」，
+ *               在同一个页面里闭环，不跳回助手。
  */
-export default function Payees({ ctx, onPick, embedded }) {
-  const { contacts, directory, bank, startTransfer, handleAction } = ctx;
+export default function Payees({ ctx, onPick }) {
+  const { contacts, directory, bank, handleAction } = ctx;
   const [q, setQ] = useState('');
   const [who, setWho] = useState('全部');
   const [cardNo, setCardNo] = useState('');
@@ -130,13 +130,13 @@ export default function Payees({ ctx, onPick, embedded }) {
           动作名进 title 与 aria-label，鼠标悬停和读屏都拿得到 */}
       {p.saved
         ? <button className="payee-act" title="再转一笔" aria-label={'给 ' + p.name + ' 再转一笔'}
-                  onClick={() => (onPick ? onPick(p.id) : startTransfer({ payeeHint: p.name }))}><ArrowUpRight size={18} aria-hidden="true"/></button>
+                  onClick={() => onPick(p.id)}><ArrowUpRight size={18} aria-hidden="true"/></button>
         : <button className="payee-act" title="设为常用" aria-label={'把 ' + p.name + ' 设为常用收款人'}
                   onClick={() => save(p.id)}><Star size={18} aria-hidden="true"/></button>}
     </li>
   );
 
-  /* embedded：嵌在转账页里时不要 Page 外壳（标题与副标题都是页面级的，嵌进来是重复） */
+  /* 不要 Page 外壳 —— 标题与副标题都是页面级的，嵌进转账页就是重复 */
   const Body = <>
     <StatBar left={{ label: '常用', value: saved + ' 位', note: '还有 ' + (people.length - saved) + ' 位' }}
              right={{ label: '转出合计', value: fmt(monthOut), note: '最多可转 ' + fmt(canSend) }}/>
@@ -183,7 +183,5 @@ export default function Payees({ ctx, onPick, embedded }) {
     </Panel>
   </>;
 
-  return embedded
-    ? <section className="payees-embedded" aria-label="收款人名录">{Body}</section>
-    : <Page title="收款人">{Body}</Page>;
+  return <section className="payees-embedded" aria-label="收款人名录">{Body}</section>;
 }

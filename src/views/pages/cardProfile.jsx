@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Calendar, CalendarClock, CreditCard, Globe, Landmark, Lock, Receipt,
-  RefreshCw, SlidersHorizontal, Snowflake, Sun, TrendingDown, TrendingUp, Wallet2, Zap,
+  Calendar, CalendarClock, CreditCard, Globe, Landmark, Lock, PackageCheck, Receipt,
+  RefreshCw, ShieldOff, SlidersHorizontal, Snowflake, Sun, TrendingDown, TrendingUp, Wallet2, Zap,
 } from 'lucide-react';
 import { money } from '../../domain/bank.js';
 import { Row } from '../parts.jsx';
@@ -87,9 +87,10 @@ export function CardFacts({ card }) {
   </dl>;
 }
 
-/** 渠道逐项开关。冻结时整组失效 —— 冻结不是换个颜色，而是这四项一起停摆。 */
-export function ChannelBoard({ card, frozen, onToggle }) {
-  return <div className={frozen ? 'channel-board is-locked' : 'channel-board'}>
+/** 渠道逐项开关。锁定时整组失效 —— 冻结与挂失都不是换个颜色，而是这四项一起停摆。
+    两者的区别只在锁的说明上：冻结还能解冻，挂失之后这四项不会再打开。 */
+export function ChannelBoard({ card, frozen, lost, onToggle }) {
+  return <div className={'channel-board' + (frozen ? ' is-locked' : '') + (lost ? ' is-lost' : '')}>
     {card.channels.map(c => {
       const Icon = CH_ICON[c.id] || CreditCard;
       const left = Math.max(0, c.dayLimit - c.dayUsed);
@@ -104,7 +105,9 @@ export function ChannelBoard({ card, frozen, onToggle }) {
                 onClick={() => onToggle(c.id)}><i/></button>
       </div>;
     })}
-    {frozen && <p className="channel-lock" aria-label="卡片冻结中，四个渠道全部停用"><Lock size={13} aria-hidden="true"/></p>}
+    {frozen && <p className="channel-lock"
+      aria-label={lost ? '卡片已挂失，四个渠道全部停用' : '卡片冻结中，四个渠道全部停用'}>
+      <Lock size={13} aria-hidden="true"/></p>}
   </div>;
 }
 
@@ -136,8 +139,9 @@ export function LimitRows({ card, onLimit, say }) {
   </div>;
 }
 
-/* 节点图标即事件类型：冻结 / 解冻 / 激活 / 提额 / 换卡 / 验密 / 境外 / 开卡。 */
+/* 节点图标即事件类型：挂失 / 补卡 / 冻结 / 解冻 / 激活 / 提额 / 换卡 / 验密 / 境外 / 开卡。 */
 const H_ICON = [
+  [/挂失/, ShieldOff], [/补卡|寄出|寄送/, PackageCheck],
   [/解冻/, Sun], [/冻结/, Snowflake], [/激活/, Zap], [/提额|额度|限额/, TrendingUp],
   [/换卡|形态|币种/, RefreshCw], [/免密|验密/, Lock], [/境外/, Globe], [/开卡/, CreditCard],
 ];

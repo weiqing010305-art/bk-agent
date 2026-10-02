@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CreditCard, Globe, Landmark, Snowflake, Sun, Wallet2, X } from 'lucide-react';
+import { AlertTriangle, CreditCard, Globe, Landmark, ShieldOff, Snowflake, Sun, Wallet2, X } from 'lucide-react';
 
 /**
  * 冻结必须是一个有感觉的流程，不是「点一下变灰」：
@@ -11,19 +11,22 @@ import { AlertTriangle, CreditCard, Globe, Landmark, Snowflake, Sun, Wallet2, X 
 
 const CH_ICON = { pos: CreditCard, online: Wallet2, abroad: Globe, cash: Landmark };
 
-/** 卡片页顶部的状态提醒。只在「真的有事」时出现：卡被冻结，或今天的额度已经用满。
-    frozen 由页面传入 —— 冻结状态存在账本里，刚刚冻结的那一下也要立刻反映。 */
-export function FreezeNotice({ card, isFrozen, onOpen }) {
+/** 卡片页顶部的状态提醒。只在「真的有事」时出现：卡被挂失、卡被冻结，或今天的额度已经用满。
+    frozen / lost 由页面传入 —— 状态存在账本里，刚刚发生的那一下也要立刻反映。
+    挂失排在最前：它是这张卡唯一不可逆的状态，冻结与额度都已经不是重点。 */
+export function FreezeNotice({ card, isFrozen, lost, onOpen }) {
   const frozen = Boolean(isFrozen);
+  const gone = Boolean(lost);
   const used = card.channels.reduce((s, c) => s + (c.on ? c.dayUsed : 0), 0);
   const cap = card.channels.reduce((s, c) => s + (c.on ? c.dayLimit : 0), 0);
-  if (!frozen && used < cap) return null;
-  return <div className={frozen ? 'freeze-notice is-frozen' : 'freeze-notice'} role="status">
-    <span className="notice-mark" aria-hidden="true">{frozen ? <Snowflake size={18}/> : <AlertTriangle size={18}/>}</span>
+  if (!gone && !frozen && used < cap) return null;
+  return <div className={gone ? 'freeze-notice is-frozen is-lost' : frozen ? 'freeze-notice is-frozen' : 'freeze-notice'} role="status">
+    <span className="notice-mark" aria-hidden="true">
+      {gone ? <ShieldOff size={18}/> : frozen ? <Snowflake size={18}/> : <AlertTriangle size={18}/>}</span>
     <span className="notice-body">
-      <b>{card.name.replace('青禾', '')}{frozen ? '已冻结' : '今日额度已满'}</b>
+      <b>{card.name.replace('青禾', '')}{gone ? '已挂失' : frozen ? '已冻结' : '今日额度已满'}</b>
     </span>
-    {frozen && <button className="link-btn" onClick={onOpen}>解冻</button>}
+    {(gone || frozen) && <button className="link-btn" onClick={onOpen}>{gone ? '补卡进度' : '解冻'}</button>}
   </div>;
 }
 

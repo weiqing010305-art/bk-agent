@@ -42,7 +42,27 @@ export const WORKFLOW_IDS = ACTIONS.map(a => a.id);
 
 /* ── 意图解析：只产出 action + slots，绝不产出数据 ─────────────────────── */
 
-const RE_AMOUNT = /(\d+(?:\.\d{1,2})?)\s*(?:元|块钱|块|¥)?/;
+/* 金额：数字 + **可选的量级单位** + 可选的「元」。
+   单位必须处理 —— 漏掉它会让「给房东转 5 万」变成 ¥5。
+   中文口语里 万/千/百 是常规说法，银行场景里错一位就是三个数量级。
+   ponytail: 只认 万/千/百/w/k/W/K，不做「壹拾万」这类大写与「十几万」这类模糊量。 */
+const UNITS = { 万: 10000, 萬: 10000, w: 10000, W: 10000, k: 1000, K: 1000, 千: 1000, 百: 100 };
+const RE_AMOUNT = /(\d+(?:\.\d{1,2})?)\s*(万|萬|千|百|w|W|k|K)?\s*(?:元|块钱|块|¥)?/;
+
+/**
+ * 「5 万」→ 50000。只产出**字符串**，与既有的 amountText 口径一致。
+ * 没有单位就原样返回，不补零、不四舍五入。
+ */
+export function amountOf(text) {
+  const m = String(text || '').match(RE_AMOUNT);
+  if (!m) return '';
+  const n = Number(m[1]);
+  if (!Number.isFinite(n)) return '';
+  const scale = m[2] ? UNITS[m[2]] : 1;
+  const v = n * scale;
+  /* 去掉浮点尾巴：0.1 * 10000 = 1000.0000000000001 */
+  return String(Math.round(v * 100) / 100);
+}
 const RE_PAYEE = /(?:给|转给|转账给)\s*([\u4e00-\u9fa5A-Za-z]{2,10}?)\s*(?:转|打|汇|\d|$)/;
 
 export function parseIntent(raw) {
@@ -52,8 +72,10 @@ export function parseIntent(raw) {
      这三类刻意排在普通转账之前 —— 它们都是转账的近亲，但需要多步编排。 */
   if (/定时|预约|每月|下个?月|每月一?号|自动转|定期转/.test(t)) {
     const payee = t.match(RE_PAYEE);
-    const amount = t.match(/(?:¥|转|打|汇)\s*(\d+(?:\.\d{1,2})?)/);
-    return { action: 'transfer.scheduled', slots: { payeeHint: payee ? payee[1] : '', amountText: amount ? amount[1] : '', dateHint: '下个月 1 号' } };
+    /* 定时转账那句里的金额在动词之后，所以先截「转/打/汇」之后的一段再交给同一个解析器 ——
+       两处各写一个正则会漂移，「5 万」在其中一处生效、另一处失效。 */
+    const after = t.match(/(?:¥|转|打|汇)\s*([\d.]+\s*(?:万|萬|千|百|[wWkK])?\s*(?:元|块钱|块)?)/);
+    return { action: 'transfer.scheduled', slots: { payeeHint: payee ? payee[1] : '', amountText: after ? amountOf(after[1]) : '', dateHint: '下个月 1 号' } };
   }
   /* AA 要写成两个大写字母，或者用中文的拆分/分摊，避免误伤普通句子 */
   if (/\bAA\b|拆分|分摊|各付各|平摊|一起分/.test(t)) {
@@ -63,13 +85,12 @@ export function parseIntent(raw) {
     return { action: 'occasion', slots: { occasion: (t.match(/(生日|纪念日|节日|礼物|蛋糕)/) || [])[1] || '特殊日子' } };
   }
   if (/转账|转给|汇款|打钱|转笔|给.{1,12}转|转\s*\d/.test(t)) {
-    const amount = t.match(RE_AMOUNT);
     const payee = t.match(RE_PAYEE);
     return {
       action: 'transfer',
       /* 抽到就填，抽不到留空 —— 由用户在卡片里补，不猜 */
       slots: {
-        amountText: amount ? amount[1] : '',
+        amountText: amountOf(t),
         payeeHint: payee ? payee[1] : '',
         note: '',
       },

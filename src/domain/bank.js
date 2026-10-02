@@ -81,6 +81,62 @@ export function seed() {
 /** 小额演示账本的卡片与订阅（余额由后端提供时复用，避免两处各写一份）。 */
 export const demoExtras = () => { const s = seed(); return { cards: s.cards, subscriptions: s.subscriptions }; };
 
+/* ── 卡片状态机 ─────────────────────────────────────────────────────────
+   active ⇄ frozen        可逆：冻结只是「先停一下」，随时能自助解冻
+   active|frozen → lost   不可逆：这张卡没了，原卡不再可用，只能等补卡寄到
+
+   挂失单独一条边、单独一个函数，**不复用 toggleCard 那种来回切换**：
+   它不是把 status 改一改，而是把这张卡从「能用的卡」里移出去，同时留下一张补卡单。 */
+export const CARD_STATUS = { ACTIVE: 'active', FROZEN: 'frozen', LOST: 'lost' };
+/** 挂失手续费（分）。演示口径：doc/research/banking-domain-map.md §2 的演示值清单。 */
+export const LOSS_FEE = 2000;
+/** 补卡流程：受理 → 制卡 → 寄出。after = 相对受理日的天数。 */
+export const REPLACEMENT_STEPS = [
+  { id: 'accepted', label: '已受理', after: 0 },
+  { id: 'making',   label: '制卡中', after: 2 },
+  { id: 'shipped',  label: '已寄出', after: 5 },
+];
+/** 新卡寄到的上限：3–7 个工作日，取上限给用户一个不会早于事实的承诺。 */
+export const REPLACEMENT_DAYS = 7;
+/** 挂失的卡不能再用于任何支付。任何「选一张卡」的地方都要过这一条。 */
+export const isUsableCard = c => c.status !== CARD_STATUS.LOST;
+export const usableCards = s => s.cards.filter(isUsableCard);
+
+/**
+ * 挂失（不可逆）。
+ *
+ * @param {object} state 账本
+ * @param {{cardId:string, id?:string, asOf?:string, address?:string, fee?:number}} req
+ * @returns {object} 新账本：卡片进入 lost、四个渠道停用、补卡单入账、手续费入流水
+ *
+ * **幂等**：同一张卡重复挂失返回原账本 —— 重试不会重复扣手续费，也不会开出第二张补卡单。
+ * 手续费真的从可用余额里扣并留下一条流水：挂失的后果要能在账单里看得见。
+ */
+export function reportLoss(state, { cardId, id = 'loss-' + cardId, asOf = AS_OF, address = '', fee = LOSS_FEE }) {
+  const card = state.cards.find(c => c.id === cardId);
+  if (!card || card.status === CARD_STATUS.LOST) return state;
+  const charged = Number.isSafeInteger(state.available) && state.available >= fee;
+  const cards = state.cards.map(c => c.id !== cardId ? c : {
+    ...c,
+    status: CARD_STATUS.LOST,
+    /* 与冻结不同：这里的四个开关是**真的关掉**，对它不存在「解冻」那条路 */
+    channels: (c.channels || []).map(x => (x && typeof x === 'object' ? { ...x, on: false } : x)),
+    replacement: { id, fee, address, acceptedAt: asOf, stage: 0 },
+    history: [...(Array.isArray(c.history) ? c.history : []),
+      { date: asOf, title: '挂失', note: '由持卡人在手机银行发起，四个渠道即时停用' },
+      { date: asOf, title: '补卡', note: address ? '新卡制卡中，将寄至 ' + address : '新卡制卡中，等寄送' }],
+  });
+  return normalize({
+    ...state,
+    available: charged ? state.available - fee : state.available,
+    cards,
+    transactions: charged
+      ? [{ id: id + '-fee', name: '挂失手续费', category: '服务费', amount: -fee, at: asOf + 'T10:00',
+           date: asOf, hour: 10, counterparty: '青禾银行', method: 'fee' }, ...state.transactions]
+      : state.transactions,
+  });
+}
+
 /**
  * 冷启动样本：新开户客户只有 8 笔流水，够不上 n_hist ≥ 30，
  * 只能靠绝对阈值兜底（R-AMT-03）与稳健统计（R-AMT-02）。测试与演示共用一份。

@@ -38,6 +38,12 @@ export function periodProgress(info) {
   return Math.max(0, Math.min(1, (TODAY - from) / Math.max(1, to - from)));
 }
 
+/** 补卡进度上的日期：受理日 +N 天。进度节点的日期由流程定义（REPLACEMENT_STEPS.after）推出来。 */
+export const afterDays = (date, n) => fmt(new Date(ymd(date).getTime() + n * DAY));
+
+/** 一句日期：'2026-10-03' → '10 月 3 日'。与账期条上的写法一致，不出现两种日期格式。 */
+export const monthDay = s => { const [, m, d] = s.split('-').map(Number); return m + ' 月 ' + d + ' 日'; };
+
 /** 本期小结：账期内的消费笔数与金额，以及上一期同口径对比。 */
 export function summary(card, c) {
   const [cy, cm, cd] = c.last.split('-').map(Number);
