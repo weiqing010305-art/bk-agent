@@ -37,7 +37,7 @@ export function useBackendBank({ setBank, setContacts, setConnection, setToast, 
       } else {
         await api('/operations/' + op.id + '/verify', { ...binding(op), challenge_id: op.challenge_id, code: verificationCode });
       }
-      setConfirm(null); setToast('模拟转账已完成');
+      setConfirm(null); setToast('转账已完成');
       await refreshBank();
     } catch (err) {
       setApiError(err.message);

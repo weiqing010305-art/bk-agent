@@ -1,0 +1,68 @@
+/**
+ * state.css —— 空 / 错 / 载三态的统一外观，外加全站数值对齐。
+ *
+ * 三态的文案口径在 components/StateBlock.jsx，证据在 doc/research/za-design-and-wealth.md §A.4。
+ * 颜色一律 var()（AGENTS.md §3：组件里不出现颜色字面量）。
+ */
+
+/* ── 空 / 错两态 ──────────────────────────────────────────────────────
+   左对齐而不是居中：这一屏的其它东西都是"贴着小字排版"，
+   居中的空块会在一张宽面板里漂起来，读起来像加载失败。 */
+.state { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); padding: var(--space-6) var(--space-2); }
+.state-mark {
+  width: 44px; height: 44px; border-radius: var(--radius-pill);
+  display: grid; place-items: center;
+  background: var(--fill-4); color: var(--text-tertiary);
+}
+.state-title { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); color: var(--text-primary); }
+/* 空态可以带一个数：数字不算文案，它比一句话短。
+   「都取消了 −¥7,572.00 / 年」—— 负号本身就是"省下了"，不必再写四个字。 */
+.state-figure {
+  margin: calc(var(--space-2) * -1) 0 0;
+  font-size: var(--text-title-2); line-height: var(--leading-title-2);
+  font-weight: 600; letter-spacing: var(--tracking-title-2); color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.state-figure i { margin-left: var(--space-2); font-style: normal; font-size: var(--text-caption); font-weight: 400; color: var(--text-tertiary); }
+/* 错误：图标底座换危险色，标题与错误码都是中性色 —— 红色只用在"这里出事了"这一处 */
+.state--error .state-mark { background: var(--danger-tint); color: var(--danger); }
+/* 错误码独立一行，不塞进句子（ZA 的 `錯誤碼：{code}`）。等宽字体让它读起来像一个编号 */
+.state-code { margin: 0; font-family: var(--font-mono); font-size: var(--text-caption); color: var(--text-tertiary); }
+
+/* 加载态的骨架**故意不在这里**：app.css 的 .surface-skeleton / .sk 已经是唯一实现，
+   抄一份过来就会有两套抖光。 */
+
+/* ── 数值对齐（全站）─────────────────────────────────────────────────
+   Material 3 / M2 数据表的两条原文：
+     · 数字一律等宽（tabular-nums）—— 比例数字会让整列随内容左右微抖
+     · **金额右对齐，表头也跟着右对齐**，数值列不居中
+   这两条以前散在 8 个样式表的 40 多处声明里。政策现在集中在这里，
+   任何一个文件删掉自己那一份，剩下的仍然成立。
+   ponytail: 用 :where() 是因为它特异度为 0 —— 页面要覆盖这里永远覆盖得动。
+   等 tokens/base 层归位时整段剪过去即可，不必改任何调用点。 */
+:where(
+  .amount, .stat-value, .stat-num, .stat-note, .hero-amount, .masked-num,
+  .panel-hint, .a2ui-figure-value, .a2ui-text--amount, .a2ui-meter .a2ui-text--amount,
+  .bank-card-num, .card-title span, .card-status-row b, .next-sub strong,
+  .ruler-amount, .ruler-scale, .cycle-end b, .fact dd, .limit-value, .channel-left,
+  .activity-stats b, .history-date, .sheet-card,
+  .due-date, .due-tenure, .sub-card-price b, .sub-right b, .chip-n,
+  .payee-meta, .feed-used, .feed-facts dd, .feed-day b, .bills-day b, .month-pill,
+  .chart-readout-amt, .chart-legend-pct, .chart-legend-item b, .chart-center-value,
+  .chart-bar-pct, .chart-bar b, .compare-delta, .stack-total, .heat-cell,
+  .tg-count, .tf-gap b, .auth-op b, .tx-row b, .balance-hero > strong, .card-tile-facts dd
+) { font-variant-numeric: tabular-nums; }
+
+/* 条形图的「类目 / 占比 / 金额」是全站唯一一张真表，它这一列原来逐行错开 36px：
+   auto 轨道跟着该行金额的宽度伸缩，于是它左边的百分比列被推得一行一个位置。
+   给金额一个 ch 单位的列宽，整列就定住了 —— 1ch 就是一个数字的宽度（等宽数字下），
+   所以字号变了列宽跟着变，不需要写死一个 px。右对齐让金额贴着表头那条线收边。 */
+.chart-bar b { min-width: 10ch; text-align: right; }
+
+/* 概览「动态」的分组头：右边那个合计是它下面那一列金额的表头，就要收在同一条线上。
+   行尾有一个 14px 的展开箭头 + 12px 间距，所以表头要缩进同样的距离 —— 不缩进就右出 26px。
+   特异度 0-2-0 高于 views.css 的 .day-head（0-1-0），与文件加载顺序无关。 */
+.day-head.feed-day { padding-right: calc(14px + var(--space-4)); }
+
+/* 故意居中的两处（不是漏改）：热力图的日号是日历格，占比重图的合计挂在柱子底下，
+   它们对齐的是图形而不是彼此，居中才是对的。 */

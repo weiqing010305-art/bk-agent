@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseIntent, fromText, fromAction, plan } from '../src/agent/planner.js';
+import { parseIntent, fromText, fromAction, plan, amountOf } from '../src/agent/planner.js';
 import { initialState, applyMessages, resolveTree } from '../src/a2ui/apply.js';
 import { buildDataModel, provenance } from '../src/services/banking.js';
 import { seed } from '../src/domain/bank.js';
@@ -108,4 +108,36 @@ test('跨场景联动产出的视图会带上这个月的可支配情况', () =>
   const flat = JSON.stringify(tree);
   assert.match(flat, /可支配/, '跨场景视图要给资金上下文');
   assert.match(flat, /可以这样安排/, '要给出可选项而不是只回一句祝福');
+});
+
+/* 金额的量级单位。曾经的 bug：正则只抓数字，「给房东转 5 万」解析成 ¥5 ——
+   银行场景里差一位就是三个数量级，所以这条必须有正反例守着。 */
+test('金额支持万 / 千 / 百 / w / k 这些量级单位', () => {
+  const cases = [
+    ['给房东转 5 万', '50000'],
+    ['转 1.5 万给王佩兰', '15000'],
+    ['转 3 千', '3000'],
+    ['转 2 百', '200'],
+    ['转 10w', '100000'],
+    ['转 5k', '5000'],
+  ];
+  for (const [text, want] of cases) {
+    assert.equal(parseIntent(text).slots.amountText, want, text + ' 应解析成 ' + want);
+  }
+});
+
+test('没有单位时金额原样保留，不补零不放大', () => {
+  assert.equal(parseIntent('给章明远转 100 元').slots.amountText, '100');
+  assert.equal(parseIntent('转 200').slots.amountText, '200');
+});
+
+test('定时转账那条路径也认单位（两处不能各写一个正则）', () => {
+  assert.equal(parseIntent('下个月 1 号自动给房东转 2 万').slots.amountText, '20000');
+  assert.equal(parseIntent('下个月 1 号自动给房东转 5000').slots.amountText, '5000');
+});
+
+test('浮点不冒尾巴：1.5 万是 15000 而不是 15000.000000000002', () => {
+  assert.equal(amountOf('1.5 万'), '15000');
+  assert.equal(amountOf('0.1 万'), '1000');
+  assert.equal(amountOf('没有数字'), '');
 });

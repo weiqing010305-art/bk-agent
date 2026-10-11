@@ -54,3 +54,10 @@
   transform-origin: 0 50%; transform: scaleX(0);
 }
 @media (prefers-reduced-motion: reduce) { .auth-scan { animation: none; top: 50%; } }
+/* 验证码与输入框同一行：演示码当提示放在右侧，不占一行说明文字 */
+.code-row { display: flex; align-items: center; gap: var(--space-4); }
+.code-row input { flex: 1 1 auto; min-width: 0; }
+.code-row strong {
+  flex: 0 0 auto; font-family: var(--font-mono); letter-spacing: .14em;
+  font-size: var(--text-subhead); color: var(--text-tertiary); user-select: all;
+}

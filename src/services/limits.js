@@ -17,6 +17,21 @@
 
 export const LIMIT_TYPE = { PER_TRANSACTION: 'PER_TRANSACTION', DAILY: 'DAILY', WEEKLY: 'WEEKLY', MONTHLY: 'MONTHLY', CUSTOM: 'CUSTOM' };
 
+/**
+ * 银行所在地的「现在」。
+ *
+ * 受理时段是**银行的当地时间**，不是看页面那台机器的时区 ——
+ * 用 toISOString() 会拿到 UTC：在纽约（UTC-4）演示时，
+ * 当地 23:57 会变成 UTC 03:57，于是一笔正常转账被判成「夜间非柜面不受理」。
+ * 同一份代码换个时区就跑不通，那是 bug 不是风控。
+ *
+ * 用 sv-SE 是因为它的日期格式天生是 YYYY-MM-DD HH:mm，切片口径与 ISO 一致。
+ */
+export const BANK_TZ = 'Asia/Shanghai';
+export const bankNow = (d = new Date()) =>
+  new Intl.DateTimeFormat('sv-SE', { timeZone: BANK_TZ, dateStyle: 'short', timeStyle: 'short' })
+    .format(d).replace(' ', 'T');
+
 /** 账户限额表。金额单位：分。演示值，标注在 doc 的「演示值清单」内。 */
 export const ACCOUNT_LIMITS = [
   { id: 'per-tx-transfer', limitType: LIMIT_TYPE.PER_TRANSACTION, maxAmount: 5000000, asset: 'CNY',
@@ -72,7 +87,7 @@ export function resetAt(limit, at) {
  * 校验一笔拟发起的交易。返回 { ok, limitId?, remaining?, resetAt?, reason?, blocked? }。
  * 只看限额，不看风险等级 —— 定级仍归 policy.js。
  */
-export function checkLimits(state, { amount, scope = 'transfer', kind = 'transfer', at = new Date().toISOString().slice(0, 16) }) {
+export function checkLimits(state, { amount, scope = 'transfer', kind = 'transfer', at = bankNow() }) {
   for (const limit of ACCOUNT_LIMITS.filter(l => l.scopes.includes(scope))) {
     if (!applies(limit, scope, at)) {
       /* 时间窗外的限额不是「不存在」，而是**收紧到 0**：夜间非柜面直接不受理。 */
@@ -96,7 +111,7 @@ export function checkLimits(state, { amount, scope = 'transfer', kind = 'transfe
 }
 
 /** 限额面板要展示的东西：每一条的额度、已用、剩余、是否生效中。 */
-export function limitBoard(state, at = new Date().toISOString().slice(0, 16)) {
+export function limitBoard(state, at = bankNow()) {
   return ACCOUNT_LIMITS.map(l => {
     const used = usedIn(state, l, at);
     return { id: l.id, label: l.label, limitType: l.limitType, asset: l.asset,

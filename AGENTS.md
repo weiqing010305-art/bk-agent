@@ -1,60 +1,64 @@
-# AGENTS.md — bk-agent 项目级开发规约
+# AGENTS.md — 项目级开发规约（索引）
 
-> 本文件是**项目级**规约，优先级高于会话级偏好。任何在本仓库工作的 agent 都必须先读本文件。
-> 最后更新：2026-09-28
+> **产品架构在 [`doc/PRODUCT-ARCHITECTURE.md`](doc/PRODUCT-ARCHITECTURE.md)（受保护，agent 不得自行修改）。**
+> **决策台账在 [`doc/DECISIONS.md`](doc/DECISIONS.md)（每条 ≤100 字 + 一张 Mermaid）。**
+> 任何在本仓库工作的 agent 都必须先读这两份。
+>
+> 本文件保留，是因为 agent 会自动加载它；但它**只做索引，不复制内容** ——
+> 两处写同样的规则必然打架（这正是这次重构要解决的问题）。
 
-## 1. Ponytail：ultra
+---
 
-本项目**全程开启 ponytail，强度 `ultra`**。不是建议，是默认工作模式。
+## 三件必须知道的事
 
-阶梯（停在第一个成立的档位）：
+1. **ponytail ultra 全程开启** —— 依赖白名单只有 `react` / `react-dom` / `lucide-react` / `vite` / `@playwright/test`；
+   删除优先于新增；单文件 < 300 行；组件里禁止颜色字面量。详见真源 §2.1。
 
-1. 这东西需要存在吗？→ 不需要就删掉，用一行说明。
-2. 仓库里已经有了吗？→ 复用，不要重写。
-3. 语言/标准库能做吗？→ 用标准库。
-4. 原生平台能力覆盖了吗？→ `<dialog>`、`<input type="date">`、CSS 优先于 JS。
-5. 已装的依赖能解决吗？→ **本项目当前允许的依赖只有：`react`、`react-dom`、`lucide-react`、`vite`、`@playwright/test`。其余一律不加。**
-6. 能一行写完吗？→ 一行。
-7. 只有到这一步才写最小可用代码。
+2. **改代码前先看两份文档**：
+   - `doc/PRODUCT-ARCHITECTURE.md` = **骨架**（A-01..A-06 不变量）。**agent 不得自行修改**，
+     要改必须先拿到用户明确同意，并在 §5 记一行 supersede。
+   - `doc/DECISIONS.md` = **血肉**（D-xx）。每条 ≤100 字 + 一张 Mermaid，改了不影响骨架。
 
-### ultra 的额外约束
+3. **文档同步是强制的**：改结构 / 数据流 / 接口 / 组件层级，必须在同一次改动里更新对应文档。
+   文档过期视为 bug。
 
-- **删除优先于新增。** 任何 PR 如果净增行数为正，必须能说清为什么不能是负的。
-- **禁止投机性抽象**：只有一个实现的 interface、只有一个产品的 factory、永不改变的配置项，全部删掉。
-- **文件数越少越好。** 拆分组件要有真实理由（复用 ≥2 处，或单文件超过约 300 行）。
-- 有意的简化用 `ponytail:` 注释标记天花板和升级路径。
+---
 
-### ultra 的例外（不可偷懒）
+## 文档地图
 
-输入校验、错误处理、安全、**无障碍基础**、以及**用户明确要求的东西**（文档、报告、逐阶段说明）——这些不许简化。
+| 文档 | 职责 |
+| --- | --- |
+| **`doc/PRODUCT-ARCHITECTURE.md`** | **产品架构（受保护）**：A-xx 不变量 + 守门检查 + 变更协议 |
+| **`doc/DECISIONS.md`** | **决策台账**：D-xx，每条 ≤100 字 + Mermaid；§3 是用户原话附录 |
+| `doc/ARCHITECTURE.md` | 系统架构、组件树、数据流、状态机，全部用 Mermaid |
+| `doc/PRD.md` | 产品需求、交互、验收标准 |
+| `doc/SECURITY.md` | 权限分级实现说明与已知风险清单（比赛必交） |
+| `doc/COMPETITION.md` | 赛题拆解、评分维度、答辩脚本 |
+| `doc/CHANGELOG.md` | 变更记录 |
 
-## 2. 文档同步义务（强制）
+---
 
-**任何改变结构、数据流、接口、组件层级的改动，必须在同一次改动里更新文档。** 文档过期视为 bug。
+## Windows 上的已知坑
 
-| 文档 | 职责 | 何时必须改 |
-|---|---|---|
-| `doc/ARCHITECTURE.md` | 系统架构、组件树、数据流、状态机，**全部用 Mermaid** | 新增/删除模块、改数据流、改协议 |
-| `doc/PRD.md` | 产品需求：功能范围、交互、验收标准，**用 Mermaid 画流程** | 改功能范围、改交互 |
-| `doc/CHANGELOG.md` | 变更记录 | 每次功能性改动 |
-| `AGENTS.md`（本文件） | 开发规约 | 规约变化时 |
+`npx vite build` 报 `remove ...\Temp\esbuild-xxx: Access is denied` 时，不是代码问题 ——
+是系统 TEMP 被占用。绕法：
 
-Mermaid 必须是**能渲染的合法语法**——写完后自查：节点带特殊字符要加引号，中文标签用 `["..."]` 包裹。
+```powershell
+$env:TEMP = (Resolve-Path .tmp-build).Path; npx vite build
+```
 
-## 3. 设计与代码规约
+---
 
-- **设计令牌唯一来源**：`src/styles/tokens.css`。任何组件里**禁止出现硬编码颜色字面量**（`#hex` / `rgb()`），只能用 `var(--…)`。
-- **无 TypeScript**（当前决策）。不引入 TS 构建链。
-- **样式分层**：`tokens.css`（变量）→ `base.css`（reset/排版）→ 组件各自的 `.css`。禁止把样式再压成单行。
-- **无障碍是底线不是加分项**：流式内容用 `aria-live`，弹窗焦点管理，`prefers-reduced-motion` 必须有降级。
-- **中文输入法**：任何回车提交的输入框必须处理 `compositionstart`/`compositionend`。
-
-## 4. 验证义务
-
-改动后至少跑一个真实命令验证，不许"看起来对"就交：
+## 验证义务
 
 ```bash
-npm run build      # 构建必须通过
-npm test           # 模拟账本单元测试
-npm run dev        # 起服务后用 curl/浏览器确认 200
+npm test            # 单元测试
+npm run build       # 构建
+npm run test:e2e    # 端到端
+npm run test:text   # 字数：单页界面文案 <= 150
+npm run test:copy   # 渲染层禁用词扫描（演示/模拟/预设规则）
+npm run test:docs   # Mermaid 全部可渲染
+npm run test:smoke  # 全站烟测
+npm run test:flow   # 转账四步流程
+npm run test:motion # 动效是否真的在跑
 ```

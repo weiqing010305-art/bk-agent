@@ -1,14 +1,17 @@
 import React from 'react';
 import {
   ArrowUpRight, BarChart3, Clock, CreditCard, House,
-  MessageCircle, Plus, RotateCcw, Trash2, X,
+  MessageCircle, PiggyBank, Plus, RotateCcw, Trash2, X,
 } from 'lucide-react';
 
 /**
  * 导航分三层，按「用户带着什么动词进来」分，不按实现分层：
  *
  *   HOME["首页"]     —— 家里的两个面：概览（看）与助手（说）。进入应用就是这里，不是列表里的一项。
- *   PRODUCTS["功能"] —— 三个具体科目页。它们的名字本身就是内容名，看名字就知道里面是什么。
+ *   PRODUCTS["功能"] —— 具体科目页。它们的名字本身就是内容名，看名字就知道里面是什么。
+ *
+ * 「收款人」不在这里 —— 作者的产品决策：它与转账流程内嵌的选人重复。
+ * 页面与路由都保留（见 views/product.jsx），只是不给导航入口。
  *   HISTORY["会话"]  —— 会话历史，与页面不是同一类东西，所以不放同一段。
  *
  * 为什么首页要独立成块：首页原本是"功能"列表里的第五项，点它就等于"离开当前所在的地方"。
@@ -21,6 +24,7 @@ const HOME = [
 ];
 
 const PRODUCTS = [
+  { id: 'wealth', label: '理财', icon: PiggyBank },
   { id: 'bills', label: '账单', icon: BarChart3 },
   { id: 'subscriptions', label: '订阅', icon: RotateCcw },
   { id: 'cards', label: '卡片', icon: CreditCard },

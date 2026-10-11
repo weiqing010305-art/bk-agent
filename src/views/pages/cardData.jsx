@@ -16,6 +16,9 @@ import { money } from '../../domain/bank.js';
 /** 演示基准日，与 bank.js 样例流水同一时间轴。 */
 export const TODAY = new Date(2026, 8, 26);
 
+/** 新卡寄送地址（账本里没有地址簿，补卡按预留地址寄）。挂失与补卡开在同一张单上。 */
+export const MAIL_ADDRESS = '上海市浦东新区世纪大道 100 号 1201 室';
+
 const ch = (id, label, perTxn, dayLimit, dayUsed) => ({ id, label, perTxn, dayLimit, dayUsed, on: true });
 const CH = (a, b, c, d) => [
   ch('pos',    '境内刷卡', ...a), ch('online', '线上支付', ...b),
@@ -32,21 +35,24 @@ export const TEMPLATE = {
   debit: {
     name: '青禾借记卡', tail: '8826', type: '日常支付账户', since: '2024-03-11',
     limit: 5000000, used: 507700, org: '银联', tone: 'debit',
+    holder: 'ZHANG MINGYUAN', expiry: '09 / 29',
     profile: { kind: '借记卡', linked: '青禾日常账户 •• 8826', billDay: 25, dueOffset: 10,
                lastBill: 512400, lastPaid: '2026-09-04', autoPay: true },
     limits: [30000, 2000000, 5000000],
     channels: CH([2000000, 5000000, 1846000], [1000000, 2000000, 623000],
                  [500000, 1000000, 0],        [500000, 1000000, 200000]),
+    /* 时间线节点只留必要的两个字（全文见 title / aria-label）。 */
     history: [
       ['2024-03-11', '开卡', '日常账户开户时同步配发'],
-      ['2024-03-14', '首次激活', '通过手机银行完成人脸核身'],
-      ['2025-09-01', '限额提升', '单笔限额由 1 万元调整为 2 万元'],
-      ['2026-08-14', '形态变更', '同号换卡，新卡已寄出并激活'],
+      ['2024-03-14', '激活', '通过手机银行完成人脸核身'],
+      ['2025-09-01', '提额', '单笔限额由 1 万元调整为 2 万元'],
+      ['2026-08-14', '换卡', '同号换卡，新卡已寄出并激活'],
     ],
   },
   credit: {
     name: '青禾信用卡', tail: '6642', type: '银联信用卡', since: '2025-11-20',
     limit: 3000000, used: 448600, org: '银联', tone: 'credit',
+    holder: 'ZHANG MINGYUAN', expiry: '11 / 30',
     profile: { kind: '信用卡', linked: '青禾日常账户 •• 8826', billDay: 8, dueOffset: 18,
                lastBill: 452000, lastPaid: '2026-09-26', autoPay: false },
     limits: [0, 1000000, 3000000],
@@ -54,14 +60,15 @@ export const TEMPLATE = {
                  [300000, 1000000, 0],        [200000, 500000, 0]),
     history: [
       ['2025-11-20', '开卡', '受邀发卡，首年免年费'],
-      ['2025-11-22', '首次激活', '收到实体卡后在线激活'],
-      ['2026-06-18', '免密小额关闭', '线上支付改为需验密'],
-      ['2026-08-20', '额度调整', '总额度由 2 万元调整为 3 万元'],
+      ['2025-11-22', '激活', '收到实体卡后在线激活'],
+      ['2026-06-18', '关闭免密', '线上支付改为需验密'],
+      ['2026-08-20', '提额', '总额度由 2 万元调整为 3 万元'],
     ],
   },
   travel: {
     name: '青禾旅行卡', tail: '3901', type: '多币种借记卡', since: '2025-06-02',
     limit: 2000000, used: 0, org: 'VISA', tone: 'travel',
+    holder: 'ZHANG MINGYUAN', expiry: '06 / 30',
     profile: { kind: '多币种借记卡', linked: '青禾美元账户 •• 4417', billDay: 30, dueOffset: 0,
                lastBill: 0, lastPaid: '2026-09-09', autoPay: false },
     limits: [0, 1000000, 2000000],
@@ -69,8 +76,8 @@ export const TEMPLATE = {
                  [1000000, 2000000, 168000],   [300000, 1000000, 0]),
     history: [
       ['2025-06-02', '开卡', '与留学服务一同配发'],
-      ['2025-06-05', '首次激活', '线上激活，同时开通境外支付'],
-      ['2026-02-02', '境外支付开启', '用于留学缴费，单笔上限 1 万元'],
+      ['2025-06-05', '激活', '线上激活，同时开通境外支付'],
+      ['2026-02-02', '开通境外', '用于留学缴费，单笔上限 1 万元'],
       ['2026-07-30', '币种变更', '新增日元子账户，当地直接扣账'],
     ],
   },
@@ -111,11 +118,13 @@ export function enrich(cards) {
       status: c.status || 'active', type: c.type || t.type, since: c.since || t.since,
       limit: t.limit, used: t.used,
       org: c.org || t.org, tone: c.tone || t.tone,
+      holder: c.holder || t.holder, expiry: c.expiry || t.expiry,
       /* 已经补齐过的卡原样保留（用户改过的开关、限额、历史不能被覆盖），
          只补 seed() 那种「字符串数组 channels」的半成品。 */
       profile: (c.profile && c.profile.billDay) ? c.profile : t.profile,
       limits: isHydrated(c) ? c.limits : t.limits,
-      channels: isHydrated(c) ? c.channels : t.channels,
+      /* 挂失的卡补档案时不能把渠道开关又打开 —— 补档案只补缺的字段，不复活已经停用的卡 */
+      channels: isHydrated(c) ? c.channels : (c.status === 'lost' ? t.channels.map(x => ({ ...x, on: false })) : t.channels),
       history: (Array.isArray(c.history) && c.history.length) ? c.history : hist(t.history),
     };
   });

@@ -1,8 +1,24 @@
 /* feed.css —— 概览页「动态」流的行与分组。
    头像本身（形状 / 品牌色 / 类别兜底 / 周期徽标 / 工资金币）已搬到 styles/avatars.css，
-   这里只剩"行"这一层：可展开的行、详情、日期分组头、小计条。
+   这里只剩"行"这一层：可展开的行、详情、日期分组头，外加面板头那个箭头。
+   上一版的合计条与分类条（.feed-tally / .feed-cats）随文案一起删除 ——
+   那两块是整个账本的报表，账单页的结论与图形说得更好。
    颜色一律 var()/color-mix(tokens)，禁止字面量；hover 一律 gate 在 hover:hover 里。
    动效只动 transform/opacity，降级见本文件末尾。 */
+
+/* ── 面板头的「全部明细」：一个箭头，不写四个字 ────────────────────────
+   看到的只有 32px，命中区用 ::after 补到 --hit-min（44px）——
+   视觉密度按面板头来，手指按的还是 HIG 的尺寸。 */
+.panel-head .feed-more {
+  position: relative; display: grid; place-items: center; width: 32px; height: 32px;
+  border-radius: var(--radius-sm); color: var(--text-tertiary);
+  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.panel-head .feed-more::after { content: ''; position: absolute; inset: -6px; border-radius: var(--radius-thumb); }
+@media (hover: hover) and (pointer: fine) {
+  .panel-head .feed-more:hover { background: var(--bg-hover); color: var(--text-primary); text-decoration: none; }
+}
+.panel-head .feed-more:active { transform: scale(.94); transition-duration: var(--duration-instant); }
 
 /* ── 行：整行是一个"可展开"的按钮 ────────────────────────────────────
    复用 parts.jsx 的 Row 会丢掉展开语义，所以这里自己拼行，但继续用
@@ -38,7 +54,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── 分组头：贴着小字排版，右侧挂当日小计（不画灰条）──────────────── */
+/* ── 分组头：贴着小字排版，右侧挂这一组的钱（不画灰条）──────────────── */
 .day-head.feed-day {
   display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4);
   font-size: var(--text-caption-1);
@@ -46,26 +62,10 @@
 .feed-day h3 { margin: 0; font-size: inherit; font-weight: 600; letter-spacing: .04em; }
 .feed-day b { font-weight: 500; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
-/* ── 小计条：回答"筛出来的这一流一共多少" ────────────────────────────── */
-.feed-tally {
-  display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-8);
-  padding: var(--space-4) var(--space-5); border-radius: var(--radius-thumb); background: var(--fill-4);
-}
-.feed-tally > div { display: flex; flex-direction: column; gap: 2px; }
-.feed-tally span { font-size: var(--text-caption-2); color: var(--text-tertiary); }
-.feed-tally b { font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
-.feed-cats {
-  display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0;
-  font-size: var(--text-caption); color: var(--text-tertiary);
-}
-.feed-cats span { display: inline-flex; gap: var(--space-2); }
-.feed-cats b { color: var(--text-secondary); font-weight: 500; font-variant-numeric: tabular-nums; }
-
 @media (max-width: 640px) {
   /* 窄屏把"本月已用"这个标签收掉，只留金额：留着它会把卡名挤成三行 */
   .feed-used-label { display: none; }
   .feed-detail { padding: var(--space-4); }
-  .feed-tally { gap: var(--space-3) var(--space-6); }
   .feed-day { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
 }
 
@@ -73,4 +73,5 @@
 @media (prefers-reduced-motion: reduce) {
   .av-sheen { display: none; }
   .feed-chev { transition: none; }
+  .panel-head .feed-more:active { transform: none; }
 }

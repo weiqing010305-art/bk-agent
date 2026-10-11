@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CalendarClock, Check, Repeat, X } from 'lucide-react';
-import { Page, Panel, StatBar } from '../parts.jsx';
+import { Page, Panel, StatBar, Empty } from '../parts.jsx';
 import { subKind } from '../shared.jsx';
 import { DEMO_DATE } from '../../services/banking.js';
 import './subscriptions.css';
@@ -14,6 +14,14 @@ import './subscriptions.css';
  *   · 多少钱      → 每月与每年**同时**给，不做切换（切换等于把另一个视角藏起来）
  *   · 已经花了多少 → 已续时长 + 累计已付
  *
+ * 文案口径：卡上的字段全部靠排版分层，不靠标签 ——
+ * 价格用「¥29.00 / 月」这种后缀写法，不再写「每月」两个字；
+ * 「什么时候扣」由倒计时胶囊 + 图标承担，日期紧跟其后；
+ * 页脚的说明句、面板的「按当前配置推算」、以及「最大的一项是…」这段
+ * 都是把屏幕上已经有的数字再讲一遍，已经删掉 —— 数字自己会说话。
+ * 原来第三格「占本月支出」也一起删了：账本的 spending 是整个账期口径，
+ * 每月订阅除以它四舍五入之后恒为 0%，一个永远是 0 的数字比没有更糟。
+ *
  * 排序仍然是「下一次什么时候扣钱」。每项是一张自己的卡，而不是列表里的一行 ——
  * 一行装不下上面四件事，装得下也读不出来。所以这一页没有把卡片套进面板：
  * 卡片就是这一层的内容（craft-floor：嵌套卡片永远是错的）。
@@ -26,12 +34,12 @@ const DAY = 86400000;
 const at = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const dayOf = d => (d || '').slice(5).replace('-', '/');
 
-/** 距扣费还有几天。基准日取 DEMO_DATE —— 页脚那行 provenance 用的就是它，
-    所以「3 天后扣费」和「数据截至 9 月 25 日」永远对得上，不会各说各话。 */
+/** 距扣费还有几天。基准日取 DEMO_DATE —— 数据截至日就是它，
+    所以「3 天后扣费」和账本的日期永远对得上，不会各说各话。 */
 const daysTo = d => Math.round((at(d) - at(DEMO_DATE)) / DAY);
 const dueText = n => (n < 0 ? '已过扣费日' : n === 0 ? '今天扣费' : n === 1 ? '明天扣费' : n + ' 天后扣费');
 
-/* 演示账本里没有「已续月数」。这里按细分给一个固定的演示值：
+/* 账本里没有「已续月数」。这里按细分给一个固定值：
    与现实一致（音乐订得最久、云盘是刚续的），且每次渲染都一样，不会跳。
    ponytail: 接真后端时换成订阅的开始日期，下面一行都不用改。 */
 const TENURE = { cloud: 6, video: 11, music: 20, read: 8 };
@@ -59,9 +67,10 @@ function SubCard({ s, yuan, open, onToggle, onRestore, onCancel }) {
         <h3>{s.name}</h3>
         <small>{s.detail}</small>
       </div>
+      {/* 周期写成金额的后缀：排版分层就能说清，不必再给两行各配一个「每月 / 每年」 */}
       <span className="sub-card-price">
-        <span><i>每月</i><b>{yuan(s.amount)}</b></span>
-        <span><i>每年</i><b>{yuan(s.yearly)}</b></span>
+        <span><b>{yuan(s.amount)}</b><i>/ 月</i></span>
+        <span><b>{yuan(s.yearly)}</b><i>/ 年</i></span>
       </span>
     </div>
 
@@ -122,8 +131,6 @@ export default function Subscriptions({ ctx }) {
   const paid = live.reduce((n, s) => n + s.paid, 0);
   const months = live.reduce((n, s) => n + s.months, 0);
   const savedYearly = gone.reduce((n, s) => n + s.yearly, 0);
-  const spending = (ctx.dataModel.categories || []).reduce((n, c) => n + c.amount, 0);
-  const biggest = [...live].sort((a, b) => b.yearly - a.yearly)[0];
   const next = live[0];
 
   /**
@@ -141,76 +148,46 @@ export default function Subscriptions({ ctx }) {
     onRestore={() => ask('restore-sub', s)}
     onCancel={() => ask('cancel-sub', s)}/>;
 
-  return <Page title="订阅" subtitle={live.length ? live.length + ' 项正在续费，每年 ' + yuan(yearly) : '没有正在续费的订阅'}>
+  return <Page title="订阅">
     <StatBar
-      left={{ label: '每月固定支出', value: yuan(monthly), note: '一年 ' + yuan(yearly) }}
-      right={{ label: '下次扣费', value: next ? dayOf(next.date) : '暂无', note: next ? dueText(next.days) + ' · ' + next.name : '没有待扣项' }}/>
+      left={{ label: '每月固定支出', value: yuan(monthly), note: live.length + ' 项' }}
+      right={next
+        ? { label: '下次扣费', value: dayOf(next.date), note: dueText(next.days) }
+        : { label: '下次扣费', value: '—' }}/>
 
-    {live.length > 0 && <Panel title="长期成本" aside={<span className="panel-hint">按当前配置推算</span>}>
+    {live.length > 0 && <Panel title="长期成本">
       <div className="sub-year-grid">
         <div>
           <span className="stat-label">每年固定支出</span>
           <strong className="stat-num">{yuan(yearly)}</strong>
-          <small className="stat-note">分 12 个月扣</small>
         </div>
         <div>
           <span className="stat-label">已经付了</span>
           <strong className="stat-num">{yuan(paid)}</strong>
-          <small className="stat-note">约 {months} 个月</small>
-        </div>
-        <div>
-          <span className="stat-label">占本月支出</span>
-          <strong className="stat-num">{spending ? Math.round(yearly / 12 / spending * 100) : 0}%</strong>
-          <small className="stat-note">本月共 {yuan(spending)}</small>
+          <small className="stat-note">{months} 个月</small>
         </div>
       </div>
-      <p className="sub-read">
-        最大的一项是「{biggest.name}」，一年 {yuan(biggest.yearly)}，占年度订阅支出的 {Math.round(biggest.yearly / yearly * 100)}%。
-        取消任意一项，上面的三个数字会立刻跟着变。
-      </p>
     </Panel>}
 
     {live.length > 0 && <section className="sub-block">
-      <div className="sub-block-head">
-        <h2>正在续费</h2>
-        <span className="panel-hint">按扣费日排，最近的排在最前</span>
-      </div>
+      <div className="sub-block-head"><h2>正在续费</h2></div>
       <ul className="sub-cards">{live.map(card)}</ul>
     </section>}
 
     {gone.length > 0 && <section className="sub-block">
-      <div className="sub-block-head">
-        <h2>已取消</h2>
-        <span className="panel-hint">{gone.length} 项 · 共省下每年 {yuan(savedYearly)}</span>
-      </div>
+      <div className="sub-block-head"><h2>已取消</h2><span className="panel-hint">省下每年 {yuan(savedYearly)}</span></div>
       <ul className="sub-cards sub-cards--gone">{gone.map(card)}</ul>
     </section>}
 
+    {/* 全部取消之后是一个情绪峰值：ZA 会把插画预算投在这一类地方。
+        本项目不引插画，改用"一个负号 + 一个数"—— 省下多少本身就是那句话，
+        所以「以前每年 / 现在每年」两格并排被删掉了（两个标签 8 个字，换一个负号）。 */}
     {live.length === 0 && <Panel>
-      <div className="sub-empty">
-        <span className="sub-empty-mark" aria-hidden="true">{gone.length ? <Check size={22}/> : <Repeat size={22}/>}</span>
-        <h3>{gone.length ? '现在没有正在续费的订阅' : '还没有任何订阅'}</h3>
-        <p>{gone.length
-          ? '全部 ' + gone.length + ' 项都已取消，下一个扣费日不会再自动扣款。这是这一页能出现的最好结果：不用再记着哪天会被扣钱。'
-          : '绑定一张卡之后，所有自动扣费会集中列在这里：哪天扣、扣多少、一年要花多少，都能提前看到。'}</p>
-        {gone.length > 0 && <div className="sub-empty-facts">
-          <div>
-            <span className="stat-label">以前每年</span>
-            <strong className="stat-num">{yuan(savedYearly)}</strong>
-          </div>
-          <div>
-            <span className="stat-label">现在每年</span>
-            <strong className="stat-num">¥0.00</strong>
-          </div>
-        </div>}
-        <div className="sub-empty-actions">
-          <button className="a2ui-btn a2ui-btn--secondary" onClick={() => setRoute('bills')}>
-            {gone.length ? '看订阅花过的钱' : '去看这个月的账单'}
-          </button>
-        </div>
-      </div>
+      <Empty icon={gone.length ? Check : Repeat}
+             title={gone.length ? '都取消了' : '没有订阅'}
+             action="看账单" onAction={() => setRoute('bills')}>
+        {gone.length > 0 && <p className="state-figure">−{yuan(savedYearly)}<i>/ 年</i></p>}
+      </Empty>
     </Panel>}
-
-    <p className="page-note">仅修改本机演示数据，不会取消真实平台服务</p>
   </Page>;
 }

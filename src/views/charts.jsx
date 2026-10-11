@@ -235,10 +235,10 @@ export function SpendingChart({ model, active, onHover, onLock, filter }) {
       ? <><span className="chart-readout-lead">{trend.insight.peakText}</span>
           <span className="chart-readout-note">{trend.insight.paceText}</span></>
       : form === 'heat'
-        ? <><b>日均 {yuan(heat.avg)}</b><span className="chart-readout-note">滑过任一格看当天的构成</span></>
-        : <span className="chart-readout-note">
-            {spendCount} 笔支出分布在 {parts.length} 个类目上。滑过任意一段看细节，点一下只看这一类。
-          </span>;
+        ? <b>日均 {yuan(heat.avg)}</b>
+        /* 只留数据，不写操作说明。「滑过任意一段看细节，点一下只看这一类」是在教用户用图 ——
+           U-05 要求用设计代替文字指引：热力格与扇区本来就带 hover 与点击，不需要一句说明书。 */
+        : <span className="chart-readout-note">{spendCount} 笔 · {parts.length} 个类目</span>;
 
   return <div className="chart">
     <div className="chart-head">

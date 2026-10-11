@@ -18,4 +18,7 @@
 .bn-facts dt { flex: 0 0 48px; margin: 0; color: var(--text-tertiary); }
 .bn-facts dd { margin: 0; color: var(--text-secondary); word-break: break-all; }
 
-.bn-note { font-size: var(--text-caption) !important; color: var(--text-tertiary) !important; }
+/* 最后一行是事实（已记审计），不是解释：压到 caption 并退到三级色，
+   视觉上明确"这不是要你读的段落"。选择器带上 .bn-body 是为了压过 .bn-body p，
+   不再用 !important。 */
+.bn-body .bn-note { font-size: var(--text-caption); color: var(--text-tertiary); }

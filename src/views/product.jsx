@@ -8,6 +8,7 @@ import Transfer from './pages/transfer.jsx';
 import EverydayServices from './pages/everydayServices.jsx';
 import Savings from './pages/savings.jsx';
 import TravelWallet from './pages/travelWallet.jsx';
+import Wealth from './pages/wealth.jsx';
 
 /**
  * 产品层路由。
@@ -17,7 +18,7 @@ import TravelWallet from './pages/travelWallet.jsx';
  */
 const VIEWS = { overview: Overview, bills: Bills, statement: StatementExport, subscriptions: Subscriptions, cards: Cards, transfer: Transfer,
   savings: Savings, traffic: EverydayServices, phone: EverydayServices, utility: EverydayServices, exchange: EverydayServices,
-  credit: EverydayServices, appointment: EverydayServices, travel: TravelWallet };
+  credit: EverydayServices, appointment: EverydayServices, travel: TravelWallet, wealth: Wealth };
 
 export default function ProductView({ ctx }) {
   const View = VIEWS[ctx.route] || Overview;

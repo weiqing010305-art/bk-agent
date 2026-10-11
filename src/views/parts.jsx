@@ -8,6 +8,11 @@ import { ArrowDownLeft, ArrowUpRight, CreditCard, Info } from 'lucide-react';
  *   Page      5 处 · Panel 5 处 · Row 5 处 · Amount 全部页面
  *   IconTile  概览宫格 + 卡片页宫格（ZA 的"两种图标语言"就落在这里）
  *   StatBar   账单 / 卡片 / 订阅 / 余额拆分行，4 处
+ *   Empty / Failed / Loading  三态的唯一实现，转出 components/StateBlock.jsx
+ *
+ * **数值对齐的契约也在这一层**：金额 / 日期 / 百分比 / 计数一律等宽数字 + 数值列右对齐
+ * （Material 3 数据表的两条，见 styles/state.css 末节）。规则只有一份，
+ * 页面里不要再写一遍 —— 页面的职责是给数字，不是给数字排版。
  */
 
 export const Page = ({ title, subtitle, aside, children }) => (
@@ -30,7 +35,9 @@ export const Panel = ({ title, aside, children, className = '' }) => (
   </section>
 );
 
-export const Empty = ({ children }) => <p className="empty-note">{children}</p>;
+/* 三态从零件层统一转出：页面 import 的还是 '../parts.jsx'，用法不变，
+   实现只有一份（照众安真实上线的空/错/载口径，见 StateBlock.jsx）。 */
+export { Empty, Failed, Loading } from '../components/StateBlock.jsx';
 
 /** 双列统计条。左值 / 右值 / 中间一根细竖线 / 可选 ⓘ。 */
 export const StatBar = ({ left, right }) => (
@@ -61,7 +68,7 @@ export const IconTile = ({ variant = 'product', tone = 'accent', icon: Icon, lab
   </button>
 );
 
-/** 金额：统一等宽数字 + 正负号显式。 */
+/** 金额：统一等宽数字 + 正负号显式。等宽数字由 .amount 声明，页面不必再写。 */
 export const Amount = ({ value, positive, size }) => (
   <b className={'amount' + (positive ? ' amount--in' : '') + (size ? ' amount--' + size : '')}>{value}</b>
 );

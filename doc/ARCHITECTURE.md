@@ -653,11 +653,11 @@ flowchart LR
     IDX --> B["图例：餐饮高亮"]
     IDX --> C["读数区：餐饮 ¥1,191，23%，N 笔"]
     IDX --> D["明细：餐饮行高亮"]
-    CLICK["点击该段"] --> PICK["只看这一类，视口保持原位"]
+    CLICK["点击该段"] --> PICK["只看这一类 + 滚动到明细"]
 ```
 
-> 图形、图例和分类按钮都只更新筛选状态，不改变滚动位置。读数区保留统一最小高度，
-> 使不同类目的文字长短不会带动下方区域跳动。
+> **hover 不触发滚动，只有点击才滚动** —— 频率门：hover 一天几十次，
+> 让页面自己跳比不动更糟。
 
 ### 7.6 异常交易识别（anomaly.js）
 
@@ -710,14 +710,21 @@ flowchart TB
 flowchart TB
     PAGE["views/pages/cards.jsx"] --> W["卡包：横向 scroll-snap，选中浮起 10px"]
     W --> SEL["选中卡"]
-    SEL --> F["CardFace 卡面<br/>EMV 芯片 / 非接波纹 / 持卡人 / 卡组织"]
-    SEL --> SB["StatBar 可用额度 / 本月消费"]
-    SEL --> PRO["cardProfile 档案<br/>账单日 / 还款日 / 单笔与日累计限额"]
-    SEL --> CH["ChannelBoard 四类渠道逐项开关"]
-    SEL --> ACT["操作宫格：冻结 / 限额 / 挂失 / 流水"]
-    SEL --> HIST["状态历史时间线"]
+    SEL --> F["CardFace 卡面<br/>EMV 芯片 / 非接波纹 / 有效期 / 卡组织"]
+    SEL --> RUL["LimitMeter 额度尺<br/>可用额度 + 已用块 + 今日上限针"]
+    SEL --> CYC["CardCycle 账期条<br/>账单日 → 还款日的进度"]
+    SEL --> FACT["CardFacts 档案<br/>图标即标签：账户 / 账单日 / 有效期 / 上期账单"]
+    SEL --> CH["ChannelBoard 四类渠道<br/>图标 + 使用条 + 剩余额 + 开关"]
+    SEL --> LIM["LimitRows 三档限额就地展开"]
+    SEL --> ACT["操作：冻结 / 挂失补卡 / 限额 / 流水"]
+    SEL --> HIST["状态历史时间线<br/>节点图标 + 日期 + 两个字的动作"]
     SEL --> ACTI["这张卡自己的动账"]
 ```
+
+**这一页的文案纪律（唯一一条）**：能画出来的不写出来。额度尺回答「还剩多少」、
+账期条回答「什么时候还」、渠道使用条回答「今天还能刷多少」、时间线回答「经历过什么」——
+这四张图各自替掉了原来的一段说明句。界面文案因此从 613 字降到 133 字
+（口径见 `npm run test:text`：标签 / 标题 / 说明句 / 按钮，不含列表行与金额）。
 
 **冻结是一条流程而不是一个开关**：
 
@@ -735,12 +742,65 @@ stateDiagram-v2
 **助手侧的卡面**：`CardFace` 已进 A2UI 白名单，所以助手说的卡片视图里
 渲染的是**真卡面**而不是「一个图标 + 两行灰字」。
 
-### 7.9 转账页内的收款人名录
+卡面有三种材料（`data-state`）：**彩色渐变 = 正常**、**磨砂暗面 = 冻结**（卡还在，随时能退回）、
+**中性灰 = 挂失**（卡没了，只剩一条轮廓）。材料是状态本身，不是装饰。
+
+### 7.17 挂失补卡（状态机里唯一不可逆的那条边）
+
+赛题点名的「卡片挂失」在 D-19 之前是**看不见**的 —— 那一版只有一个点下去弹 toast 的死按钮。
+现在它是一条真流程，而且是卡片状态机上**不可逆**的那条边，所以它与冻结共用一套语法、
+但不是同一个动作：冻结随时能解冻，挂失之后原卡不再可用，只能等补卡寄到。
 
 ```mermaid
 flowchart TB
-    TRANSFER["views/pages/transfer.jsx"] --> PAGE["views/pages/payees.jsx 名录区"]
-    PAGE --> Q{"名录区回答什么"}
+    A["active 正常"] -->|"冻结（可逆）"| F["frozen 已冻结"]
+    F -->|"解冻"| A
+    A -->|"挂失补卡"| C["确认：后果先摊开<br/>四个渠道 / 不可恢复 / 补卡 3–7 个工作日 / 手续费 ¥20"]
+    F -->|"挂失补卡"| C
+    C -->|"取消"| A
+    C -->|"确认挂失"| G{"policy 判高危<br/>A-04：页面只能报做什么"}
+    G -->|"多因子通过：短信 / 人脸 / U 盾"| L["lost 已挂失"]
+    G -->|"没走完就关闭"| A
+    L --> R["补卡进度<br/>已受理 → 制卡中 → 已寄出"]
+    L -.->|"原卡不能再用"| X["usableCards() 不再返回它<br/>渠道真关 / 限额不可调 / 没有解冻"]
+```
+
+**每个环节的落点**（页面不自己判等级、也不自己写账本）：
+
+| 环节 | 落在哪 | 说明 |
+| --- | --- | --- |
+| 入口 | `pages/cards.jsx` 的「挂失补卡」 | 与冻结并列的第二类动作，不是同一个按钮 |
+| 风险等级 | `services/policy.js` 的 `card.report-loss` | 页面调 `ctx.gate({ op })`，只报做什么（A-04） |
+| 多因子 | `components/AuthDialog.jsx` | 三种方式都可走通；关闭弹窗 = 什么都不会发生 |
+| 落账 | `domain/bank.js` 的 `reportLoss` | 卡片进 `lost`、四个渠道关掉、补卡单入账、手续费进流水。**幂等**：重试不重复扣费 |
+| 呈现 | `pages/cardLoss.jsx` | 确认前的后果清单 + 挂失后的 `ReplacementTrack`（受理 → 制卡 → 寄出） |
+
+**它的落地口是 App.jsx 的 `applyConfirmation`**（与理财申购同一条路，认证通过后执行）：
+
+```js
+} else if (action.type === 'card.report-loss') {
+  setBank(prev => reportLoss(prev, action));
+  setToast(action.name + ' 已挂失');
+}
+```
+
+**为什么挂失不能是「点一下变灰」**：
+
+| 要求 | 这一版怎么满足 |
+| --- | --- |
+| 不可逆要说清楚 | 确认浮层在按钮之前列出：四个渠道停用 / 不可恢复 / 补卡 3–7 个工作日 / 手续费 |
+| 有后果 | 账本里 `status: 'lost'` + 四个渠道 `on: false` + 一条 `挂失手续费` 流水 |
+| 能查进度 | `ReplacementTrack`：三个节点带日期 + 预计寄到 + 寄送地址 + 受理号；刷新后仍在 |
+| 原卡不能再用 | `usableCards()` 不再返回它；限额不可调、冻结那条路消失、渠道整组锁死 |
+
+> 测试：`tests/card-loss.test.js`（账本与门禁，跑在 `npm test` 里）、
+> `tests/card-loss.mjs`（界面与流程，`npm run test:card`）。
+
+### 7.9 收款人
+
+```mermaid
+flowchart TB
+    PAGE["views/pages/payees.jsx"] --> Q{"这一页回答什么"}
     Q --> Q1["这是谁"]
     Q --> Q2["上次给了他多少"]
     Q --> Q3["还能不能再转"]
@@ -796,27 +856,27 @@ flowchart TB
 
 ### 7.12 助手工作区的布局
 
-按会话顺序渲染完整消息流。新对话的第一条助手消息提供欢迎语和七列卡片式功能入口；用户消息用浅蓝气泡靠右，助手消息及对应的 A2UI 业务 surface 靠左。消息下方不显示复制、编辑图标，助手对话中的 surface 不显示来源页脚；来源元数据仍由协议保留。不显示助手头像和消息时间。桌面侧栏宽度为 `clamp(260px, 16vw, 340px)`；对话与输入区共用居中的 1040px 最大宽度，输入框默认最小高度 124px，窄屏降为 96px。消息区独立滚动并留有底部空间，输入框以透明外层浮在对话区上方。交易明细由账单页提供。
+**不是一条会不断变长的聊天流。**每办一件事就多一张卡，看到第三张就得往上滑 —— 那违背最小操作原则。
 
 ```mermaid
 flowchart TB
     subgraph W["AssistantView"]
         direction TB
-        WS["对话流：按时间顺序渲染所有回合"]
-        WELCOME["欢迎消息 + FlowLauncher 七项功能"]
-        USER["用户气泡：右侧"]
-        AGENT["助手回复 + A2UI surface：左侧"]
-        TG["TaskGraph：仅复杂任务"]
+        H["view-head 标题"]
+        WS["**工作区**：当前这件事的统合视图，占满主要面积，一屏看全"]
+        TG["TaskGraph（仅复杂任务）"]
+        HIST["**历史条**：以往问句折成一行 chips，点一下换回当时那张视图"]
+        FL["FlowLauncher 可以让他做什么"]
         CP["Composer"]
     end
-    WS --> WELCOME
-    WS --> USER
-    WS --> AGENT
-    AGENT --> TG
-    WS --> CP
+    H --> WS
+    WS --> TG
+    TG --> HIST
+    HIST --> FL
+    FL --> CP
 ```
 
-> 历史保留在原位；会话切换仍由侧栏负责。
+> **不滚动的历史，可切换的现在。**
 
 ### 7.13 多因子认证
 
@@ -838,7 +898,55 @@ stateDiagram-v2
     locked --> [*]: 只能手动解除
 ```
 
-### 7.14 注入防御与安全锁定
+### 7.14 理财：收益长图 + 行为数据榜单 + 申购四步
+
+理财域是整个项目里**唯一一个先做调研、再按真实产品逻辑建起来**的域。
+依据是 `doc/research/za-design-and-wealth.md` §B（众安理财逻辑的深挖）。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Shelf: 理财主页（收益长图 + 里程碑 + 榜单）
+    Shelf --> Fund: 点榜单某一行
+    Fund --> Amount: 申购
+    Amount --> Amount: 未达起购 → 就地校验
+    Amount --> Reject: 超单笔上限 / 活期不足
+    Reject --> Amount: 改小金额
+    Amount --> Review: 下一步
+    Review --> Auth: 确认（提交后不可取消）
+    Auth --> Book: **多因子通过**
+    Book --> Done: 扣活期 + 加持仓
+    Done --> Shelf: 回理财
+```
+
+**四条照抄自众安的产品逻辑**：
+
+| 结论 | 为什么这样做 |
+| --- | --- |
+| **榜单标题写「别人在干什么」**（近两周买最多 / 持有人赚最多 / 金融业的都在买），全是**行为数据**，**零评级语义** | 银行不能推荐「好」的产品，只能呈现「别人在做什么」。措辞一变法律性质就变了 |
+| **收益是「可滚动的大数字长图」**（每页 = 大数字 + 一句结论 + 一行脚注 + 一个动作），不是表格 | 众安的《基金服務報告》就是 11 页长图 |
+| **一个数字有多套算法时全部列出**（七日年化的复利 / 单利 / 万份折算 / 含分红再投四套结果互不相同） | 挑一套假装唯一是在误导 |
+| **资金直连活期账户，没有投资钱包** | 众安原文 "Direct trading, no need to deposit in advance" |
+
+申购是**高风险操作**，走 `services/policy.js` 的三级门禁 —— 这一点在界面上是可验证的：
+点确认后弹的是**多因子认证**，不是普通确认框。
+
+### 7.15 空 / 错 / 加载三态
+
+三态有**唯一实现**（`components/StateBlock.jsx`），口径照抄众安**真实上线**的文案结构
+（一手证据：投资子站的 887 条 UI 字串表）。
+
+| 态 | 结构 | 众安原文 | 本项目 |
+| --- | --- | --- | --- |
+| 空 | `[4 字状态] + [1 个按钮]` | `頁面不見了` / `暫無記錄` | `暂无支出` / `暂无回执` + 一个出路按钮 |
+| 错 | `[拟人化短标题] + [错误码] + [1 个动作]` | `服務器開小差了` / `錯誤碼：{code}` / `刷新` | `页面开小差了` / `错误码：{surfaceId}` / `刷新` |
+| 加载 | **零文字** | 887 条字串里 loading 只命中 3 处且都与 PDF 有关 | 纯骨架，文案只进 `aria-label` |
+
+**两条从众安量化出来的预算规则**：
+- **插画只投给情绪峰值**（众安 105 条插画资产里 70+ 用于抽奖领奖，常规空态只有 1 张）
+  → 本项目不引插画（零依赖），改用一枚 44px 图标底座
+- **错误从不解释技术原因，道歉不超过一句**；**拒绝 = 原因 + 补救路径**
+
+### 7.16 注入防御与安全锁定
 
 ```mermaid
 flowchart TB
@@ -878,6 +986,9 @@ stateDiagram-v2
 
 「先占位再填充」的两个作用：**加载态**（craft-floor 要求的四态之一），
 以及**让对话有节奏** —— 卡片是被想出来的，不是瞬间贴上来的。
+
+骨架本身由 `components/StateBlock.jsx` 的 `Loading` 渲染（见 §9.5）：**零文字**，
+形态自己说明"正在生成"。视图建不起来时走同一个文件的 `Failed`，不是留一个转不完的圈。
 
 ### 8.2 滚动锚定
 
@@ -954,54 +1065,85 @@ Get-ChildItem src -Recurse -Include *.css |
 
 **类别色盘不含红与绿** —— 红绿留给金额方向。
 
+### 9.5 空 / 错 / 载三态与数值对齐
+
+三态**只有一份实现**：`src/components/StateBlock.jsx`（样式在 `styles/state.css`），
+页面从 `views/parts.jsx` 拿到 `Empty / Failed / Loading` 三个零件，不各写各的。
+
+口径照众安银行**真实上线**的 i18n 字串（证据：`doc/research/za-design-and-wealth.md` §A.4）：
+
+| 态 | 公式 | ZA 官方原文 | 本项目 |
+| --- | --- | --- | --- |
+| 空 | `[4 字状态] + [1 个按钮回主路径]`，不写引导句 | 頁面不見了 / 暫無任務，盡請期待 / 暫無記錄 | 暂无回执 / 暂无动态 / 暂无支出 / 暂无交易 / 没有结果 / 都取消了 |
+| 错 | `[拟人化短标题] + [错误码独立一行] + [1 个动作]`，不解释技术原因 | 服務器開小差了 / 錯誤碼：{code} / 刷新 | 页面开小差了 / 错误码：{surfaceId} / 刷新 |
+| 载 | **零文字**（887 条字串里 loading 只命中 3 处，且都与 PDF 有关） | —— | `Loading`：4 根骨架 + 抖光，正文一个字都没有；"正在生成"只进 `aria-label` |
+
+**插画一律不引**（报告 §A.5：ZA 的 105 条图片资产有 70+ 投给了抽奖领奖，常规空态只有 1 张）。
+替代物是一枚 44px 的图标底座 —— 图标说的是「这里没有东西」，不是「我很伤心」。
+
+**数值对齐**（Material 3 / M2 数据表）：数字一律 `tabular-nums`；**金额右对齐，表头也跟着右对齐**，
+数值列不居中。政策集中在 `styles/state.css` 末节，用 `:where()`（特异度 0）声明，
+页面要覆盖永远覆盖得动；各页面文件里原先那 40 多处分散声明现在是冗余的。
+两处**故意居中**：热力图的日号（对齐的是日历格）与占比图的合计（对齐的是柱子）。
+
 ---
 
 ## 10. 文件职责表
 
-**硬约束：单文件不超过 300 行。** 当前最大 `styles/wallet.css` 277 行。
+**硬约束：单文件不超过 300 行。** 行数不写死在这里 —— 手写的行数每次改动都要同步，注定腐烂。
 
-### 协议层 a2ui/
+```powershell
+Get-ChildItem src -Recurse -File |
+  Sort-Object FullName |
+  ForEach-Object { $_.FullName.Replace((Get-Location).Path + "\src\", "") + "  " + (Get-Content $_.FullName | Measure-Object -Line).Lines }
+```
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `protocol.js` | 123 | 17 个组件白名单 + 构造器 + 信封统一封装 |
-| `apply.js` | 206 | `applyMessages` / `resolveTree` / 校验。**纯函数，零 React** |
-| `render.jsx` | 148 | 白名单的 React 实现 |
+下面按**职责**分组，不按行数。想知道当前行数就跑上面那条命令。
 
-### Agent 层 agent/
+### 协议层 a2ui/ —— 组件白名单与渲染
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `planner.js` | 155 | `parseIntent` / `fromText` / `fromAction` / `plan` |
-| `brief.js` | 246 | **六个统合视图**：首页 / 账单 / 订阅 / 核对 / 回执 / 跨场景 |
-| `transferFlow.js` | 131 | 转账四步流程 |
-| `taskGraph.js` | 178 | 任务 DAG：拓扑排序 + 中断 / 回退 / 接管 |
+| 文件 | 职责 |
+| --- | --- |
+| `protocol.js` | 17 个组件白名单 + 构造器 + 信封统一封装 |
+| `apply.js` | `applyMessages` / `resolveTree` / 校验。**纯函数，零 React** |
+| `render.jsx` | 白名单的 React 实现 |
 
-### 业务层 services/ + domain/
+### Agent 层 agent/ —— 意图、统合、流程、任务图
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `banking.js` | 182 | `buildDataModel` **唯一事实来源** + 跨域汇总 + 校验 |
-| `policy.js` | 94 | **权限分级**：三级分档 + 19 个操作目录 |
-| `audit.js` | 82 | 审计：决策链路 + 安全锁定 |
-| `guard.js` | 54 | 注入防御：越权 / 诱导两类模式 |
-| `limits.js` | 99 | 限额一等对象 + 时间窗 + `checkLimits` |
-| `anomalyRules.js` | 226 | 12 条异常规则 + 统计工具 |
-| `anomaly.js` | 216 | 检测 → 评分 → 分档 → 误报抑制 |
-| `domain/bank.js` | 137 | 账本：四则余额模型 + 原子转账 |
-| `domain/conversations.js` | 80 | 会话持久化 |
+| 文件 | 职责 |
+| --- | --- |
+| `planner.js` | `parseIntent` / `fromText` / `fromAction` / `plan`；`ACTIONS` 目录 |
+| `brief.js` | **六个统合视图**：首页 / 账单 / 订阅 / 核对 / 回执 / 跨场景 |
+| `transferFlow.js` | 转账四步流程（定时与 AA 共用它） |
+| `taskGraph.js` | 任务 DAG：拓扑排序 + 中断 / 回退 / 接管 |
 
-### 状态层 state/
+### 业务层 services/ + domain/ —— 唯一事实来源
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `useConversations.js` | 27 | 会话持久化（含函数式补丁） |
-| `useTurnRunner.js` | 107 | 回合执行：输入 → 计划 → 信封 → 落进会话 |
-| `useTransferFlow.js` | 97 | 转账四步状态机 |
-| `useSecurity.js` | 61 | **安全门禁**：三级路由 + 锁定 |
-| `useUndoWindow.js` | 34 | 5 秒可撤销窗口 |
-| `useThreadScroll.js` | 74 | 滚动锚定（非对称迟滞 + 意图优先） |
-| `useBackendBank.js` | 43 | 后端模式同步 |
+| 文件 | 职责 |
+| --- | --- |
+| `banking.js` | `buildDataModel` **唯一事实来源** + 跨域汇总 + 校验 |
+| `policy.js` | **权限分级**：三级分档 + 操作目录 |
+| `audit.js` | 审计：决策链路 + 安全锁定 |
+| `guard.js` | 注入防御：越权 / 诱导两类模式 |
+| `limits.js` | 限额一等对象 + 时间窗 + `checkLimits` |
+| `anomalyRules.js` | 12 条异常规则 + 统计工具 |
+| `anomaly.js` | 检测 → 评分 → 分档 → 误报抑制 |
+| `domain/wealth.js` | 理财种子数据：7 只基金 / 持仓 / 榜单口径 |
+| `services/wealth.js` | 收益与七日年化四算法 / 榜单 / 申购校验与记账 |
+| `domain/bank.js` | 账本：四则余额模型 + 原子转账 |
+| `domain/conversations.js` | 会话持久化 |
+
+### 状态层 state/ —— 每个 hook 一个状态机
+
+| 文件 | 职责 |
+| --- | --- |
+| `useConversations.js` | 会话持久化（含函数式补丁） |
+| `useTurnRunner.js` | 回合执行：输入 → 计划 → 信封 → 落进会话 |
+| `useTransferFlow.js` | 转账四步状态机 |
+| `useSecurity.js` | **安全门禁**：三级路由 + 锁定 |
+| `useUndoWindow.js` | 5 秒可撤销窗口 |
+| `useThreadScroll.js` | 滚动锚定（非对称迟滞 + 意图优先） |
+| `useBackendBank.js` | 后端模式同步 |
 
 ### 视图层 views/
 
@@ -1025,40 +1167,53 @@ Get-ChildItem src -Recurse -Include *.css |
 | `pages/cardUtils.jsx` | 43 | 账期模型 |
 | `pages/payees.jsx` | 收款人名录区 | 嵌入转账页；搜索、常用设置与卡号查询 |
 | `pages/transfer.jsx` | 238 | 转账页（渲染同一套 A2UI surface） |
+| 文件 | 职责 |
+| --- | --- |
+| `AssistantView.jsx` | 业务层：工作区 + 历史条 + 任务图 + 被拦提示 |
+| `product.jsx` | 产品层路由 |
+| `parts.jsx` | 共用零件：Page / Panel / StatBar / IconTile / Row / CountUp；三态从 StateBlock 转出 |
+| `shared.jsx` | 分类视觉语言的兼容层（实现已搬到 avatars） |
+| `avatars.jsx` | **16 类 PFC 头像体系** + 品牌色常量 |
+| `charts.jsx` | **六种图表形态**，共享高亮状态 |
+| `pages/overview.jsx` | 概览：余额主卡 + 宫格 |
+| `pages/feed.jsx` | 动态：三段时间轴 + 可展开 |
+| `pages/bills.jsx` | 账单：结论 → 结构 → 节奏 → 明细 |
+| `pages/subscriptions.jsx` | 订阅：一项一张身份卡 |
+| `pages/cards.jsx` + `cardProfile` + `cardFreeze` + `cardLoss` + `cardFace` | 卡包 / 档案 / 冻结流程 / 挂失补卡流程 / 卡面 |
+| `pages/cardData.jsx` + `cardUtils.jsx` | 卡片演示数据与账期模型 |
+| `pages/payees.jsx` | 收款人 |
+| `pages/transfer.jsx` | 转账页（渲染同一套 A2UI surface） |
+| `pages/wealth.jsx` | 理财：收益长图 + 里程碑 + 3 个榜单 + 申购四步 |
+| `pages/receipts.jsx` | 回执 |
 
 ### 外壳 components/
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `App.jsx` | 266 | 状态编排；产出 `ctx`；派发 action |
-| `Sidebar.jsx` | 69 | 首页块 + 功能列表 + 历史对话 |
-| `Composer.jsx` | 53 | 输入区（IME 三级防护 + autosize） |
-| `FlowLauncher.jsx` | 37 | 常驻「可以让他做什么」 |
-| `TaskGraph.jsx` | 66 | 任务 DAG 呈现 + 三个控制 |
-| `AuthDialog.jsx` | 104 | 多因子认证 |
-| `AppOverlays.jsx` | 31 | 浮层栈（纯组合，无逻辑） |
-| `UndoBar.jsx` | 29 | 5 秒可撤销条 |
-| `ConfirmDialog.jsx` | 31 | 确认弹窗 |
-| `TransferDialog.jsx` | 45 | 后端模式核对 / 验证码 |
-| `Toast.jsx` | 7 | 轻提示 |
+| 文件 | 职责 |
+| --- | --- |
+| `App.jsx` | 状态编排；产出 `ctx`；派发 action |
+| `Sidebar.jsx` | 首页块 + 功能列表 + 历史对话 |
+| `Composer.jsx` | 输入区（IME 三级防护 + autosize） |
+| `FlowLauncher.jsx` | 常驻入口（4 项动作） |
+| `TaskGraph.jsx` | 任务 DAG 呈现 + 三个控制 |
+| `AuthDialog.jsx` | 多因子认证 |
+| `BlockedNotice.jsx` | 被拦下的请求：拦了什么 / 为什么 / 依据 |
+| `StateBlock.jsx` | 空 / 错 / 加载三态的唯一实现 |
+| `StateBlock.jsx` | **空 / 错 / 载三态的唯一实现**（ZA 口径：4 字状态 + 1 个动作 / 拟人化标题 + 错误码 / 零文字） |
+| `AppOverlays.jsx` | 浮层栈（纯组合，无逻辑） |
+| `UndoBar.jsx` / `ConfirmDialog.jsx` / `TransferDialog.jsx` / `Toast.jsx` | 其余浮层 |
 
 ### 样式 styles/
 
-| 文件 | 行数 | 职责 |
-| --- | ---: | --- |
-| `tokens.css` | 260 | **设计令牌唯一来源** |
-| `wallet.css` | 277 | 卡片与卡包 |
-| `pages.css` | 259 | 侧边栏 / 视图头 / 面板 / 卡面 |
-| `app.css` | 240 | 外壳 / 背景 / 浏览器表面 |
-| `motion.css` | 189 | 对焦切换 / 错峰 / 分类签名动作 |
-| `charts.css` | 185 | 六种图表 |
-| `a2ui.css` | 168 | A2UI 协议组件 |
-| `views.css` | 161 | StatBar / IconTile / Row / 按日分组 / 撤销条 |
-| `avatars.css` | 119 | 头像形状系统 |
-| `auth.css` | 51 | 多因子认证 |
-| `taskgraph.css` | 36 | 任务图 |
-
----
+| 文件 | 职责 |
+| --- | --- |
+| `tokens.css` | **设计令牌唯一来源** |
+| `app.css` | 外壳 / 背景 / 浏览器表面 |
+| `pages.css` | 侧边栏 / 视图头 / 面板 / 卡面 |
+| `views.css` | StatBar / IconTile / Row / 按日分组 / 撤销条 |
+| `motion.css` | 对焦切换 / 错峰 / 分类签名动作 |
+| `a2ui.css` / `charts.css` / `wallet.css` / `avatars.css` | 各模块自己的样式 |
+| `auth.css` / `taskgraph.css` / `blocked.css` | 三个浮层 |
+| `state.css` | 空 / 错两态的外观 + **全站数值对齐政策**（等宽数字、数值列与表头右对齐） |
 
 ## 11. 已知限制与升级路径
 
@@ -1080,6 +1235,6 @@ Get-ChildItem src -Recurse -Include *.css |
 
 | 日期 | 变更 |
 | --- | --- |
-| 2026-09-28 | **全文重写**：补齐两层范式、治理层、任务 DAG、§7 每个业务环节的渲染图、文件职责表按真实树重排 |
+| 2026-10-02 | 新增 **§7.17 挂失补卡**（状态机唯一不可逆的边：后果先摊开 → 多因子 → lost → 补卡进度），§7.8 的卡面补第三种材料 |
 | 2026-09-28 | 新增 §2A 两层定义与 §5A 视觉规约（后续并入本文对应章节） |
 | 2026-09-28 | 建立本文档：as-is 与 to-be，全部用 Mermaid |

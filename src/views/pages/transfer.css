@@ -1,4 +1,4 @@
-/* transfer.css —— 转账页本页自己的参照面板
+/* transfer.css —— 转账页本页自己的参照层
    中间的流程卡仍然是 A2UI surface（样式在 a2ui.css），这里只画它之外的那一层。
    规约：禁止硬编码颜色，一律 var()。 */
 
@@ -8,16 +8,38 @@
 .tf-group { display: flex; flex-direction: column; gap: var(--space-3); }
 .tf-label { display: block; font-size: var(--text-caption); color: var(--text-tertiary); }
 
+/* ── 收款人胶囊 ──────────────────────────────────────────────────────
+   和 surface 里的可点胶囊同一条语言：只留一圈细边，不叠阴影（ghost card 是禁的），
+   高度取 --hit-min，因为它是这一页最主要的点选目标。 */
+.tf-chips { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.tf-chip {
+  height: var(--hit-min); padding: 0 var(--space-5); border: none; border-radius: var(--radius-pill);
+  background: var(--bg-surface); box-shadow: 0 0 0 1px var(--hairline); color: var(--text-primary);
+  font-size: var(--text-subhead);
+  transition: transform var(--duration-base) var(--ease-spring), box-shadow var(--duration-base) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tf-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-1), 0 0 0 1px var(--hairline); }
+}
+.tf-chip:active { transform: scale(.97); transition-duration: var(--duration-instant); }
+
 /* ── 校验提示：贴着出错的那一步，不用浮层打断 ─────────────────────── */
 .tf-notice {
   margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-thumb);
   background: var(--danger-tint); font-size: var(--text-footnote);
 }
 
-/* ── 核对前的三条结论 ──────────────────────────────────────────────── */
-.tf-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
-.tf-checks li { display: flex; gap: var(--space-4); align-items: flex-start; font-size: var(--text-subhead); color: var(--text-secondary); }
-.tf-checks svg { flex: 0 0 auto; margin-top: 3px; color: var(--success); }
-.tf-checks li.warn { color: var(--text-primary); }
-.tf-checks li.warn svg { color: var(--warning); }
+/* ── 撞上订阅扣款时的警示条：图标 + 两个数，不写「建议把金额改小」 ─────
+   颜色是加强，不是唯一信号：图标也换了（三角警示）。 */
+.tf-gap {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  margin: 0; padding: var(--space-4) var(--space-5); border-radius: var(--radius-thumb);
+  background: var(--danger-tint); font-size: var(--text-subhead);
+}
+.tf-gap svg { flex: 0 0 auto; color: var(--danger); }
+.tf-gap-label { color: var(--text-secondary); }
+.tf-gap b { font-variant-numeric: tabular-nums; }
 
+@media (prefers-reduced-motion: reduce) {
+  .tf-chip:hover { transform: none; }
+}

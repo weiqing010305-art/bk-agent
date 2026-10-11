@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { seed, transfer, totals, accountOf, ledgerVersion, newAccountSeed, money } from '../src/domain/bank.js';
 import { buildDataModel } from '../src/services/banking.js';
 import { detectAnomalies, analyze, dispose, assessTransaction, SUPPRESSION } from '../src/services/anomaly.js';
-import { checkLimits, limitBoard, LIMIT_TYPE } from '../src/services/limits.js';
+import { checkLimits, limitBoard, LIMIT_TYPE, bankNow, BANK_TZ } from '../src/services/limits.js';
 
 /* ── 测试脚手架：造小账本，逐条验规则 ─────────────────────────────────────
    小账本自己造，不依赖演示数据 —— 演示数据一改，规则测试不该跟着碎。
@@ -320,6 +320,16 @@ test('限额校验：超单笔拒绝、超日累计拒绝、时间窗外拒绝�
   const fresh = newAccountSeed();
   assert.equal(checkLimits(fresh, { amount: 1000000, scope: 'transfer', at: '2026-09-30T10:00' }).ok, true);
   assert.ok(checkLimits(fresh, { amount: 1000000, scope: 'transfer', at: '2026-09-30T10:00' }).remaining > 0);
+
+/* 受理时段必须按**银行所在地**算，不能按看页面那台机器的时区。
+   曾经的 bug：默认参数用 new Date().toISOString()（UTC），
+   于是纽约当地 23:57 变成 UTC 03:57，一笔正常转账被判成「夜间非柜面不受理」——
+   同一份代码换个时区就跑不通，那是 bug 不是风控。 */
+assert.equal(BANK_TZ, 'Asia/Shanghai');
+assert.match(bankNow(new Date('2026-09-30T03:57:00Z')), /^2026-09-30T11:57/, 'UTC 03:57 应换算成北京时间 11:57');
+assert.match(bankNow(new Date('2026-09-29T23:57:00Z')), /^2026-09-30T07:57/, '跨日：UTC 前一日 23:57 是北京时间次日 07:57');
+assert.equal(checkLimits(fresh, { amount: 1000, scope: 'transfer', at: bankNow(new Date('2026-09-30T03:57:00Z')) }).ok, true,
+  '北京时间 11:57 在受理时段内 —— 不该因为跑测试的机器在纽约就被拦');
 });
 test('buildDataModel 暴露余额拆分、限额与异常，且 balance 仍是可用余额', () => {
   const s = seed();

@@ -5,6 +5,7 @@ import Composer from '../components/Composer.jsx';
 import FlowLauncher from '../components/FlowLauncher.jsx';
 import TaskGraph from '../components/TaskGraph.jsx';
 import BlockedNotice from '../components/BlockedNotice.jsx';
+import { Loading, Failed } from '../components/StateBlock.jsx';
 
 /** 按会话顺序呈现消息；业务 surface 留在触发它的助手回复里。 */
 export default function AssistantView({ ctx }) {
@@ -38,14 +39,16 @@ export default function AssistantView({ ctx }) {
                   onRollback={() => taskControl(turn.id, 'rollback')}
                   onHandoff={() => taskControl(turn.id, 'handoff')}
                 />}
+                {/* 四态分清楚：被拦有话说 / 生成中是骨架 / 有 surface 才渲染 / 其余是错误。
+                    错误态按 ZA 口径：拟人化标题 + 独立错误码 + 一个动作，不解释技术原因。 */}
                 {turn.blocked
                   ? <BlockedNotice blocked={turn.blocked}/>
                   : turn.pending
-                    ? <SurfaceSkeleton/>
+                    ? <Loading/>
                     : surface
                       ? <SurfaceView surface={surface} tree={resolveTree(surface)} showProvenance={false}
                                      onAction={e => handleAction(turn.surfaceId, e)}/>
-                      : <p className="chat-bubble chat-bubble--assistant">这个回复暂时无法显示，请换一种说法试试。</p>}
+                      : <Failed code={turn.surfaceId || 'surface'} onRetry={() => handleAction(turn.surfaceId, { name: 'noop' })}/>}
               </>}
             </div>
           </div>;
@@ -55,13 +58,5 @@ export default function AssistantView({ ctx }) {
 
     <Composer ctx={ctx}/>
     </main>
-  </div>;
-}
-
-function SurfaceSkeleton() {
-  return <div className="surface-skeleton" aria-label="正在生成">
-    <span className="sk sk--head"/>
-    <span className="sk sk--line"/>
-    <span className="sk sk--line sk--short"/>
   </div>;
 }

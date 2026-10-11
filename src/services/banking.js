@@ -18,9 +18,9 @@ export const DEMO_DATE = '2026-09-25';
 
 /** 数据来源标签 —— 会显示在卡片底部，让用户知道数字从哪来、新不新。 */
 export function provenance(mode, connection) {
-  if (mode !== 'backend') return { label: `本机演示账本，数据截至 ${DEMO_DATE}`, source: 'local' };
-  if (connection === 'ready') return { label: `PostgreSQL 演示账本，数据截至 ${DEMO_DATE}`, source: 'postgresql' };
-  return { label: '后端未连接 · 以下数字可能不是最新', source: 'stale' };
+  if (mode !== 'backend') return { label: `数据截至 ${DEMO_DATE}`, source: 'local' };
+  if (connection === 'ready') return { label: `数据截至 ${DEMO_DATE}`, source: 'postgresql' };
+  return { label: '数据可能不是最新', source: 'stale' };
 }
 
 const yuan = n => '¥' + money(n);
@@ -96,8 +96,14 @@ export function buildDataModel(bank) {
     transactionCount: bank.transactions.length,
     cards: bank.cards.map(c => ({
       id: c.id, name: c.name, type: c.type, tail: c.tail,
+      /* status 原样带给渲染层：卡面要分三种材质（正常 / 冻结 / 已挂失），
+         只给 active 布尔值的话「挂失」和「冻结」在助手侧长得一样。 */
+      status: c.status,
       active: c.status === 'active',
-      statusText: c.status === 'active' ? '● 正常使用' : '● 已冻结',
+      statusText: c.status === 'active' ? '● 正常使用'
+        : c.status === 'lost' ? '● 已挂失'
+        : c.status === 'replacing' ? '● 补卡中'
+        : '● 已冻结',
     })),
     cardCount: bank.cards.length,
   };
@@ -182,13 +188,13 @@ export const MAX_TRANSFER = 100000000; // ¥1,000,000.00
 export function validateTransferSlots({ recipient, amountText, balance }) {
   const manual = recipient && recipient.mode === 'manual';
   const cardNumber = ((recipient && recipient.cardNumber) || '').replace(/\s/g, '');
-  if (manual && !/^[0-9]{16,19}$/.test(cardNumber)) return { ok: false, error: '请输入 16–19 位数字的完整演示卡号' };
+  if (manual && !/^[0-9]{16,19}$/.test(cardNumber)) return { ok: false, error: '卡号要 16–19 位' };
   if (!manual && !(recipient && recipient.contactId)) return { ok: false, error: '请选择收款人' };
-  if (!/^\d+(\.\d{1,2})?$/.test(String(amountText || ''))) return { ok: false, error: '请输入有效金额，最多两位小数' };
+  if (!/^\d+(\.\d{1,2})?$/.test(String(amountText || ''))) return { ok: false, error: '金额最多两位小数' };
   const value = Number(amountText);
-  if (!(value > 0)) return { ok: false, error: '请输入有效金额，最多两位小数' };
+  if (!(value > 0)) return { ok: false, error: '金额最多两位小数' };
   const amount = Math.round(value * 100);
-  if (!Number.isSafeInteger(amount) || amount > MAX_TRANSFER) return { ok: false, error: '单笔演示转账不能超过 ¥1,000,000.00' };
+  if (!Number.isSafeInteger(amount) || amount > MAX_TRANSFER) return { ok: false, error: '单笔最多 ¥1,000,000.00' };
   if (amount > balance) return { ok: false, error: '余额不足，请修改金额' };
   return { ok: true, amount, cardNumber };
 }

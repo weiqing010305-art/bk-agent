@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Snowflake, Wifi } from 'lucide-react';
+import { ShieldOff, Snowflake, Wifi } from 'lucide-react';
 import { money } from '../../domain/bank.js';
 import { TEMPLATE, TEMPLATE_FALLBACK } from './cardData.jsx';
 import './cardFace.css';
@@ -30,8 +30,8 @@ const look = card => {
   const t = TEMPLATE[card.id] || TEMPLATE_FALLBACK;
   return { tone: card.tone || t.tone, org: card.org || t.org };
 };
-const HOLDER = 'ZHANG MINGYUAN';
-const EXPIRY = '09 / 29';
+/* 助手侧的 dataModel 只有 name / tail / type，没有有效期，读不到时用这张兜底。 */
+const EXPIRY_FALLBACK = '09 / 29';
 
 /**
  * 卡面。
@@ -44,12 +44,19 @@ const EXPIRY = '09 / 29';
  *
  * decorative = true 用于 CardTile：那张卡面只是它的配图，卡号、状态、卡组织
  * 右侧已经用文字说全了，读屏再念一遍卡面就是同一件事说两遍。
+ *
+ * 三种状态三种材料（data-state）：
+ *   active 彩色渐变 · frozen 磨砂暗面（还能解冻，所以卡还在）· lost 中性灰（卡没了，只剩一条轮廓）
+ * 挂失与冻结都用 lost / frozen 两个布尔传进来，卡面自己不读 status —— 助手侧的 dataModel
+ * 只有 id / name / tail，读不到状态，靠调用方告诉它这张卡现在是什么材料。
  */
-export function CardFace({ card = {}, hidden = false, frozen = false, still = false, decorative = false, selected = false, tabIndex, onSelect }) {
+export function CardFace({ card = {}, hidden = false, frozen = false, lost = false, still = false, decorative = false, selected = false, tabIndex, onSelect }) {
   const ref = useRef(null);
   const { tone, org } = look(card);
   const tail = card.tail || '••••';
-  const label = (card.name || '银行卡') + '，尾号 ' + tail + (frozen ? '，已冻结' : '，状态正常');
+  const state = lost ? 'lost' : frozen ? 'frozen' : 'active';
+  const off = state !== 'active';
+  const label = (card.name || '银行卡') + '，尾号 ' + tail + (lost ? '，已挂失' : frozen ? '，已冻结' : '，状态正常');
 
   const move = e => {
     const el = ref.current;
@@ -71,7 +78,7 @@ export function CardFace({ card = {}, hidden = false, frozen = false, still = fa
   };
 
   const face = (
-    <div className="bank-card card-face" data-tone={tone} data-state={frozen ? 'frozen' : 'active'}
+    <div className="bank-card card-face" data-tone={tone} data-state={state}
          role={decorative ? undefined : still ? 'img' : 'tab'}
          aria-label={decorative ? undefined : label}
          aria-hidden={decorative ? 'true' : undefined}
@@ -83,25 +90,28 @@ export function CardFace({ card = {}, hidden = false, frozen = false, still = fa
          }}>
       <span className="card-face-top">
         <span className="bank-card-logo" aria-hidden="true">青</span>
-        <span className="bank-card-brand">青禾<em> BANK</em></span>
+        <span className="bank-card-brand" aria-hidden="true">青禾<em> BANK</em></span>
         <span className="card-chip" aria-hidden="true"><i/><i/><i/><i/></span>
         <Wifi className="card-wave" size={17} aria-hidden="true"/>
       </span>
       <strong className="bank-card-num">{hidden ? '••••  ••••  ••••  ••••' : '••••  ••••  ••••  ' + tail}</strong>
+      {/* 卡面下半部只留「有效期 · 卡组织」两项。持卡人三张卡是同一个人、三个字段名三张卡各写一遍，
+          在卡包里是零信息；卡类型与状态分别由色调和磨砂表达，档案区里也不再重抄一次。 */}
       <span className="card-face-foot">
-        <span className="bank-card-field"><i>持卡人</i><b>{HOLDER}</b></span>
-        <span className="bank-card-field"><i>有效期</i><b>{EXPIRY}</b></span>
-        <span className="bank-card-field"><i>卡组织</i><b>{org}</b></span>
+        <b>{card.expiry || EXPIRY_FALLBACK}</b>
+        <b>{org}</b>
       </span>
-      {frozen && <span className="card-frost" aria-hidden="true"/>}
+      {off && <span className="card-frost" aria-hidden="true"/>}
       <span className="card-glare" aria-hidden="true"/>
-      {frozen && <span className="card-frozen-badge"><Snowflake size={12} aria-hidden="true"/>已冻结</span>}
+      {off && <span className={'card-frozen-badge' + (lost ? ' is-loss' : '')}>
+        {lost ? <ShieldOff size={12} aria-hidden="true"/> : <Snowflake size={12} aria-hidden="true"/>}
+        {lost ? '已挂失' : '已冻结'}</span>}
     </div>
   );
 
   if (still) return face;
   return <div className="card-face-wrap" ref={ref} onPointerMove={move} onPointerLeave={leave}
-              data-state={frozen ? 'frozen' : 'active'} data-on={selected ? 'on' : undefined}>{face}</div>;
+              data-state={state} data-on={selected ? 'on' : undefined}>{face}</div>;
 }
 
 /**
@@ -112,13 +122,15 @@ export function CardFace({ card = {}, hidden = false, frozen = false, still = fa
  */
 export function CardTile({ card = {}, hidden = false, frozen, action }) {
   const { org } = look(card);
-  const off = frozen === undefined ? (card.status === 'frozen' || card.active === false) : frozen;
-  const facts = [{ k: '卡片状态', v: off ? '已冻结' : '正常使用', warn: off }];
+  /* 挂失是「不可用」里更重的那一档：卡面走 lost 材料，状态文字也不能再写「已冻结」。 */
+  const lost = card.status === 'lost';
+  const off = frozen === undefined ? (lost || card.status === 'frozen' || card.active === false) : frozen;
+  const facts = [{ k: '卡片状态', v: lost ? '已挂失' : off ? '已冻结' : '正常使用', warn: off }];
   if (typeof card.available === 'number') facts.push({ k: '可用额度', v: '¥' + money(card.available) });
   facts.push({ k: '卡组织', v: org });
 
-  return <article className="card-tile" data-state={off ? 'frozen' : 'active'}>
-    <CardFace card={card} hidden={hidden} frozen={off} still decorative/>
+  return <article className="card-tile" data-state={lost ? 'lost' : off ? 'frozen' : 'active'}>
+    <CardFace card={card} hidden={hidden} frozen={off} lost={lost} still decorative/>
     <div className="card-tile-body">
       <h3>{card.name || '银行卡'}</h3>
       <p className="card-tile-sub">尾号 {card.tail || '••••'}{card.type ? ' · ' + card.type : ''}</p>

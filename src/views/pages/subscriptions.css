@@ -89,8 +89,8 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 .sub-cards .sub-row--video:hover::after,
 .sub-cards .sub-row--video:focus-within::after { animation-duration: 2400ms; }
 
-/* ── 年度视角：三个角度并排 ─────────────────────────────────────────── */
-.sub-year-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+/* ── 年度视角：两个角度并排（auto-fit：以后加减一格不用动这里）─────────── */
+.sub-year-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-5); }
 .sub-year-grid > div { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .sub-read { margin: 0; max-width: 70ch; font-size: var(--text-body); line-height: var(--leading-body); color: var(--text-secondary); }
 @media (max-width: 640px) { .sub-year-grid { grid-template-columns: 1fr; gap: var(--space-4); } }
@@ -110,12 +110,3 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 .sub-preview-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 
 /* ── 全部取消后的空状态 ─────────────────────────────────────────────── */
-.sub-empty { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-start; }
-.sub-empty-mark {
-  width: 44px; height: 44px; border-radius: var(--radius-pill);
-  display: grid; place-items: center; background: var(--success-tint); color: var(--success);
-}
-.sub-empty h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
-.sub-empty p { margin: 0; max-width: 52ch; font-size: var(--text-subhead); color: var(--text-secondary); }
-.sub-empty-facts { display: flex; gap: var(--space-8); flex-wrap: wrap; }
-.sub-empty-facts > div { display: flex; flex-direction: column; gap: var(--space-2); }

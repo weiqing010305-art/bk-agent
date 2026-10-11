@@ -23,7 +23,26 @@ export function useSecurity({ bank, setConfirm, setToast, yuan }) {
     .filter(t => t.date === DEMO_DATE && t.category === '转账')
     .reduce((n, t) => n + Math.abs(t.amount), 0), [bank.transactions]);
 
-  /** 门禁：低风险放行、中风险进确认、高风险进多因子。 */
+  /**
+   * 门禁：低风险放行、中风险进确认、高风险进多因子。
+   *
+   * 泛化自原来的转账专用版 —— 转账只是**第一个**需要过门禁的操作。
+   * 理财申购、挂失、限额调整走的是同一条路，区别只在 op。
+   */
+  const gate = useCallback(({ op, amount = 0, payload, label, amountText }) => {
+    const total = todayTotal();
+    const verdict = assess({ op, amount, todayTotal: total, state: bank });
+    auditRecord({
+      kind: 'policy', actor: 'user', op, risk: verdict.level,
+      decision: verdict.blocked ? '拒绝' : verdict.level === 'high' ? '需多因子' : '需确认',
+      detail: verdict.reason,
+    });
+    if (verdict.blocked) { setToast(verdict.blocked); return; }
+    if (verdict.level === 'high') return setAuth({ verdict, payload, op, label, amountText });
+    setConfirm(payload);
+  }, [bank, todayTotal, setConfirm, setToast]);
+
+  /** 转账草稿的门禁：op 由金额推出（赛题的分档依据是日累计，不是单笔）。 */
   const gateDraft = useCallback(payload => {
     const total = todayTotal();
     const op = payload.amount > SMALL_TRANSFER_LIMIT ? 'transfer.large' : 'transfer.small';
@@ -64,5 +83,5 @@ export function useSecurity({ bank, setConfirm, setToast, yuan }) {
   const doUnlock = useCallback(() => setLock(unlock()), []);
   const closeAuth = useCallback(() => setAuth(null), []);
 
-  return { auth, lock, gateDraft, screen, passAuth, failAuth, doUnlock, closeAuth };
+  return { auth, lock, gate, gateDraft, screen, passAuth, failAuth, doUnlock, closeAuth };
 }

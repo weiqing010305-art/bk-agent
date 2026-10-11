@@ -19,10 +19,9 @@
 .card-tile .bank-card-num { font-size: var(--text-callout); }
 .card-tile .card-face .bank-card-logo { width: 28px; height: 28px; font-size: 14px; }
 .card-tile .card-chip { width: 26px; height: 20px; }
-/* 240px 的卡面装不下「持卡人 / 有效期 / 卡组织」三栏（实测溢出 23px），
-   而卡组织在右侧事实里已经写着 —— 小卡面收掉这一栏，不缩小字号去挤。 */
+/* 卡组织在右侧事实里已经写着 —— 240px 的小卡面收掉这一栏，不缩小字号去挤。 */
 .card-tile .card-face-foot { gap: var(--space-4); }
-.card-tile .card-face-foot .bank-card-field:last-child { display: none; }
+.card-tile .card-face-foot b:last-child { display: none; }
 
 .card-tile-body { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 .card-tile-body h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }

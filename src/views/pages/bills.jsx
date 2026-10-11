@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ChartPie, SearchX } from 'lucide-react';
 import { Page, Panel, StatBar, Row, Empty } from '../parts.jsx';
 import { CategoryIcon, CATS } from '../shared.jsx';
 import { SpendingChart } from '../charts.jsx';
@@ -10,7 +11,7 @@ import { SpendingChart } from '../charts.jsx';
  *   旧顺序是「统计 → 图 → 筛选 → 明细」，筛选单独占一排 chips，于是「我要看餐饮」
  *   要跨三个区域操作三次。现在页面上只有一个「当前分类」状态：滑过图形、图例、
  *   读数区里的任一处都在改它，明细里对应的行随之高亮；点一下则只看这一类，
- *   明细同步筛选，但视口保持在原处。筛选的入口就在数据旁边，不必再单列一排。
+ *   并把明细送到眼前。筛选的入口就在数据旁边，不必再单列一排。
  *   账期用胶囊切换（不给月份做一个大下拉框）：账本里有几个月就显示几个。
  *
  * 所有派生量都在 analyze() 里算完，它是纯函数，0 笔 / 1 笔 / 某类目为 0 都走同一条路径。
@@ -143,6 +144,7 @@ export default function Bills({ ctx }) {
   const [hover, setHover] = useState(null);
   const [filter, setFilter] = useState('全部');
   const [picked, setPicked] = useState(null);
+  const listRef = useRef(null);
 
   const months = useMemo(() => [...new Set(d.transactions.map(t => t.date.slice(0, 7)))].sort(), [d.transactions]);
   const month = picked || months[months.length - 1] || '';
@@ -161,12 +163,20 @@ export default function Bills({ ctx }) {
 
   const shown = groups.reduce((n, g) => n + g[1].length, 0);
 
+  /* 点了图例之后把明细送到眼前。hover 不触发滚动：一天几十次的高频交互里
+     让页面自己跳，比不动更糟（ARCHITECTURE §5A.3 的频率门）。 */
+  useEffect(() => {
+    if (filter === '全部' || !listRef.current) return;
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    listRef.current.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+  }, [filter]);
+
   const label = month ? monthNum(month) + ' 月' : '本期';
 
   const subtitle = m.first
     ? monthNum(month) + ' 月 ' + dayNum(m.first) + ' 日'
       + (m.first === m.last ? '' : '到 ' + dayNum(m.last) + ' 日') + ' · ' + m.txns.length + ' 笔'
-    : '还没有交易记录';
+    : '暂无记录';
 
   const dayTotal = list => {
     const n = list.reduce((a, t) => a + t.amount, 0);
@@ -191,11 +201,11 @@ export default function Bills({ ctx }) {
       right={{ label: label + '收入', value: yuan(m.income),
         note: m.incomeCount + ' 笔 · 结余 ' + yuan(m.income - m.total) }}/>
 
-    <Panel title="钱花在哪了" aside={<span className="panel-hint">六种看法，共用同一个高亮</span>}>
+    <Panel title="钱花在哪了">
       {m.parts.length
         ? <SpendingChart model={m} active={hot} onHover={setHover}
             onLock={name => { setFilter(name || '全部'); setHover(null); }} filter={filter}/>
-        : <Empty>这一期还没有支出。</Empty>}
+        : <Empty icon={ChartPie} title="暂无支出"/>}
     </Panel>
 
     <Panel title="明细" aside={<span className="panel-hint">{groups.length} 天 · {shown} 笔</span>}>
@@ -203,9 +213,12 @@ export default function Bills({ ctx }) {
         {CATS.map(c => <button key={c} type="button" className={'chip' + (filter === c ? ' on' : '')}
           aria-pressed={filter === c} onClick={() => { setFilter(c); setHover(null); }}>{c}</button>)}
       </div>
-      <div className="day-groups">
+      <div className="day-groups" ref={listRef}>
         {groups.length === 0
-          ? <Empty>这个分类下没有交易。</Empty>
+          /* 出路只在真有出路时给：筛选状态下给「看全部」，这一期本来就空则不给按钮 */
+          ? <Empty icon={SearchX} title="暂无交易"
+              action={filter === '全部' ? undefined : '看全部'}
+              onAction={() => { setFilter('全部'); setHover(null); }}/>
           : groups.map(([date, list]) => <section className="day-group" key={date}>
               <header className="bills-day">
                 <h3>{monthNum(date)} 月 {dayNum(date)} 日</h3>

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Menu } from 'lucide-react';
 import { api, backendMode, binding } from './api/client.js';
-import { contacts as demoContacts, directory, money, seed, transfer as applyTransfer } from './domain/bank.js';
+import { contacts as demoContacts, directory, money, seed, transfer as applyTransfer, reportLoss } from './domain/bank.js';
 import { buildDataModel, provenance } from './services/banking.js';
 import { paymentDetails, payLocal } from './domain/payments.js';
 import { savingsDetails, saveLocal } from './domain/savings.js';
 import { travelFromText } from './domain/travel.js';
+import { purchase } from './services/wealth.js';
 import { fromText, fromAction, parseIntent } from './agent/planner.js';
 import { applyMessages, resolveTree } from './a2ui/apply.js';
 import { useConversations } from './state/useConversations.js';
@@ -137,7 +138,7 @@ export default function App() {
   const commitTransferRef = useRef(() => {});
 
   /* ── 安全与权限分级（实现在 state/useSecurity.js）───────────────────── */
-  const { auth, lock, gateDraft, screen, passAuth, failAuth, doUnlock, closeAuth } = useSecurity({
+  const { auth, lock, gate, gateDraft, screen, passAuth, failAuth, doUnlock, closeAuth } = useSecurity({
     bank, setConfirm, setToast, yuan,
   });
 
@@ -167,7 +168,7 @@ export default function App() {
   const commitTransfer = useCallback(action => {
     try {
       setBank(prev => applyTransfer(prev, action));
-      setToast('已模拟转账 ' + yuan(action.amount) + ' 给 ' + action.recipientName);
+      setToast('已转出 ' + yuan(action.amount) + ' 给 ' + action.recipientName);
       if (flow) {
         paintFlow(flow.surfaceId, 'done', {
           ...draftRef.current,
@@ -193,9 +194,13 @@ export default function App() {
 
 
   const toggleCard = useCallback(cardId => {
+    /* 挂失是**不可逆**的：账本里这张卡已经 lost（或补卡中），
+       这里必须挡住，否则助手侧那个「切换状态」按钮一点就把不可逆推翻了。 */
+    const c0 = bank.cards.find(c => c.id === cardId);
+    if (!c0 || c0.status === 'lost' || c0.status === 'replacing') return setToast('这张卡已挂失，不能改回正常');
     setBank(prev => ({ ...prev, cards: prev.cards.map(c => c.id === cardId ? { ...c, status: c.status === 'active' ? 'frozen' : 'active' } : c) }));
-    setToast('卡片状态已更新（模拟）');
-  }, []);
+    setToast('卡片状态已更新');
+  }, [bank.cards, setToast]);
 
   const handleAction = useCallback((surfaceId, event) => {
     if (!event || typeof event.name !== 'string') return;
@@ -246,7 +251,7 @@ export default function App() {
       busyRef.current = true; setBusy(true);
       try {
         await api('/session/reset', {});
-        setBank(seed()); await refreshBank(); setConfirm(null); history.create(); setToast('已创建新的演示账户');
+        setBank(seed()); await refreshBank(); setConfirm(null); history.create(); setToast('已切换到新账户');
       } catch (err) { setConnection('error'); setConfirm(null); setToast(err.message); }
       finally { busyRef.current = false; setBusy(false); }
       return;
@@ -264,8 +269,20 @@ export default function App() {
         subscriptions: prev.subscriptions.map(s => s.id === action.id ? { ...s, status: canceled ? 'canceled' : 'active' } : s),
       }));
       setToast(canceled ? action.name + ' 已取消，后续不再扣费' : action.name + ' 已恢复续费');
+    } else if (action.type === 'wealth.purchase') {
+      /* 理财申购 —— 高风险，走到这里说明多因子已经通过。 */
+      try {
+        setBank(prev => purchase(prev, action));
+        setToast('已申购 ' + action.name + ' ' + yuan(action.amount));
+      } catch (err) { setToast(err.message); }
+    } else if (action.type === 'card.report-loss') {
+      /* 挂失 —— 不可逆，高风险，走到这里说明多因子已经通过。
+         与理财申购同一条路：页面只报「要做什么」，风险由 policy 判，账本只在这里写。
+         结果不额外存状态：卡在账本里变 lost，确认浮层自己消失，页面改呈现补卡进度。 */
+      setBank(prev => reportLoss(prev, action));
+      setToast(action.name + ' 已挂失');
     } else if (action.type === 'reset') {
-      setBank(seed()); history.create(); setToast('演示数据已重置');
+      setBank(seed()); history.create(); setToast('已恢复初始状态');
     }
   }, [confirm, history, refreshBank, openUndo, yuan]);
 
@@ -313,7 +330,7 @@ export default function App() {
     resetDemo: () => setConfirm({ type: 'reset' }),
     scrollRef,
     applyConfirmation, directory, yuan, contacts,
-    previewId, setPreviewId, taskControl,
+    previewId, setPreviewId, taskControl, gate,
     refreshBank,
     services, setServices, payService, moveSavings, exchangeDraft, setExchangeDraft, travelDraft, setTravelDraft,
   };

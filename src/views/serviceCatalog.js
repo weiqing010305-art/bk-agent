@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Banknote, BarChart3, CalendarClock, CreditCard, Lightbulb, PiggyBank, Plane, Repeat, Smartphone, TrainFront } from 'lucide-react';
+import { ArrowLeftRight, Banknote, BarChart3, CalendarClock, CreditCard, Lightbulb, LineChart, PiggyBank, Plane, Repeat, Smartphone, TrainFront } from 'lucide-react';
 
 export const SERVICE_TILES = [
   { label: '转账', icon: ArrowLeftRight, tone: 'accent', route: 'transfer' },
@@ -13,4 +13,5 @@ export const SERVICE_TILES = [
   { label: '卡片', icon: CreditCard, tone: 'warning', square: true, route: 'cards' },
   { label: '出行钱袋', icon: Plane, tone: 'accent', square: true, route: 'travel' },
   { label: '储蓄计划', icon: PiggyBank, tone: 'accent', square: true, route: 'savings' },
+  { label: '理财', icon: LineChart, tone: 'positive', square: true, route: 'wealth' },
 ];

@@ -231,10 +231,9 @@ export function composeTransferReview(draft, ctx) {
     Text('after-title', '这笔钱转出去之后', 'label'),
     Column('after', ['a1', 'a2'], { gap: 'var(--space-2)' }),
     Text('a1', '本月支出会从 ' + im.monthBeforeText + ' 变成 ' + im.monthAfterText + '，增加约 ' + im.monthDeltaPct + '%', 'body'),
-    Text('a2', '确认后会进入模拟安全验证，验证通过才记账；记账前后都有回执可查', 'caption'),
+    Text('a2', '确认后需安全验证，验证通过才记账', 'caption'),
 
     ActionGroup('actions', [{ label: '确认并获取验证码', event: 'transfer.confirm', variant: 'primary' }]),
-    Text('note', '演示环境，不产生真实交易', 'caption2'),
   ], { ...ctx.dataModel, ...draft });
 }
 

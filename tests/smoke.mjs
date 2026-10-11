@@ -22,7 +22,7 @@ add('欢迎入口', await page.locator('.flow-chip').count() === 7, '(' + await 
 
 // 各产品页
 /* 页面各自有自己的行类（收款人用 .payee-row 等），所以断言用「这一页有没有内容」而不是具体类名 */
-for (const [label, mustSee] of [['概览', /余额/], ['账单', /支出|收入/], ['订阅', /订阅|续费/], ['卡片', /卡|额度/], ['转账', /你想怎么转|转给谁|核对/]]) {
+for (const [label, mustSee] of [['概览', /余额/], ['理财', /持仓|榜单|年化/], ['账单', /支出|收入/], ['订阅', /订阅|续费/], ['卡片', /卡|额度/], ['转账', /你想怎么转|转给谁|核对/]]) {
   await page.locator('.side-item', { hasText: label }).first().click();
   await page.waitForTimeout(800);
   const t = await page.locator('.view-inner').innerText().catch(() => '');

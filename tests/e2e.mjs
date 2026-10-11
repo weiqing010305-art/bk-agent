@@ -42,7 +42,10 @@ try {
   assert.ok(composerBox.height >= 124, '输入框应有更大的默认高度');
   assert.equal(await page.locator('.assistant-main .composer-wrap').evaluate(el => getComputedStyle(el).position), 'absolute', '输入框外层应浮在对话区上方');
   assert.notEqual(await page.locator('.assistant-main .composer-wrap').evaluate(el => getComputedStyle(el).backgroundImage), 'none', '输入框下方应有独立的说明区');
-  assert.ok(await page.locator('.assistant-main .hint').isVisible(), '输入框下方应显示演示说明');
+  /* 这里原本断言「输入框下方应显示演示说明」—— 那是被推翻的决策。
+     作者明确要求界面上不出现演示 / 模拟 / 预设规则这类备注，
+     所以现在断言的是**反面**：那句话必须不在。 */
+  assert.equal(await page.locator('.assistant-main .hint').count(), 0, '输入框下方不应出现演示说明');
   assert.ok(await workspace().evaluate(el => parseFloat(getComputedStyle(el).paddingBottom)) >= 180, '对话底部应留出空间供最后一条消息滚出输入框');
   assert.equal(await page.locator('.composer .attach').count(), 0, '输入框不应显示附件入口');
   assert.equal(await page.locator('.chat-turn time').count(), 0, '对话消息不应显示时间');
@@ -68,6 +71,28 @@ try {
   assert.match(reviewText, /转后余额/, '核对步应给出转后余额');
   assert.match(reviewText, /扣完订阅还剩/, '核对步应给出扣完订阅的余额');
   assert.match(reviewText, /本月支出会从/, '核对步应说明对本月支出的影响');
+
+  /* 2b. 写路径全覆盖：确认 → 门禁 → 记账 → 5 秒可撤销。
+     这一段是补的洞：e2e 以前**从不点确认按钮**，只有 test:flow 走那条路，
+     于是「限额受理时段用了 UTC」那个 bug 在 e2e 里完全看不见。
+     写操作是这类产品最要紧的路径，必须由回归测试守着。 */
+  await surface().getByRole('button', { name: /确认并获取验证码/ }).click();
+  await page.waitForTimeout(900);
+  /* 门禁有两种结果，都算通过 —— 这正说明权限分级在起作用：
+     当日累计没超阈值走「展示详情并确认」，超了则升为多因子认证。 */
+  assert.equal(await page.locator('.modal').count(), 1, '确认后必须过门禁：或展示详情，或升为多因子');
+  if (await page.locator('.auth-modal').count() > 0) {
+    await page.locator('.auth-modal .a2ui-input').fill('824613');
+    await page.locator('.auth-modal').getByRole('button', { name: /验证并执行/ }).click();
+  } else {
+    await page.locator('.modal').getByRole('button', { name: /确认转账/ }).click();
+  }
+  await page.waitForTimeout(900);
+  assert.equal(await page.locator('.undo-bar').count(), 1, '通过门禁后应出现 5 秒可撤销条');
+  await page.locator('.undo-btn').click();
+  await page.waitForTimeout(700);
+  assert.match(await page.locator('.toast').innerText(), /已撤销/, '撤销应给出反馈');
+  assert.equal(await page.locator('.undo-bar').count(), 0, '撤销后倒计时条应消失');
 
   // 3. 只说了金额 → 从「转给谁」开始，不重复问已知的事
   await composer().fill('我要转 50 块');
@@ -126,7 +151,7 @@ try {
 
   await page.screenshot({ path: 'artifacts/e2e/final.png' });
   assert.equal(pageErrors.length, 0, '不应有未捕获异常: ' + pageErrors.join(' | '));
-  console.log('e2e OK — 全部断言通过（欢迎入口 / 左右消息 / 统合跨域 / 跳步 / 键盘 / 产品层 / 多会话 / 刷新）');
+  console.log('e2e OK — 全部断言通过（欢迎入口 / 左右消息 / 统合跨域 / 跳步 / **写路径：确认→门禁→撤销** / 键盘 / 产品层 / 多会话 / 刷新）');
 } finally {
   await browser.close();
 }
