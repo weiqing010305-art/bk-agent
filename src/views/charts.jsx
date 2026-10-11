@@ -49,7 +49,7 @@ function Readout({ parts, total, active, locked, onLock, fallback }) {
 }
 
 /* ── 1 圆环：看结构 ──────────────────────────────────────────────────── */
-const CX = 66, CY = 66, R_IN = 39, R_OUT = 52;
+const CX = 66, CY = 66, R_IN = 43, R_OUT = 52;
 
 /* 用整块扇环（fill）而不是 strokeDasharray：扇面上任何一点都能命中，
    而不是只有那一圈描边。gap 也按扇面角度切，一笔数据时不留缺口。 */
@@ -82,7 +82,7 @@ export function Donut({ parts, total, active, locked, onHover, onLock }) {
     <svg viewBox="0 0 132 132" role="img" aria-label="支出构成圆环图">
       {segs}
       <text x="66" y="56" className="chart-center-label">{hit ? hit.name : '支出合计'}</text>
-      <text x="66" y="76" className="chart-center-value">{yuan(hit ? hit.amount : total)}</text>
+      <text x="66" y="76" className={'chart-center-value' + (yuan(hit ? hit.amount : total).length > 9 ? ' chart-center-value--long' : '')}>{yuan(hit ? hit.amount : total)}</text>
       <text x="66" y="92" className="chart-center-sub">{hit ? pct(hit.amount, total) + '% · ' + hit.count + ' 笔' : parts.length + ' 个类目'}</text>
     </svg>
   </div>;

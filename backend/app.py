@@ -5,6 +5,7 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -68,6 +69,37 @@ class CardLookup(StrictBody):
 class Verification(Confirmation):
     challenge_id: str = Field(min_length=36, max_length=36)
     code: str = Field(pattern=r"^\d{6}$")
+
+
+class Payment(StrictBody):
+    id: str = Field(pattern=r"^[a-f0-9-]{36}$")
+    kind: Literal["phone", "utility", "credit", "traffic"]
+    utility: Literal["water", "electricity", "gas"]
+    cardId: Literal["debit", "travel"]
+    target: str = Field(min_length=6, max_length=20)
+    amount: StrictInt = Field(gt=0, le=10000000)
+    password: str = Field(pattern=r"^\d{6}$")
+
+    @model_validator(mode="after")
+    def valid_target(self):
+        import re
+        pattern = r"1[3-9]\d{9}" if self.kind == "phone" else r"\d{6,20}"
+        if not re.fullmatch(pattern, self.target):
+            raise ValueError("手机号或缴费户号格式不正确")
+        if self.kind == "credit" and self.target != "664266":
+            raise ValueError("请选择有效的演示信用卡")
+        if self.kind == "traffic" and not re.fullmatch(r"\d{8,20}", self.target):
+            raise ValueError("请输入 8–20 位交通卡号")
+        return self
+
+
+class SavingsTransfer(StrictBody):
+    id: str = Field(pattern=r"^[a-f0-9-]{36}$")
+    goalId: str = Field(pattern=r"^[a-f0-9-]{36}$")
+    direction: Literal["deposit", "withdraw"]
+    cardId: Literal["debit", "travel"]
+    amount: StrictInt = Field(gt=0, le=10000000)
+    password: str = Field(pattern=r"^\d{6}$")
 
 
 def operation_view(op):
@@ -182,7 +214,13 @@ def create_app(engine=None):
         recipients = db.scalars(select(Recipient).where(Recipient.user_id == session.user_id, Recipient.is_favorite.is_(True)).order_by(Recipient.id)).all()
         transactions = db.scalars(select(Transaction).where(Transaction.user_id == session.user_id)
                                   .order_by(Transaction.created_at.desc(), Transaction.id)).all()
-        return {"balance": account.balance, "currency": "CNY", "mock": True,
+        positions = {}
+        moves = db.execute(select(Operation.recipient_number, Transaction.amount).join(
+            Transaction, Transaction.operation_id == Operation.id).where(
+            Operation.user_id == session.user_id, Operation.contact_id.in_(["saving:deposit", "saving:withdraw"]))).all()
+        for goal_id, amount in moves:
+            positions[goal_id] = positions.get(goal_id, 0) - amount
+        return {"savings": positions, "balance": account.balance, "currency": "CNY", "mock": True,
                 "contacts": [{"id": r.id, "name": r.name, "number": r.number} for r in recipients],
                 "completed": [t.operation_id for t in transactions if t.operation_id],
                 "transactions": [{"id": t.id, "name": t.name, "category": t.category, "amount": t.amount,
@@ -221,6 +259,84 @@ def create_app(engine=None):
         db.add(op)
         db.flush()
         audit(db, session, "DRAFT_CREATED", op)
+        db.commit()
+        return operation_view(op)
+
+    @app.post("/api/payments")
+    def payment(body: Payment, session=Depends(get_session), db=Depends(get_db)):
+        account = lock_account(db, session)
+        if not secrets.compare_digest(body.password, "123456"):
+            fail("INVALID_PASSWORD", "支付密码不正确，请重新输入。", 422)
+        params = body.model_dump(exclude={"password"})
+        digest = hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
+        existing = db.get(Operation, body.id)
+        if existing:
+            if existing.user_id != session.user_id or existing.session_id != session.id:
+                fail("NOT_FOUND", "未找到此演示支付", 404)
+            if existing.params_hash != digest:
+                fail("IDEMPOTENCY_CONFLICT", "请求编号已用于不同支付，请重新核对。")
+            return operation_view(existing)
+        if body.amount > account.balance:
+            fail("INSUFFICIENT_FUNDS", "账户余额不足，请调整金额。")
+        name = "手机充值" if body.kind == "phone" else {"water": "水费缴费", "electricity": "电费缴费", "gas": "燃气费缴费"}[body.utility]
+        if body.kind == "credit":
+            name = "信用卡还款 · 6642"
+            repayments = db.scalars(select(Transaction).where(Transaction.user_id == session.user_id,
+                                   Transaction.name == name, Transaction.category == "信用卡还款")).all()
+            due = max(0, 452000 + sum(t.amount for t in repayments))
+            if body.amount > due:
+                fail("OVERPAYMENT", "还款金额不能超过本期待还金额。")
+        if body.kind == "traffic":
+            name = "交通卡充值"
+        note = body.target + " · 尾号" + {"debit": "8826", "travel": "3901"}[body.cardId]
+        op = Operation(id=body.id, user_id=session.user_id, session_id=session.id,
+                       idempotency_key=body.id, params_hash=digest, contact_id="payment:" + body.cardId,
+                       recipient_name=name, recipient_number=body.target, amount=body.amount, note=note,
+                       revision=1, status="SUCCEEDED", expires_at=now() + timedelta(minutes=5))
+        db.add(op)
+        db.flush()
+        account.balance -= body.amount
+        db.add(Transaction(id=body.id, user_id=session.user_id, operation_id=body.id, name=name,
+                           category="交通" if body.kind == "traffic" else "信用卡还款" if body.kind == "credit" else "通信" if body.kind == "phone" else "生活缴费", amount=-body.amount,
+                           date=now().date().isoformat(), note=note, created_at=now()))
+        audit(db, session, "SERVICE_PAYMENT_POSTED", op)
+        db.commit()
+        return operation_view(op)
+
+    @app.post("/api/savings")
+    def savings_transfer(body: SavingsTransfer, session=Depends(get_session), db=Depends(get_db)):
+        account = lock_account(db, session)
+        if not secrets.compare_digest(body.password, "123456"):
+            fail("INVALID_PASSWORD", "支付密码不正确，请重新输入。", 422)
+        digest = hashlib.sha256(json.dumps(body.model_dump(exclude={"password"}), sort_keys=True).encode()).hexdigest()
+        existing = db.get(Operation, body.id)
+        if existing:
+            if existing.user_id != session.user_id or existing.session_id != session.id:
+                fail("NOT_FOUND", "未找到此资金划转", 404)
+            if existing.params_hash != digest:
+                fail("IDEMPOTENCY_CONFLICT", "编号已用于另一笔资金划转。")
+            return operation_view(existing)
+        amounts = db.scalars(select(Transaction.amount).join(Operation, Transaction.operation_id == Operation.id).where(
+            Operation.user_id == session.user_id, Operation.recipient_number == body.goalId,
+            Operation.contact_id.in_(["saving:deposit", "saving:withdraw"]))).all()
+        held = -sum(amounts)
+        if body.direction == "deposit" and body.amount > account.balance:
+            fail("INSUFFICIENT_FUNDS", "可用余额不足。")
+        if body.direction == "withdraw" and body.amount > held:
+            fail("INSUFFICIENT_SAVINGS", "取回金额不能超过已存金额。")
+        delta = -body.amount if body.direction == "deposit" else body.amount
+        name = "存入储蓄计划" if delta < 0 else "取回储蓄资金"
+        note = "计划 " + body.goalId[:8]
+        op = Operation(id=body.id, user_id=session.user_id, session_id=session.id,
+                       idempotency_key=body.id, params_hash=digest, contact_id="saving:" + body.direction,
+                       recipient_name=name, recipient_number=body.goalId, amount=body.amount, note=note,
+                       revision=1, status="SUCCEEDED", expires_at=now() + timedelta(minutes=5))
+        db.add(op)
+        db.flush()
+        account.balance += delta
+        db.add(Transaction(id=body.id, user_id=session.user_id, operation_id=body.id, name=name,
+                           category="储蓄划转", amount=delta, date=now().date().isoformat(), note=note, created_at=now()))
+        audit(db, session, "SAVINGS_TRANSFER_POSTED", op)
         db.commit()
         return operation_view(op)
 

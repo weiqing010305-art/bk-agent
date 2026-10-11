@@ -10,7 +10,8 @@ import { api, backendMode, binding } from '../api/client.js';
 export function useBackendBank({ setBank, setContacts, setConnection, setToast, setBusy, setApiError, setConfirm, confirm, verificationCode, busyRef }) {
   const refreshBank = useCallback(async () => {
     const state = await api('/state');
-    setBank(prev => ({ ...prev, balance: state.balance, transactions: state.transactions, completed: state.completed }));
+    setBank(prev => ({ ...prev, balance: state.balance, available: state.balance,
+      total: state.balance + (prev.frozen || 0) + (prev.pending || 0), savings: state.savings || {}, transactions: state.transactions, completed: state.completed }));
     setContacts(state.contacts);
     setConnection('ready');
   }, [setBank, setContacts, setConnection]);

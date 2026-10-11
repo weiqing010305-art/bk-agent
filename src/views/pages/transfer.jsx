@@ -6,7 +6,6 @@ import { fromAction } from '../../agent/planner.js';
 import { transferImpact, validateTransferSlots } from '../../services/banking.js';
 import SurfaceView from '../../a2ui/render.jsx';
 import { Page, Panel, Empty } from '../parts.jsx';
-import Payees from './payees.jsx';
 import './transfer.css';
 
 /**
@@ -21,7 +20,7 @@ import './transfer.css';
  *
  *  2. **每一步都配一块本页自己的参照信息**。分工是：
  *     surface 负责「这一步要你做什么」，这块负责「做之前你该知道什么」——
- *     四种方式的限额与到账、完整收款人名录、核对前的三条跨域结论。
+ *     核对前的三条跨域结论；方式说明已合并进流程选项。
  *
  *     state/useTransferFlow.js 里那套状态机是给助手那条 surface 用的，它依赖 App 的
  *     history / a2ui / ctxFor / record，这些都不在 ctx 里，本页复用它只能照抄一遍。
@@ -31,15 +30,6 @@ import './transfer.css';
 
 const SURFACE_ID = 'page-transfer';
 const EMPTY_DRAFT = { type: 'person', contactId: '', manualCardNumber: '', amountText: '', note: '' };
-
-/* 四种方式在真实银行里的差别。surface 里只有一句 hint，
-   而「限额多少、多久到、收不收手续费」才是选之前要看的。 */
-const TYPE_FACTS = [
-  { id: 'person', label: '转给他人', limit: '单笔上限 ¥50,000.00', arrive: '实时到账', fee: '本行免费，跨行每笔 ¥2.00' },
-  { id: 'self', label: '本人账户互转', limit: '单笔上限 ¥100,000.00', arrive: '实时到账', fee: '同一客户号下免费' },
-  { id: 'scheduled', label: '预约转账', limit: '单笔上限 ¥50,000.00', arrive: '预约日 09:00 执行', fee: '免费，执行前一天可撤' },
-  { id: 'collect', label: 'AA 收款', limit: '每人上限 ¥20,000.00', arrive: '对方确认后入账', fee: '免费，24 小时内有效' },
-];
 
 export default function Transfer({ ctx }) {
   const { bank, dataModel, contacts, directory, provenance, handleAction, setConfirm, setRoute, yuan } = ctx;
@@ -130,8 +120,6 @@ export default function Transfer({ ctx }) {
     return handleAction(SURFACE_ID, e);   /* 设为常用收款人之类仍然是 App 的账 */
   };
 
-  const pick = id => goto('amount', { contactId: id, manualCardNumber: '' });
-
   const surface = state.surfaces[SURFACE_ID];
   return <Page title="转账" subtitle="选方式、选人、填金额、核对。模拟转账，不产生真实交易。">
     {surface
@@ -139,34 +127,10 @@ export default function Transfer({ ctx }) {
       : <Empty>转账界面不可用。</Empty>}
     {notice && <p className="tf-notice" role="status">{notice}</p>}
 
-    {step === 'type' && <TypeFacts onPick={id => goto('recipient', { type: id })}/>}
     {step === 'review' && <Reassurance bank={bank} amountText={surface && surface.dataModel.amountText} yuan={yuan}/>}
-    <Payees ctx={ctx} onPick={pick}/>
 
     <p className="page-note">演示环境，不产生真实交易</p>
   </Page>;
-}
-
-/* ── 第一步的参照：四种方式的限额 / 到账 / 手续费 ─────────────────────── */
-
-function TypeFacts({ onPick }) {
-  return <Panel title="选之前，先看清四种方式的差别" aside={<span className="panel-hint">点一行就能选</span>}>
-    <ul className="tf-facts">
-      {TYPE_FACTS.map(t => <li key={t.id}>
-        <button type="button" className="tf-fact" onClick={() => onPick(t.id)}>
-          <span>
-            <strong>{t.label}</strong>
-            <small>{t.arrive}</small>
-          </span>
-          <span className="tf-fact-meta">
-            <b>{t.limit}</b>
-            <small>{t.fee}</small>
-          </span>
-        </button>
-      </li>)}
-    </ul>
-    <p className="page-note">限额与费率为演示口径，接入真实账户后由后台返回</p>
-  </Panel>;
 }
 
 /* ── 核对前的三条结论：跨域数字由 services/banking.js 统一口径 ────────── */

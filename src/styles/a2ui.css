@@ -56,6 +56,25 @@
 .a2ui-card--interactive:active { transform: scale(.97); transition-duration: var(--duration-instant); }
 .a2ui-card--interactive .a2ui-text--label { color: var(--text-primary); font-size: var(--text-subhead); }
 
+.a2ui-surface[data-step="type"] .a2ui-card--interactive > .a2ui-row--between > .a2ui-col {
+  text-align: right;
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .a2ui-surface[data-step="type"] .a2ui-card--interactive {
+    border-radius: var(--radius-card);
+    padding-block: var(--space-4);
+  }
+  .a2ui-surface[data-step="type"] .a2ui-card--interactive > .a2ui-row--between {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .a2ui-surface[data-step="type"] .a2ui-card--interactive > .a2ui-row--between > .a2ui-col {
+    text-align: left;
+    padding-left: calc(32px + var(--space-4));
+  }
+}
+
 .a2ui-field { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
 .a2ui-input {
   width: 100%; height: var(--hit-min); padding: 0 var(--space-5);

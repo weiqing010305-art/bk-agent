@@ -31,8 +31,6 @@ export const ACTIONS = [
   { id: 'bills', label: '账单', hint: '本月收支与每笔明细', icon: 'bills', steps: 1 },
   { id: 'subscriptions', label: '订阅', hint: '自动扣费清单', icon: 'subscriptions', steps: 1 },
   { id: 'cards', label: '卡片', hint: '状态与冻结', icon: 'cards', steps: 1 },
-  { id: 'transfer.scheduled', label: '定时转账', hint: '每月自动转，可中断可回退', icon: 'transfer', steps: 5 },
-  { id: 'transfer.aa', label: 'AA 收款', hint: '一笔消费拆给多个人', icon: 'transfer', steps: 4 },
   { id: 'occasion', label: '跨场景', hint: '生日、纪念日这类日子', icon: 'sparkles', steps: 4 },
 ];
 

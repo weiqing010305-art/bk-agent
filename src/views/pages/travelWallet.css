@@ -1,0 +1,24 @@
+.travel-switch { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.travel-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-7);
+  border-bottom: 1px solid var(--hairline);
+  color: var(--bank-ink);
+}
+.travel-summary h2 { margin: 0; font-size: var(--text-title-2); overflow-wrap: anywhere; }
+.travel-summary p { margin: var(--space-2) 0 0; font-size: var(--text-subhead); }
+.travel-summary > svg { flex: 0 0 auto; color: var(--accent); }
+.travel-summary > .link-btn { margin-left: auto; flex: 0 0 auto; }
+.travel-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+.travel-ready { color: var(--accent); }
+.travel-checklist { margin: 0; padding: 0; list-style: none; }
+.travel-checklist li { padding: var(--space-4) 0; border-bottom: 1px solid var(--hairline); }
+.travel-checklist label, .travel-checklist span { display: flex; align-items: center; gap: var(--space-4); }
+.travel-checklist input { width: 20px; height: 20px; flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .travel-dates { grid-template-columns: 1fr; }
+  .travel-summary { padding: var(--space-4) 0; flex-wrap: wrap; }
+  .travel-summary p { overflow-wrap: anywhere; }
+}

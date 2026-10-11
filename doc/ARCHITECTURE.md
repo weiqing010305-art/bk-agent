@@ -1,5 +1,96 @@
 # ARCHITECTURE — 青禾银行 AI 资金管家的整体架构
 
+## 转账方式元数据合并
+
+```mermaid
+flowchart LR
+  D["TRANSFER_TYPES 名称及到账限额费用"] --> S["stepType 圆角选项"]
+  S --> A["助手 SurfaceView"]
+  S --> T["Transfer SurfaceView"]
+```
+
+删除 Transfer 的 TYPE_FACTS 和 TypeFacts 对比面板，方式说明统一由 transferFlow 输出。
+
+## 转账页移除收款人管理组件
+
+```mermaid
+flowchart LR
+  T["Transfer"] --> S["SurfaceView 转账流程内选人"]
+  T --> F["TypeFacts 方式说明"]
+  T --> R["Reassurance 核对说明"]
+```
+
+独立的 Payees 组件及 payees.css 已删除，Transfer 不再渲染底部收款人管理区。
+
+## 流水独立路由
+
+```mermaid
+flowchart LR
+  B["Bills 入口按钮"] --> R["ctx.setRoute statement"]
+  R --> P["ProductView StatementExport 独立 Page"]
+  P --> F["statementRows 筛选共享账本"]
+  F --> C["statementCsv 文件下载"]
+  P --> BACK["ctx.setRoute bills"]
+```
+
+## 助手服务目录复用
+
+```mermaid
+flowchart TD
+  C["serviceCatalog SERVICE_TILES"] --> O["Overview 完整目录"]
+  C --> L["FlowLauncher 排除四个主入口"]
+  L --> E["跨场景展开状态"]
+  E --> R["ctx.setRoute 服务页面"]
+```
+
+## 交通充值与储蓄划转数据流
+
+交通充值复用 EverydayServices 和 payments 校验，kind 为 traffic。services 持久化 trafficCard 与 savingsGoals 元数据；bank.savings 持久化各 goalId 的实际留存。后端模式由 GET /api/state 返回 savings，POST /api/savings 在账户行锁下校验密码、余额和留存，原子写入 Operation、Transaction 与账户余额；留存按该用户的 savings Operation 和交易关联派生，不信任客户端传入余额。操作 UUID 保证幂等，密码不保存，网络不确定时使用原编号查询。
+
+```mermaid
+flowchart TD
+  O["Overview"] --> T["EverydayServices traffic"]
+  O --> S["Savings"]
+  T --> P["App payService"]
+  S --> M["App moveSavings"]
+  M --> L["saveLocal 和 bank.savings"]
+  M --> API["POST /api/savings"]
+  API --> LOCK["账户锁与幂等校验"]
+  LOCK --> DB["账户和 Operation 与 Transaction 原子提交"]
+  DB --> STATE["GET /api/state 含留存"]
+  STATE --> UI["余额与计划进度"]
+  S --> META["services.savingsGoals 浏览器元数据"]
+  P --> PAY["POST /api/payments 或 payLocal"]
+```
+
+
+```mermaid
+flowchart TD
+  O["Overview travel 入口"] --> T["TravelWallet"]
+  A["App submit"] --> P["travelFromText 明确出行规则"] --> D["travelDraft 待用户核对"] --> T
+  BANK["bank.cards 与卡包 TEMPLATE 档案"] --> CHECK["travelCardStatus 只读检查"] --> T
+  T --> STORE["services.trips 与 activeTripId 浏览器保存"]
+  T --> ED["exchangeDraft 一次性预填与 tripId"] --> ES["EverydayServices exchange"]
+  ES --> V["手机号、时间网点、出发前校验"] --> BOOK["services.appointments 关联 tripId"]
+  BOOK --> T
+  T --> CK["trip.checks 用户准备标记 浏览器保存"]
+```
+
+```mermaid
+flowchart TD
+  O["Overview 快捷入口"] --> ES["EverydayServices 信用卡还款或网点预约"]
+  ES --> PD["payments.js 校验还款及从流水派生待还"]
+  PD --> LOCAL["payLocal 原子扣款与流水"]
+  PD --> API["POST /api/payments kind credit"]
+  API --> DB["账户锁、待还校验、幂等操作与交易"]
+  LOCAL --> BANK["统一 bank 状态"]
+  DB --> BANK
+  ES --> PREF["services.appointments 含 kind 保存在浏览器"]
+  B["Bills"] --> EXP["StatementExport 日期与收支筛选"]
+  BANK --> EXP
+  EXP --> CSV["statement.js UTF-8 BOM CSV 与公式转义"] --> FILE["浏览器下载文件"]
+```
+
 > 本文描述**当前真实实现**，不是设想。每条断言都能在源码里找到对应文件。
 > 维护义务见 [AGENTS.md](../AGENTS.md) §2。最后更新：2026-09-28
 
@@ -687,6 +778,22 @@ flowchart TB
     V1 --> V2["三张可执行卡片：直接转账 / 先看账 / 清掉不用的订阅"]
 ```
 
+### 概览生活服务数据流
+
+`everydayServices.jsx` 复用三类表单与核对样式，密码仅存当前组件内存。`payments.js` 校验本地支付并以整数分记账；后端模式通过 `/api/payments` 锁账户、校验演示密码、检查余额，以请求 UUID 幂等写入现有 Operation / Transaction / AuditEvent，无新增数据库表。网络结果不明确时保留不含密码的原请求到 sessionStorage，页面可查询原操作；本地手机号和兑换预约通过 App 的 services 状态保存到 localStorage，不混入扣款账本。
+
+```mermaid
+flowchart TB
+    UI["概览生活服务表单"] --> APP["App payService"]
+    APP --> LOCAL["payLocal：本地账本"]
+    APP --> API["POST /api/payments"]
+    API --> LOCK["锁账户与校验密码、余额、请求摘要"]
+    LOCK --> DB["同事务：余额、流水、回执、审计"]
+    DB --> SYNC["refreshBank 同步余额与流水"]
+    UI --> PREF["App services：手机号、线下预约"]
+    PREF --> STORE["localStorage，不保存密码"]
+```
+
 ### 7.12 助手工作区的布局
 
 按会话顺序渲染完整消息流。新对话的第一条助手消息提供欢迎语和七列卡片式功能入口；用户消息用浅蓝气泡靠右，助手消息及对应的 A2UI 业务 surface 靠左。消息下方不显示复制、编辑图标，助手对话中的 surface 不显示来源页脚；来源元数据仍由协议保留。不显示助手头像和消息时间。桌面侧栏宽度为 `clamp(260px, 16vw, 340px)`；对话与输入区共用居中的 1040px 最大宽度，输入框默认最小高度 124px，窄屏降为 96px。消息区独立滚动并留有底部空间，输入框以透明外层浮在对话区上方。交易明细由账单页提供。
@@ -918,7 +1025,6 @@ Get-ChildItem src -Recurse -Include *.css |
 | `pages/cardUtils.jsx` | 43 | 账期模型 |
 | `pages/payees.jsx` | 收款人名录区 | 嵌入转账页；搜索、常用设置与卡号查询 |
 | `pages/transfer.jsx` | 238 | 转账页（渲染同一套 A2UI surface） |
-| `pages/receipts.jsx` | 23 | 回执 |
 
 ### 外壳 components/
 

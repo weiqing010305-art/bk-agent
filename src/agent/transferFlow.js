@@ -22,10 +22,10 @@ export const TRANSFER_STEPS = ['type', 'recipient', 'amount', 'review'];
 export const ALL_STEPS = [...TRANSFER_STEPS, 'done'];
 
 export const TRANSFER_TYPES = [
-  { id: 'person',    label: '转给他人',     hint: '卡号、手机号或常用收款人', icon: 'user' },
-  { id: 'self',      label: '本人账户互转', hint: '青禾借记卡 ⇄ 旅行卡',       icon: 'repeat' },
-  { id: 'scheduled', label: '预约转账',     hint: '指定日期自动执行',          icon: 'calendar' },
-  { id: 'collect',   label: 'AA 收款',      hint: '向多人分摊一笔钱',          icon: 'users' },
+  { id: 'person',    label: '转给他人',     hint: '卡号、手机号或常用收款人', icon: 'user', limit: '单笔上限 ¥50,000.00', arrive: '实时到账', fee: '本行免费，跨行每笔 ¥2.00' },
+  { id: 'self',      label: '本人账户互转', hint: '青禾借记卡 ⇄ 旅行卡',       icon: 'repeat', limit: '单笔上限 ¥100,000.00', arrive: '实时到账', fee: '同一客户号下免费' },
+  { id: 'scheduled', label: '预约转账',     hint: '指定日期自动执行',          icon: 'calendar', limit: '单笔上限 ¥50,000.00', arrive: '预约日 09:00 执行', fee: '免费，执行前一天可撤' },
+  { id: 'collect',   label: 'AA 收款',      hint: '向多人分摊一笔钱',          icon: 'users', limit: '每人上限 ¥20,000.00', arrive: '对方确认后入账', fee: '免费，24 小时内有效' },
 ];
 
 const TITLE = {
@@ -77,13 +77,17 @@ function stepType(draft, ctx) {
     Column('options', TRANSFER_TYPES.map(t => 'opt-' + t.id), { gap: 'var(--space-3)' }),
     ...TRANSFER_TYPES.flatMap(t => [
       Card('opt-' + t.id, 'opt-row-' + t.id, { action: { event: 'transfer.pick-type', context: { type: t.id } } }),
-      Row('opt-row-' + t.id, ['opt-icon-' + t.id, 'opt-text-' + t.id], { gap: 'var(--space-4)' }),
+      Row('opt-row-' + t.id, ['opt-main-' + t.id, 'opt-meta-' + t.id], { align: 'between', gap: 'var(--space-4)' }),
+      Row('opt-main-' + t.id, ['opt-icon-' + t.id, 'opt-text-' + t.id], { gap: 'var(--space-4)' }),
       Icon('opt-icon-' + t.id, t.icon, 'accent'),
       Column('opt-text-' + t.id, ['opt-label-' + t.id, 'opt-hint-' + t.id], { gap: '0px' }),
       Text('opt-label-' + t.id, t.label, 'body'),
-      Text('opt-hint-' + t.id, t.hint, 'caption'),
+      Text('opt-hint-' + t.id, t.hint + ' · ' + t.arrive, 'caption'),
+      Column('opt-meta-' + t.id, ['opt-limit-' + t.id, 'opt-fee-' + t.id], { gap: '2px' }),
+      Text('opt-limit-' + t.id, t.limit, 'label'),
+      Text('opt-fee-' + t.id, t.fee, 'caption'),
     ]),
-    Text('note', '演示环境 · 不产生真实交易', 'caption2'),
+    Text('note', '限额与费率为演示口径 · 不产生真实交易', 'caption2'),
   ], { ...ctx.dataModel, step: 'type', ...draft });
 }
 

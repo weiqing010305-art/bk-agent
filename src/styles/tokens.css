@@ -32,25 +32,25 @@
      第一屏只回答一个问题，字号就是那个答案。 */
   --text-hero: 2.5rem;
   --text-large-title: 2.125rem;   /* 34pt · Bold */
-  --text-title-1:     1.75rem;    /* 28pt · Bold */
-  --text-title-2:     1.375rem;   /* 22pt · Bold */
-  --text-title-3:     1.25rem;    /* 20pt · Semibold */
-  --text-headline:    1.0625rem;  /* 17pt · Semibold */
-  --text-body:        1.0625rem;  /* 17pt · Regular */
-  --text-callout:     1rem;       /* 16pt */
-  --text-subhead:     0.9375rem;  /* 15pt */
-  --text-footnote:    0.8125rem;  /* 13pt */
+  --text-title-1:     1.875rem;   /* 30px · 页面标题 */
+  --text-title-2:     1.625rem;   /* 26px · 主要数据 */
+  --text-title-3:     1.375rem;   /* 22px · 次级数据 */
+  --text-headline:    1.25rem;    /* 20px · 分区标题 */
+  --text-body:        1.125rem;   /* 18px · 正文 */
+  --text-callout:     1.125rem;   /* 18px · 导航与操作 */
+  --text-subhead:     1.0625rem;  /* 17px · 内容标签 */
+  --text-footnote:    0.9375rem;  /* 15px · 辅助说明 */
   /* caption 是 caption-1 的别名。它被 12 处以上引用过却从来没定义，
      浏览器会静默丢掉整条 font-size 声明，字号退回继承值 —— 肉眼几乎看不出，最难查。 */
   --text-caption:     var(--text-caption-1);
-  --text-caption-1:   0.75rem;    /* 12pt */
-  --text-caption-2:   0.6875rem;  /* 11pt */
+  --text-caption-1:   0.875rem;   /* 14px · 元数据 */
+  --text-caption-2:   0.8125rem;  /* 13px · 紧凑注记 */
 
   --leading-hero: 1.08;
   --leading-large-title: 1.21;  --leading-title-1: 1.21;
   --leading-title-2: 1.27;      --leading-title-3: 1.25;
-  --leading-headline: 1.29;     --leading-body: 1.29;
-  --leading-callout: 1.31;      --leading-subhead: 1.33;
+  --leading-headline: 1.4;      --leading-body: 1.55;
+  --leading-callout: 1.45;      --leading-subhead: 1.5;
   --leading-footnote: 1.38;     --leading-caption-1: 1.33;
   --leading-caption-2: 1.18;    --leading-relaxed: 1.6;
 
@@ -61,7 +61,7 @@
   --tracking-footnote:  -0.006em;   /* 13pt */
   --tracking-subhead:   -0.016em;   /* 15pt */
   --tracking-callout:   -0.020em;   /* 16pt */
-  --tracking-body:      -0.026em;   /* 17pt ← 正文基准 */
+  --tracking-body:      0em;       /* 中文正文保持自然字距 */
   --tracking-title-3:   -0.023em;   /* 20pt */
   --tracking-title-2:   -0.012em;   /* 22pt */
   --tracking-title-1:    0.014em;   /* 28pt */

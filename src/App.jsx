@@ -3,6 +3,9 @@ import { Menu } from 'lucide-react';
 import { api, backendMode, binding } from './api/client.js';
 import { contacts as demoContacts, directory, money, seed, transfer as applyTransfer } from './domain/bank.js';
 import { buildDataModel, provenance } from './services/banking.js';
+import { paymentDetails, payLocal } from './domain/payments.js';
+import { savingsDetails, saveLocal } from './domain/savings.js';
+import { travelFromText } from './domain/travel.js';
 import { fromText, fromAction, parseIntent } from './agent/planner.js';
 import { applyMessages, resolveTree } from './a2ui/apply.js';
 import { useConversations } from './state/useConversations.js';
@@ -61,6 +64,16 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
   const [route, setRoute] = useState('assistant');
+  const [exchangeDraft, setExchangeDraft] = useState(null);
+  const [travelDraft, setTravelDraft] = useState(null);
+  const [services, setServices] = useState(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('qinghe-services-v1'));
+      return { trafficCard: typeof s?.trafficCard === 'string' ? s.trafficCard : '', savingsGoals: Array.isArray(s?.savingsGoals) ? s.savingsGoals : [], phone: typeof s?.phone === 'string' ? s.phone : '', appointments: Array.isArray(s?.appointments) ? s.appointments : [], trips: Array.isArray(s?.trips) ? s.trips : [], activeTripId: typeof s?.activeTripId === 'string' ? s.activeTripId : null };
+    } catch { return { phone: '', trafficCard: '', savingsGoals: [], appointments: [], trips: [] }; }
+  });
+  useEffect(() => { try { localStorage.setItem('qinghe-services-v1', JSON.stringify(services)); }
+    catch { setToast('浏览器保存失败，请保留预约信息。'); } }, [services]);
   /** 历史条里选中了哪一回合；null = 跟随最新 */
   const [previewId, setPreviewId] = useState(null);
   /* 转账流程的状态在 state/useTransferFlow.js 里，App 不再自己持有 */
@@ -138,7 +151,14 @@ export default function App() {
   const { runText, runAction, submit: turnSubmit, taskControl } = useTurnRunner({
     history, a2ui, turns, ctxFor, record, resumeFollow, startTransfer, screen, setPreviewId, contacts,
   });
-  const submit = useCallback(e => turnSubmit(draft, busyRef)(e), [turnSubmit, draft]);
+  const submit = useCallback(e => {
+    const trip = travelFromText(draft);
+    if (trip) {
+      e.preventDefault(); setTravelDraft(trip); setRoute('travel'); history.patch({ draft: '' });
+      setToast('已填写出行草稿，请核对目的地、日期和现金需求后保存。'); return;
+    }
+    return turnSubmit(draft, busyRef)(e);
+  }, [turnSubmit, draft, history]);
 
   /* ── 两个入口 ─────────────────────────────────────────────────────────── */
 
@@ -254,6 +274,27 @@ export default function App() {
   useEffect(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(''), 3200); return () => clearTimeout(t); }, [toast]);
 
 
+  const payService = async draft => {
+    paymentDetails(bank, draft);
+    if (backendMode) {
+      const result = await api('/payments', draft);
+      await refreshBank();
+      return result;
+    }
+    const next = payLocal(bank, draft);
+    setBank(next);
+    return { id: draft.id, status: 'SUCCEEDED' };
+  };
+
+  const moveSavings = async draft => {
+    savingsDetails(bank, draft);
+    if (backendMode) {
+      const result = await api('/savings', draft);
+      await refreshBank(); return result;
+    }
+    setBank(saveLocal(bank, draft)); return { id: draft.id, status: 'SUCCEEDED' };
+  };
+
   const ctx = {
     route, setRoute,
     mobileNav, setMobileNav, closeNav: () => setMobileNav(false),
@@ -274,6 +315,7 @@ export default function App() {
     applyConfirmation, directory, yuan, contacts,
     previewId, setPreviewId, taskControl,
     refreshBank,
+    services, setServices, payService, moveSavings, exchangeDraft, setExchangeDraft, travelDraft, setTravelDraft,
   };
 
   return <div className={`app-shell ${backendMode ? 'with-backend' : ''}`}>

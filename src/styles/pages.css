@@ -121,7 +121,7 @@
 }
 .view-scroll::-webkit-scrollbar { width: 10px; }
 .view-scroll::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid transparent; background-clip: content-box; border-radius: 99px; }
-.view-inner { max-width: 860px; margin: 0 auto; padding: var(--space-5) var(--pad-container) var(--space-10); }
+.view-inner { max-width: 1100px; margin: 0 auto; padding: var(--space-7) var(--pad-container) var(--space-10); }
 .page { display: flex; flex-direction: column; gap: var(--space-6); }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
 .page-head h1 { margin: 0; font-size: var(--text-title-1); line-height: var(--leading-title-1); letter-spacing: var(--tracking-title-1); }

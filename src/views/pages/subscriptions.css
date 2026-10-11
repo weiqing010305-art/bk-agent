@@ -23,7 +23,7 @@
    只有那一张变高，旁边的卡不被拉伸。 */
 .sub-cards {
   list-style: none; margin: 0; padding: 0; align-items: start;
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-5);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: var(--space-6);
 }
 /* li.sub-card 而不是 .sub-card：motion.css 的 .sub-row--video 也定圆角，
    两边特异度相同就变成"看文件加载顺序"，那是 bug 不是设计。 */
@@ -46,7 +46,7 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 .sub-card .sub-logo--cloud::after { width: 22px; margin-left: -11px; background: var(--sub-hue); }
 .sub-card-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .sub-card-id h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
-.sub-card-id small { font-size: var(--text-footnote); color: var(--text-tertiary); }
+.sub-card-id small { font-size: var(--text-footnote); color: var(--text-secondary); line-height: var(--leading-subhead); }
 
 /* 价格的双视角：每月与每年同时在场。切换会把另一个视角藏起来，
    而"一年到底花多少"正是用户在这一页最需要的那个数。 */
@@ -62,12 +62,12 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 .sub-card-facts { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
 .due-chip {
   display: inline-flex; align-items: center; gap: var(--space-2);
-  height: 30px; padding: 0 var(--space-4); border-radius: var(--radius-pill);
+  min-height: 36px; padding: var(--space-1) var(--space-4); border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--sub-hue) 12%, transparent); color: var(--sub-hue);
   font-size: var(--text-subhead); font-weight: 600;
 }
 .due-date { font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
-.due-tenure { flex: 1 1 100%; font-size: var(--text-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.due-tenure { flex: 1 1 100%; font-size: var(--text-caption); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .sub-card-act { margin-left: auto; display: flex; gap: var(--space-3); }
 
 /* ── 已取消：同一张卡，但材料换成"不在运行"的那一种 ─────────────────── */
@@ -92,7 +92,7 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 /* ── 年度视角：三个角度并排 ─────────────────────────────────────────── */
 .sub-year-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
 .sub-year-grid > div { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.sub-read { margin: 0; font-size: var(--text-subhead); color: var(--text-secondary); }
+.sub-read { margin: 0; max-width: 70ch; font-size: var(--text-body); line-height: var(--leading-body); color: var(--text-secondary); }
 @media (max-width: 640px) { .sub-year-grid { grid-template-columns: 1fr; gap: var(--space-4); } }
 
 /* ── 取消前的后果预览：就地展开在那一张卡里 ─────────────────────────── */

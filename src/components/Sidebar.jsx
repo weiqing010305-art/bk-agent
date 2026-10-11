@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   ArrowUpRight, BarChart3, Clock, CreditCard, House,
-  MessageCircle, Plus, Receipt, RotateCcw, Trash2, X,
+  MessageCircle, Plus, RotateCcw, Trash2, X,
 } from 'lucide-react';
 
 /**
@@ -24,7 +24,6 @@ const PRODUCTS = [
   { id: 'bills', label: '账单', icon: BarChart3 },
   { id: 'subscriptions', label: '订阅', icon: RotateCcw },
   { id: 'cards', label: '卡片', icon: CreditCard },
-  { id: 'receipts', label: '回执', icon: Receipt },
   { id: 'transfer', label: '转账', icon: ArrowUpRight },
 ];
 

@@ -8,21 +8,6 @@
 .tf-group { display: flex; flex-direction: column; gap: var(--space-3); }
 .tf-label { display: block; font-size: var(--text-caption); color: var(--text-tertiary); }
 
-/* ── 四种方式的差别：一行一种，左侧是方式与到账，右侧是限额与手续费 ──── */
-.tf-facts { list-style: none; margin: 0; padding: 0; }
-.tf-facts > li + li { border-top: 1px solid var(--hairline); }
-.tf-fact {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--space-5);
-  width: 100%; padding: var(--space-4) var(--space-3); border: none; border-radius: var(--radius-thumb);
-  background: transparent; text-align: left;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-.tf-fact strong { display: block; font-size: var(--text-subhead); font-weight: 500; }
-.tf-fact small { display: block; font-size: var(--text-caption); color: var(--text-tertiary); }
-.tf-fact-meta { text-align: right; }
-.tf-fact-meta b { display: block; font-size: var(--text-caption); font-weight: 600; font-variant-numeric: tabular-nums; }
-@media (hover: hover) and (pointer: fine) { .tf-fact:hover { background: var(--bg-hover); } }
-
 /* ── 校验提示：贴着出错的那一步，不用浮层打断 ─────────────────────── */
 .tf-notice {
   margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-thumb);

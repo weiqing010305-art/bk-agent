@@ -182,6 +182,9 @@ export default function Bills({ ctx }) {
         </div>
       : <span className="month-pills"><span className="month-pill on month-pill--still">{label}</span></span>
   }>
+    <Panel title="银行流水" aside={<button className="link-btn" onClick={() => ctx.setRoute('statement')}>查看并下载流水</button>}>
+      <p className="page-note">按日期与收支类型筛选，在流水页面预览并下载 CSV 文件。</p>
+    </Panel>
     <StatBar
       left={{ label: label + '支出', value: yuan(m.total),
         note: m.spendCount + ' 笔 · 日均 ' + yuan(m.heat.avg) }}

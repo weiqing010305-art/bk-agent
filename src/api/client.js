@@ -11,7 +11,7 @@ export async function api(path, body, headers = {}) {
       signal: AbortSignal.timeout(12000),
     });
   } catch {
-    throw new Error('连接中断：请查询原操作结果，不要重新发起转账。');
+    throw new Error('连接中断：请查询原操作结果后再继续。');
   }
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {

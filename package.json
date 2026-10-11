@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "vite --host 127.0.0.1", "build": "vite build", "test": "node --test tests/a2ui.test.js tests/planner.test.js tests/brief.test.js tests/policy.test.js tests/conversations.test.js tests/bank.test.js", "test:e2e": "node tests/e2e.mjs", "test:motion": "node tests/motion-check.mjs", "test:flow": "node tests/flow.mjs", "test:mobile": "node tests/mobile-check.mjs", "test:docs": "node tests/arch-check.mjs", "test:smoke": "node tests/smoke.mjs" },
+  "scripts": { "dev": "vite --host 127.0.0.1", "build": "vite build", "test": "node --test tests/a2ui.test.js tests/planner.test.js tests/brief.test.js tests/policy.test.js tests/conversations.test.js tests/bank.test.js tests/payments.test.js", "test:e2e": "node tests/e2e.mjs", "test:services": "node tests/services-flow.mjs", "test:motion": "node tests/motion-check.mjs", "test:flow": "node tests/flow.mjs", "test:mobile": "node tests/mobile-check.mjs", "test:docs": "node tests/arch-check.mjs", "test:smoke": "node tests/smoke.mjs" },
   "dependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "lucide-react": "^0.468.0" },
   "devDependencies": { "vite": "^7.0.0", "@playwright/test": "^1.55.0" }
 }

@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {
-  ArrowLeftRight, Banknote, BarChart3, CreditCard, Info, Lightbulb,
-  PiggyBank, Receipt, Repeat, Smartphone, TrainFront,
-} from 'lucide-react';
+import { Info } from 'lucide-react';
+import { SERVICE_TILES as TILES } from '../serviceCatalog.js';
 import { Page, StatBar, IconTile, CountUp } from '../parts.jsx';
 import { EyeIcon } from '../shared.jsx';
 import { avatarOf, TxAvatar } from '../avatars.jsx';
@@ -25,7 +23,7 @@ const fmt = c => '¥' + (c / 100).toLocaleString('zh-CN', { minimumFractionDigit
  *
  *   冻结金额   = 活跃订阅合计（代扣签约在扣款日前的预授权）
  *   活期账户   = 可用余额 + 冻结金额
- *   储蓄备用金 = 活期账户的 8%，取整到元（演示规则；真实银行这里是独立账户）
+ *   储蓄计划   = 各计划实际留存金额合计，不与可用余额重复计算
  *   待入账     = 0（演示账本没有在途资金，那就给 0，不编一个数字）
  *
  * 主卡脚注标了「派生」，页面上不会被当成账本字段。
@@ -33,7 +31,7 @@ const fmt = c => '¥' + (c / 100).toLocaleString('zh-CN', { minimumFractionDigit
 function account(bank) {
   const frozen = bank.subscriptions.filter(s => s.status === 'active').reduce((n, s) => n + s.amount, 0);
   const current = bank.balance + frozen;
-  const saving = Math.round(current * 0.08 / 100) * 100;
+  const saving = Object.values(bank.savings || {}).reduce((n, amount) => n + amount, 0);
   return { available: bank.balance, frozen, current, saving };
 }
 
@@ -50,18 +48,7 @@ const RecurMarks = ({ subs }) => (
  * 带 demo 的格子是**诚实的占位**：没有页面就说没有，不做假页面、不做假数据。
  * 文案按 §C-40 写成主动语态 + 明确主语：这是"助手没做"，不是"没做成"。
  */
-const TILES = [
-  { label: '转账', icon: ArrowLeftRight, tone: 'accent', route: 'transfer' },
-  { label: '手机充值', icon: Smartphone, tone: 'subscribe', demo: '助手没法给手机充值：演示环境没有接入运营商，不会真的扣款' },
-  { label: '生活缴费', icon: Lightbulb, tone: 'accent', demo: '助手没法缴费：演示环境没有接入水电燃气，不会真的扣费' },
-  { label: '交通卡', icon: TrainFront, tone: 'positive', demo: '助手没法给交通卡充值：演示环境没有接入一卡通账户' },
-  { label: '外币兑换', icon: Banknote, tone: 'subscribe', demo: '助手没法兑换外币：演示环境没有接入汇率与结售汇' },
-  { label: '账单', icon: BarChart3, tone: 'accent', square: true, route: 'bills' },
-  { label: '订阅', icon: Repeat, tone: 'subscribe', square: true, route: 'subscriptions' },
-  { label: '卡片', icon: CreditCard, tone: 'warning', square: true, route: 'cards' },
-  { label: '回执', icon: Receipt, tone: 'subscribe', square: true, route: 'receipts' },
-  { label: '储蓄计划', icon: PiggyBank, tone: 'accent', square: true, demo: '助手还没法开储蓄计划：演示环境没有开立定投产品' },
-];
+
 
 export default function Overview({ ctx }) {
   const { bank, setRoute } = ctx;
@@ -102,7 +89,7 @@ export default function Overview({ ctx }) {
           <b className="acct-amt">{mask(fmt(acct.current))}</b>
         </li>
         <li>
-          <span className="acct-name">储蓄 · 备用金 <b className="masked-num">•• 3901</b></span>
+          <span className="acct-name">储蓄 · 计划留存</span>
           <b className="acct-amt">{mask(fmt(acct.saving))}</b>
         </li>
       </ul>

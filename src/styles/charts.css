@@ -52,23 +52,24 @@
 /* ── 图例：常驻，且本身就是筛选器 ───────────────────────────────────── */
 .chart-legend {
   list-style: none; margin: 0; padding: 0; display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 2px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 8px 16px;
 }
 .chart-legend-item {
-  display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: var(--space-3);
-  width: 100%; min-height: 36px; padding: 0 var(--space-3); border: none;
+  display: grid; grid-template-columns: 10px minmax(2.5em, 1fr) 3ch max-content; align-items: center; gap: 12px;
+  width: 100%; min-height: 44px; padding: 8px var(--space-3); border: none;
   border-radius: var(--radius-thumb); background: transparent; font-size: var(--text-subhead); text-align: left;
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 .chart-legend-item.on { background: var(--bg-hover); }
 .chart-legend-item.picked .chart-legend-name { color: var(--accent); font-weight: 500; }
 .chart-swatch { width: 10px; height: 10px; border-radius: 3px; }
-.chart-legend-name { color: var(--text-secondary); }
-.chart-legend-pct { color: var(--text-faint); font-size: var(--text-caption); font-variant-numeric: tabular-nums; }
-.chart-legend-item b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.chart-legend-name { color: var(--text-secondary); white-space: nowrap; }
+.chart-legend-pct { color: var(--text-faint); font-size: var(--text-caption); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.chart-legend-item b { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; white-space: nowrap; }
 
 /* ── 圆环 ──────────────────────────────────────────────────────────── */
-.chart-donut svg { width: 196px; max-width: 100%; height: auto; overflow: visible; }
+.chart-donut svg { width: 248px; max-width: 100%; height: auto; overflow: visible; }
 .chart-seg {
   cursor: pointer; transform-box: view-box; transform-origin: 66px 66px;
   transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
@@ -81,6 +82,7 @@
 .chart-center-value { text-anchor: middle; font-size: 15px; font-weight: 600; fill: var(--text-primary);
   font-variant-numeric: tabular-nums; pointer-events: none; }
 .chart-center-sub { text-anchor: middle; font-size: 9px; fill: var(--text-faint); pointer-events: none; }
+.chart-center-value--long { font-size: 12.5px; }
 
 /* ── 条形 ──────────────────────────────────────────────────────────── */
 .chart-bars { display: flex; flex-direction: column; gap: 2px; width: 100%; }
@@ -187,7 +189,7 @@
   .chart-stage { min-height: 150px; }
   .chart-tab { padding: 0 var(--space-3); }   /* 六个形态在窄屏也要一条排得下 */
   .chart-tabs { flex-wrap: wrap; overflow: visible; }
-  .chart-donut svg { width: 148px; }
+  .chart-donut svg { width: 212px; }
   .chart-bar { grid-template-columns: 2.6rem 1fr 2.4rem auto; gap: var(--space-2); }
   .chart-legend { grid-template-columns: 1fr; }
   .chart-stack { gap: var(--space-2); }
