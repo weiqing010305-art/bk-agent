@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
   Calendar, CalendarClock, CreditCard, Globe, Landmark, Lock, PackageCheck, Receipt,
-  RefreshCw, ShieldOff, SlidersHorizontal, Snowflake, Sun, TrendingDown, TrendingUp, Wallet2, Zap,
+  RefreshCw, ShieldOff, SlidersHorizontal, Snowflake, Sun, TrendingUp, Wallet2, Zap,
 } from 'lucide-react';
 import { money } from '../../domain/bank.js';
-import { Row } from '../parts.jsx';
+import { Row, Empty } from '../parts.jsx';
 import { CategoryIcon } from '../shared.jsx';
 import { periodProgress, tickDate } from './cardUtils.jsx';
 
@@ -44,12 +44,12 @@ export function LimitMeter({ card, hidden }) {
       <strong className="ruler-amount">{hidden ? mask() : '¥' + money(card.available)}</strong>
     </header>
     <div className="ruler-track" key={card.id} role="meter" aria-valuemin={0} aria-valuemax={card.limit}
-         aria-valuenow={card.used}
-         aria-valuetext={'总额度 ¥' + money(card.limit) + '，已用 ¥' + money(card.used) + '，可用 ¥' + money(card.available)}>
-      <span className="ruler-fill" style={{ '--rate': card.rate }}/>
-      {capAt < 1 && <span className="ruler-mark" style={{ '--at': capAt }}><i/></span>}
+         aria-valuenow={hidden ? 0 : card.used} aria-hidden={hidden || undefined}
+         aria-valuetext={hidden ? '金额已隐藏' : '总额度 ¥' + money(card.limit) + '，已用 ¥' + money(card.used) + '，可用 ¥' + money(card.available)}>
+      <span className="ruler-fill" style={{ '--rate': hidden ? 0 : card.rate }}/>
+      {!hidden && capAt < 1 && <span className="ruler-mark" style={{ '--at': capAt }}><i/></span>}
     </div>
-    <div className="ruler-scale"><span>已用 ¥{money(card.used)}</span><span>¥{money(card.limit)}</span></div>
+    <div className="ruler-scale"><span>已用 {hidden ? mask() : '¥' + money(card.used)}</span><span>{hidden ? mask() : '¥' + money(card.limit)}</span></div>
   </section>;
 }
 
@@ -78,30 +78,30 @@ const FACTS = [
   ['上期账单', Receipt, c => '¥' + money(c.profile.lastBill)],
 ];
 
-export function CardFacts({ card }) {
+export function CardFacts({ card, hidden }) {
   return <dl className="card-facts">
     {FACTS.map(([label, Icon, get]) => <div className="fact" key={label} role="group" aria-label={label}>
       <Icon size={16} aria-hidden="true"/>
-      <dd>{get(card)}</dd>
+      <dt>{label}</dt><dd>{hidden && ['关联账户', '上期账单'].includes(label) ? mask() : get(card)}</dd>
     </div>)}
   </dl>;
 }
 
 /** 渠道逐项开关。锁定时整组失效 —— 冻结与挂失都不是换个颜色，而是这四项一起停摆。
     两者的区别只在锁的说明上：冻结还能解冻，挂失之后这四项不会再打开。 */
-export function ChannelBoard({ card, frozen, lost, onToggle }) {
+export function ChannelBoard({ card, frozen, lost, hidden, onToggle }) {
   return <div className={'channel-board' + (frozen ? ' is-locked' : '') + (lost ? ' is-lost' : '')}>
     {card.channels.map(c => {
       const Icon = CH_ICON[c.id] || CreditCard;
       const left = Math.max(0, c.dayLimit - c.dayUsed);
       return <div className="channel-row" key={c.id} data-off={!c.on && !frozen ? 'on' : undefined} title={c.label}>
-        <span className="channel-mark"><Icon size={17} aria-hidden="true"/></span>
+        <span className="channel-identity"><span className="channel-mark"><Icon size={17} aria-hidden="true"/></span><b>{c.label}</b></span>
         <span className="channel-bar" aria-hidden="true">
-          <span className={low(c) ? 'channel-use is-high' : 'channel-use'} style={{ '--w': pct(c.dayUsed, c.dayLimit) }}/>
+          <span className={low(c) ? 'channel-use is-high' : 'channel-use'} style={{ '--w': hidden ? 0 : pct(c.dayUsed, c.dayLimit) }}/>
         </span>
-        <span className="channel-left">¥{money(left)}</span>
+        <span className="channel-left">{hidden ? mask() : '¥' + money(left)}</span>
         <button className="switch" role="switch" aria-checked={c.on} disabled={frozen}
-                aria-label={c.label + (c.on ? '，已开启，今日可用 ¥' + money(left) : '，已关闭')}
+                aria-label={c.label + (frozen ? '，已停用' : c.on ? '，已开启' + (hidden ? '' : '，今日可用 ¥' + money(left)) : '，已关闭')}
                 onClick={() => onToggle(c.id)}><i/></button>
       </div>;
     })}
@@ -112,7 +112,7 @@ export function ChannelBoard({ card, frozen, lost, onToggle }) {
 }
 
 /** 限额：免密 / 单笔 / 日累计，点行内联调整（不做设置页式的表单堆砌）。 */
-export function LimitRows({ card, onLimit, say }) {
+export function LimitRows({ card, hidden, onLimit, say }) {
   const [editing, setEditing] = useState(null);
   const rows = [
     ['noPwd', '免密', card.limits[0], '小额免密'],
@@ -126,14 +126,14 @@ export function LimitRows({ card, onLimit, say }) {
         {key === 'noPwd' && <button className="limit-choice" key="off" aria-pressed={value === 0}
           onClick={() => { onLimit(key, 0); say('已关闭小额免密'); }}>关闭</button>}
         {/* 候选值是 1 / 2 / 5 千元三档，点一下就换，不需要输入框 */}
-        {editing === key && [100000, 200000, 500000].map(v => <button className="limit-choice" key={v}
+        {!hidden && editing === key && [100000, 200000, 500000].map(v => <button className="limit-choice" key={v}
           aria-pressed={value === v}
           onClick={() => { onLimit(key, v); setEditing(null); }}>¥{money(v)}</button>)}
       </span>
-      <button className="limit-value" aria-expanded={editing === key}
-              aria-label={full + '，当前 ' + (value ? '¥' + money(value) : '已关闭')}
+      <button className="limit-value" aria-expanded={!hidden && editing === key} disabled={hidden}
+              aria-label={full + (hidden ? '，金额已隐藏' : '，当前 ' + (value ? '¥' + money(value) : '已关闭'))}
               onClick={() => setEditing(editing === key ? null : key)}>
-        {value ? '¥' + money(value) : '已关闭'}<SlidersHorizontal size={14} aria-hidden="true"/>
+        {hidden ? mask() : value ? '¥' + money(value) : '已关闭'}<SlidersHorizontal size={14} aria-hidden="true"/>
       </button>
     </div>)}
   </div>;
@@ -164,17 +164,16 @@ export function StatusHistory({ history }) {
 
 /** 本期小结 + 这张卡自己的动账明细。「剔除本期后的可用」不在这里 —— 额度尺已经答过。 */
 export function CardActivity({ card, stat, hidden }) {
-  const up = stat.diff >= 0;
-  const Trend = up ? TrendingUp : TrendingDown;
   return <section className="card-activity">
+    <h3 className="card-section-title">最近交易</h3>
     <div className="activity-stats">
-      <span><small>本期消费</small><b>{hidden ? mask() : '¥' + money(stat.spend)}</b></span>
-      <span><small>较上期</small><b className={up ? 'is-up' : undefined}>
-        <Trend size={15} aria-hidden="true"/>{hidden ? mask() : '¥' + money(Math.abs(stat.diff))}</b></span>
+      <span><small>{stat.month ? stat.month + ' 支出' : '支出'}</small><b>{hidden ? mask() : '¥' + money(stat.spend)}</b></span>
+      <span><small>同月交易</small><b>{stat.count} 笔</b></span>
     </div>
+    {!card.feed.length && <Empty title="暂无关联交易">通过这张卡完成的缴费会显示在这里。</Empty>}
     <ul className="row-list card-feed">
       {card.feed.slice(0, 6).map(t => <Row key={t.id} icon={<CategoryIcon item={t}/>} title={t.name}
-        sub={t.date + (t.note ? ' · ' + t.note : ' · ' + t.category)}
+        sub={t.date + (hidden || !t.note ? ' · ' + t.category : ' · ' + t.note)}
         value={hidden ? mask() : t.amountText} positive={t.positive}/>)}
     </ul>
   </section>;

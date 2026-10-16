@@ -14,6 +14,7 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from .db import make_engine, session_factory
+from .frontend import mount_frontend
 from .models import Account, AuditEvent, Authorization, DemoSession, Operation, Recipient, Transaction
 from .seed import seed_user
 
@@ -411,4 +412,5 @@ def create_app(engine=None):
         db.commit()  # Atomic simulated-bank posting + authorization + receipt.
         return operation_view(op)
 
+    mount_frontend(app)
     return app

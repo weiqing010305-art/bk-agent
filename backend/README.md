@@ -15,7 +15,21 @@
 
 ## Windows 启动
 
-在仓库根目录执行。需要 Python 3.12、Node.js 和已启动的 Docker Desktop。
+在仓库根目录执行。需要 Python 3.12、Node.js，以及本机 PostgreSQL 或 Docker Desktop。
+
+### 页面与 API 合并运行
+
+安装根目录 Node 依赖和 Python 锁定依赖后执行 `npm start`。启动器会准备项目数据库、升级迁移、强制按 backend 模式构建前端，再启动 FastAPI，默认地址 `http://127.0.0.1:8080/`；API 仍为 `/api`，旧 `/qinghe-ui-preview.html` 读取同一份首页。可用 `.env` 的 `QINGHE_PORT` 修改端口，启动器仅增加当前本机来源到既有允许来源中，不开放通配跨域。
+
+`backend/frontend.py` 在业务路由注册完成后托管 dist，只公开编译产物。没有 dist 时 API 仍可单独运行。实现沿用 [FastAPI 官方静态文件机制](https://fastapi.tiangolo.com/tutorial/static-files/)，不另装前端服务器或反向代理。Ctrl+C 停止应用，数据库不删除。
+
+### 保留开发热更新
+
+本机已配置 `.env` 和 `.venv` 时执行 `npm run dev:full`。启动器复用现有服务、升级 migration，在没有数据库监听时使用已安装的 PostgreSQL 初始化项目专属 `.local/postgres`。默认查找 `D:/PostgreSQL18/bin` 或 `C:/Program Files/PostgreSQL/18/bin`，其他位置用 `POSTGRES_BIN` 指定。只监听回环地址，不改变系统 PostgreSQL 服务或已有 Docker 卷。数据库端口来自 `.env`，当前为 54329。
+
+首次安装：复制 `.env.example`（不覆盖已有配置），创建 `.venv` 并安装下面的 Python 依赖，然后 `npm install`、`npm run dev:full`。日志在 `.local/backend-err.log`、`.local/frontend-err.log` 和 `.local/postgres.log`；该目录不提交到 Git。
+
+使用 Docker 时可按以下分步启动；本机数据库与 Docker 数据库选择一种，不要同时占用相同端口：
 
 1. 把 `.env.example` 复制为 `.env`（不要覆盖已有配置）。其中密码只是本地演示默认值，不可用于公开部署。修改密码时同时修改 DATABASE_URL。
 2. 启动数据库并安装依赖：
@@ -37,9 +51,9 @@ npm install
 npm run dev
 ```
 
-访问 http://127.0.0.1:5173/ ，顶部应显示“数据库演示已连接”。Vite 将 `/api` 代理至 8000；后端接口说明在 http://127.0.0.1:8000/docs 。所有写接口需要 `X-Demo-Request: 1` 请求头与有效会话 Cookie（创建会话除外）。
+访问 http://127.0.0.1:5173/ ，首页显示当前数据库账户余额；旧 `qinghe-ui-preview.html` 地址使用同一前端。Vite 将 `/api` 代理至 8000；后端接口说明在 http://127.0.0.1:8000/docs 。所有写接口需要 `X-Demo-Request: 1` 请求头与有效会话 Cookie（创建会话除外）。
 
-`.env` 的 `VITE_API_MODE=backend` 启用后端；改为 `local` 并重启 Vite 则回到原有纯浏览器 mock。后端断开**不会自动切回本地账本**。生产静态构建时此变量被编译进入代码；自行部署需要另配同源 `/api` 反向代理，不能只上传 dist 就获得数据库能力。
+`.env` 的 `VITE_API_MODE=backend` 启用后端；改为 `local` 并重启 Vite 则回到原有纯浏览器 mock。后端断开**不会自动切回本地账本**。构建时此变量编译进入代码；`npm start` 固定使用 backend 模式并由同一服务托管。单独上传 dist 到静态托管仍不会获得数据库能力。
 
 ## 数据与流程
 
@@ -73,7 +87,20 @@ npm run dev
 
 “重置演示数据”撤销旧会话并创建新的独立场景，**不清空数据库或其他用户数据**。旧场景保留以便审计。当前未实现自动清理过期场景；长期开发要留意容器卷增长。
 
-卡片/订阅仍是浏览器 localStorage 中的展示操作，不读取真实扣款协议，也不影响数据库账户转账。聊天仍按关键词选择表单，不从自然语言自动执行。
+转账草稿的原编号保存在 sessionStorage：刷新恢复未完成核对；响应丢失时查询同一操作，不重新创建转账。两个转账入口共用后端核对弹窗，验证成功后刷新余额和流水，助手表单恢复完成状态。
+
+### 当前保存边界
+
+| 能力 | 保存方式 |
+|---|---|
+| 可用余额、流水、收款人 | PostgreSQL；概览、账单和表单共用服务端快照 |
+| 转账、手机充值、水电燃气、交通充值、信用卡还款 | PostgreSQL 原子记账及原操作幂等回执 |
+| 储蓄存入与取回 | PostgreSQL 资金及留存；目标名称、日期为浏览器元数据 |
+| 卡片冻结、渠道和限额、订阅取消与恢复 | 原有浏览器 localStorage；不调用真实卡片/扣款协议 |
+| 聊天、网点与兑换预约、出行计划 | 原有浏览器 localStorage；不自动执行预约或兑换 |
+| 理财申购、挂失手续费 | 原有本地流程，未接入服务器记账；账户刷新覆盖本地余额和流水变化，理财持仓尚未持久化至后端 |
+
+卡片本地状态不构成服务端授权约束，所有借记卡目前共享一个虚构账户余额。聊天仍按关键词选择表单，不从自然语言自动执行；本次只连接现有后端，不新增 Agent。
 
 ## 测试
 
@@ -84,7 +111,7 @@ npm run test:e2e:backend
 npm run build
 ```
 
-API 测试使用真实 PostgreSQL，连接取 `TEST_DATABASE_URL` 或 `.env` 中的 DATABASE_URL；每次创建随机 `test_qinghe_<uuid>` schema，结束仅删除该测试 schema，绝不清空应用数据。需要建 schema 权限。涵盖非法输入、跨用户访问、伪造授权、确认绑定、验证码过期/锁定、并发重试与余额竞争。浏览器测试默认使用已安装的 Edge，可用 `BROWSER_PATH` 指定其他 Chromium 路径。
+API 测试使用真实 PostgreSQL，连接取 `TEST_DATABASE_URL` 或 `.env` 中的 DATABASE_URL；每次创建随机 `test_qinghe_<uuid>` schema，结束仅删除该测试 schema，绝不清空应用数据。需要建 schema 权限。涵盖非法输入、跨用户访问、伪造授权、确认绑定、验证码过期/锁定、并发重试与余额竞争。浏览器测试可用 `BROWSER_PATH` 指定已安装的 Chromium/Edge 路径；默认使用当前环境的 Playwright Chromium。
 
 原纯前端回归需另外启动 local 模式，例如：
 

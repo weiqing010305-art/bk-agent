@@ -1,78 +1,46 @@
-import React, { useMemo, useState } from 'react';
-import { SERVICE_TILES as TILES } from '../serviceCatalog.js';
-import { Page, StatBar, IconTile, CountUp } from '../parts.jsx';
+import React, { useState } from 'react';
+import { ArrowUpRight, ChevronRight } from 'lucide-react';
+import { Page, CountUp } from '../parts.jsx';
 import { EyeIcon } from '../shared.jsx';
-import { avatarOf, TxAvatar } from '../avatars.jsx';
+import HomeServices from './homeServices.jsx';
+import HomeInsights from './homeInsights.jsx';
 import Feed from './feed.jsx';
 import './overview.css';
 
-/**
- * 概览：一屏回答三件事 —— 我现在有多少、我能做什么、最近动了什么。
- *
- * 三段：
- *   余额主卡（可用余额 = 唯一的主数字，下面两格是它之外另外两笔钱）
- *   → 宫格（圆形 = 钱在动，方形 = 有具体的对象，沿用 ZA 的双图标语言）
- *   → 动态（见 feed.jsx：即将扣费 + 卡片 + 最近三天）
- *
- * 主卡上不留任何一句解释。科目名的归属靠**位置与分组**表达：
- *   「待扣订阅」的金额正下方就是那五笔签约的头像 —— 谁在扣、扣多少一眼看完，
- *   不需要「按活跃订阅合计」这种句子；「在途」与它并排，两格说的是同一件事：
- *   可用余额之外，钱都去哪了。
- *
- * 余额模型（available / frozen / pending）由 domain/bank.js 定义，本页只读 dataModel。
- * 上一版在本页派生 8% 备用金、再摆出「活期 · 日常账户 / 储蓄 · 备用金」两个科目
- * （还借了两张卡的尾号当账号），domain 已明说那套派生口径作废 —— 整段删除。
- */
 const fmt = c => '¥' + (c / 100).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/**
- * 待扣订阅不是一个抽象数字：把签约的真身摆出来（16px 行内头像，§D.5）。
- * 这一档尺寸上收掉周期徽标：那是一枚 16px 的圆，盖在 16px 的头像上会压住形状，
- * 还越界 5px 撞上下一个头像；而形状本身（圆角方 = 周期）已经说了同一件事。
- */
-const RecurMarks = ({ subs }) => (
-  <span className="recur-marks">
-    {subs.map(s => <TxAvatar key={s.id} mini iconSize={9}
-      look={{ ...avatarOf({ name: s.name, category: '订阅' }, subs), badge: null }}/>)}
-  </span>
-);
-
-/**
- * 宫格。圆形 = 钱在动（动作），方形 = 有具体的对象。
- *
- * 只放**真实存在的落地页**（product.jsx 的七个路由，去掉本页）。上一版另外五格
- * （手机充值 / 生活缴费 / 交通卡 / 外币兑换 / 储蓄计划）点下去只能弹一句
- * "助手没法…、演示环境没有接入…"：那是拿首屏最贵的位置换一句免责声明。
- * 五格全删，剩下的宫格没有一格是假的 —— 7 格 = 2 个动作 + 5 个产品。
- */
-
+/** 账户、服务、收支、动态；所有金额来自原账本。 */
 export default function Overview({ ctx }) {
   const { bank, dataModel: d, setRoute } = ctx;
   const [hidden, setHidden] = useState(false);
-  const activeSubs = useMemo(() => bank.subscriptions.filter(s => s.status === 'active'), [bank.subscriptions]);
-  const mask = v => (hidden ? '¥ ••••' : v);
-
-  return <Page title="概览">
-    <section className="balance-hero">
-      <div className="balance-hero-top">
-        <span>可用余额</span>
-        <button className="hero-eye" onClick={() => setHidden(v => !v)} aria-pressed={hidden}
-                aria-label={hidden ? '显示金额' : '隐藏金额'}><EyeIcon off={hidden}/></button>
+  const mask = value => hidden ? '¥ ••••' : value;
+  const savings = Object.values(bank.savings || {}).reduce((n, amount) => n + amount, 0);
+  const allocations = [
+    { label: '待扣订阅', value: d.frozenText, route: 'subscriptions' },
+    { label: '在途', value: d.pendingText, route: 'bills' },
+    { label: '计划留存', value: fmt(savings), route: 'savings' },
+  ];
+  return <Page>
+    <section className="balance-hero" aria-label="账户概况">
+      <div className="home-balance">
+        <div className="balance-hero-top"><span>可用余额</span>
+          <button className="hero-eye" onClick={() => setHidden(v => !v)} aria-pressed={hidden}
+            aria-label={hidden ? '显示金额' : '隐藏金额'}><EyeIcon off={hidden}/></button>
+        </div>
+        {hidden ? <strong className="hero-amount">¥ ••••</strong> : <CountUp cents={d.balance} format={fmt}/>}
+        <div className="home-balance-actions">
+          <button type="button" onClick={() => setRoute('transfer')}>转一笔<ArrowUpRight size={17}/></button>
+          <button type="button" onClick={() => setRoute('cards')}>我的银行卡<ChevronRight size={15}/></button>
+        </div>
       </div>
-      {hidden
-        ? <strong className="hero-amount">¥ ••••</strong>
-        : <CountUp cents={d.balance} format={fmt}/>}
-      <StatBar left={{ label: '待扣订阅', value: mask(d.frozenText), note: <RecurMarks subs={activeSubs}/> }}
-               right={{ label: '在途', value: mask(d.pendingText) }}/>
-      <p className="page-note">计划留存 {mask(fmt(Object.values(bank.savings || {}).reduce((n, amount) => n + amount, 0)))}</p>
+      <div className="home-allocation"><h2>资金安排</h2>
+        {allocations.map(a => <button type="button" key={a.label} onClick={() => setRoute(a.route)}>
+          <span>{a.label}</span><strong>{mask(a.value)}</strong><ChevronRight size={14}/>
+        </button>)}
+      </div>
     </section>
-
-    <div className="icon-grid">
-      {TILES.map(t => <IconTile key={t.label}
-        variant={t.square ? 'product' : 'action'} tone={t.tone} icon={t.icon} label={t.label}
-        onClick={() => setRoute(t.route)}/>)}
-    </div>
-
-    <Feed ctx={ctx}/>
+    <HomeServices onGo={setRoute}/>
+    <HomeInsights bank={bank} hidden={hidden} onGo={setRoute} format={fmt}/>
+    <Feed ctx={ctx} hidden={hidden}/>
   </Page>;
 }

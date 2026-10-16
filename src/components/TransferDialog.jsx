@@ -5,6 +5,7 @@ import { money } from '../domain/bank.js';
 export default function TransferDialog({ operation, busy, code, setCode, error, onClose, onSubmit }) {
   const ref = useRef(null);
   const verifying = Boolean(operation.challenge_id);
+  const terminal = ['FAILED', 'EXPIRED'].includes(operation.status);
   useEffect(() => {
     const previous = document.activeElement;
     ref.current?.focus();
@@ -43,7 +44,7 @@ export default function TransferDialog({ operation, busy, code, setCode, error, 
         </div>}
         {operation.uncertain && <p>结果未确认。请先查询，不要另发一笔。</p>}
         {error && <p className="api-error" role="alert">{error}</p>}
-        <div className="modal-actions"><button type="button" className="ghost-btn" disabled={locked} onClick={onClose}>返回修改</button><button type="submit" className="primary-btn" disabled={busy || (verifying && !operation.uncertain && code.length !== 6)}>{busy ? '处理中…' : operation.uncertain ? '查询原操作结果' : verifying ? '验证' : '确认并获取验证码'}<ArrowRight size={16}/></button></div>
+        <div className="modal-actions"><button type="button" className="ghost-btn" disabled={locked} onClick={onClose}>返回修改</button><button type="submit" className="primary-btn" disabled={terminal || busy || (verifying && !operation.uncertain && code.length !== 6)}>{busy ? '处理中…' : terminal ? '请返回修改' : operation.uncertain ? '查询原操作结果' : verifying ? '验证' : '确认并获取验证码'}<ArrowRight size={16}/></button></div>
       </form>
     </section>
   </div>;

@@ -1,111 +1,20 @@
-/* avatars.css —— 交易头像体系（doc/research/revolut-ai-and-za-deep-dive.md §D）。
-   · 本文件不含任何颜色字面量：类别色由 tokens.css 的 --cat-* 用 color-mix 得到，
-     商户品牌色由 avatars.jsx 的品牌表以 --av-brand 内联注入（品牌色是数据，不是主题）。
-   · 规格（§D.5）：桌面 40px · 移动 36px · 与文字间距 12px（.row-item 的 --space-4）。
-   · 红与绿只留给金额：类别色盘里没有纯红、没有纯绿。 */
-
-.av.av {           /* 双类选择器：要盖过 pages.css 的 .tx-icon / .tx-icon--* 单类规则 */
+/* 全站交易图标：浅薄荷绿圆角方底与绿色线条，保留各类别的原图形。 */
+.av.av {
   position: relative; isolation: isolate;
   width: 40px; height: 40px; flex: 0 0 auto;
   display: grid; place-items: center;
-  border-radius: var(--radius-thumb);       /* 默认圆角方形 = 周期性语言（订阅） */
-  background: color-mix(in srgb, var(--av-c) 12%, transparent);
-  color: var(--av-c);
+  border-radius: var(--icon-radius);
+  background: var(--icon-bg); color: var(--icon-ink);
   font-weight: 600; font-size: var(--text-footnote); line-height: 1;
-  transition: transform var(--duration-fast) var(--ease-out-quart),
-              background-color var(--duration-fast) var(--ease-out);
+  transition: transform var(--duration-fast) var(--ease-out-quart);
 }
-/* 一道斜向高光 + 1px 内描边，都从 currentColor 派生：于是「双色渐变底」对全部分类成立 */
-.av.av::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
-  background: linear-gradient(150deg, color-mix(in srgb, currentColor 40%, transparent), transparent 70%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 26%, transparent);
-}
-
-/* ── 形状系统（§D-54）：形状本身就在说这是什么，不需要任何文字 ──────────
-   圆 = 商户消费 / 类别兜底 / 收入；圆角方形 = 周期性；人物位 = 转账给人。 */
-.av.av--circle   { border-radius: var(--radius-pill); }
-.av.av--squircle { border-radius: var(--radius-thumb); }
-.av.av--person   { border-radius: var(--radius-pill); background: color-mix(in srgb, var(--av-c) 16%, transparent); }
-
-/* 尺寸：流水行 40 · 移动 36 · 账单/卡片页的旧底座 36 · 行内 16 */
-.av.av--sm   { width: 36px; height: 36px; }
-.av.av--mini { width: 16px; height: 16px; font-size: var(--text-caption-2); }
-@media (max-width: 640px) { .av.av { width: 36px; height: 36px; } }
-
-/* ── 配色三级优先：商户品牌色 > 类别色 > 中性兜底 ──────────────────────
-   --av-brand 有值就用它，没有才落到类别色（判定完全在 CSS 里，JS 不做分支）。
-   类别色盘 = tokens 的蓝/橙/粉/青/靛/棕/黄混合而来，**没有纯红、没有纯绿**。 */
-.av--transfer  { --av-c: var(--av-brand, var(--cat-transfer)); }
-.av--dining    { --av-c: var(--av-brand, var(--cat-dining)); }
-/* 餐饮的品类色调：下标由 avatars.jsx 的 diningLook() 给出 —— **与图标同一张关键词表**，
-   所以概览动态与账单明细对同一家店永远是同一个颜色。
-   优先级仍是品牌色在前：认得出品牌用品牌色，只认得出品类用品类色，都认不出回类别色（下标 0）。
-   属性名用 data-tone 而不是 pages.css 的 data-look：那条是单类选择器，
-   会跟这里的品牌色抢优先级；换一个属性名，两块样式互不干扰。
-   （火锅红 / 披萨红是 tokens.css 既有的餐饮子色调，属于品类语义；
-     「类别色盘不含红绿」约束的是上面那 16 类类别的底色，红绿在那里仍是金额的专属信号。） */
-.av.av--dining[data-tone="1"] { --av-c: var(--av-brand, var(--cat-dining-b)); }
-.av.av--dining[data-tone="2"] { --av-c: var(--av-brand, var(--cat-dining-c)); }
-.av.av--dining[data-tone="3"] { --av-c: var(--av-brand, var(--cat-dining-d)); }
-.av.av--dining[data-tone="4"] { --av-c: var(--av-brand, var(--cat-dining-e)); }
-.av.av--dining[data-tone="5"] { --av-c: var(--av-brand, var(--cat-dining-f)); }
-.av--shopping  { --av-c: var(--av-brand, var(--cat-shopping)); }
-.av--transport { --av-c: var(--av-brand, var(--cat-transport)); }
-.av--subscribe { --av-c: var(--av-brand, var(--cat-subscribe)); }
-.av--income    { --av-c: var(--av-brand, var(--cat-income)); }
-.av--fees      { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-subscribe) 42%, var(--cat-transport))); }
-.av--service   { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-transport) 62%, var(--cat-transfer))); }
-.av--entertain { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-subscribe) 58%, var(--cat-shopping))); }
-.av--gov       { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-transfer) 42%, var(--cat-subscribe))); }
-.av--home      { --av-c: var(--av-brand, var(--cat-dining-b)); }
-.av--loan      { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-subscribe) 34%, var(--cat-transfer))); }
-.av--medical   { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-transport) 74%, var(--cat-subscribe))); }
-.av--care      { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-shopping) 52%, var(--cat-subscribe))); }
-.av--rent      { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-dining-b) 58%, var(--cat-transfer))); }
-.av--travel    { --av-c: var(--av-brand, color-mix(in srgb, var(--cat-transfer) 66%, var(--cat-transport))); }
-.av--neutral   { --av-c: var(--av-brand, var(--text-tertiary)); }
-
-/* 人物头像位：转账给人的是「人」，不是图标 —— 真银行 App 的收款人头像就是这个字 */
+/* 尺寸随用途缩放，形状与配色保持一致。 */
+.av.av--sm { width: 36px; height: 36px; }
+.av.av--mini { width: 16px; height: 16px; border-radius: var(--radius-chip); font-size: var(--text-caption-2); }
+@media (max-width: 640px) { .av.av:not(.av--mini) { width: 36px; height: 36px; } }
 .av-initial { font-size: var(--text-subhead); font-weight: 600; }
-
-/* ── 工资：把「发薪」做成一次事件（§D.4：工资要有发薪的感觉，不是普通入账）──
-   ① 全站唯一一个实心头像：金币 ② 双环（纪念章式） ③ 绶带：clip-path 画的燕尾带
-   ④ 入场一道扫光，只播一次 —— 一个月只发生一次的事，惊喜预算就该花在这里。
-   金币用黄（发薪），不用收入绿：绿留给金额，避免一屏里两个绿说两件事。 */
-.av.av--payday {
-  color: color-mix(in srgb, var(--cat-dining-b) 76%, var(--text-primary));
-  background: linear-gradient(150deg,
-    color-mix(in srgb, var(--cat-dining-d) 86%, var(--bg-surface)),
-    color-mix(in srgb, var(--cat-dining) 58%, var(--cat-dining-d)));
-  box-shadow: 0 0 0 2px var(--bg-surface), 0 0 0 4px color-mix(in srgb, var(--cat-dining-d) 34%, transparent);
-}
-.av.av--payday::before {
-  background: linear-gradient(150deg, color-mix(in srgb, var(--bg-surface) 34%, transparent), transparent 62%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bg-surface) 42%, transparent);
-}
-.av.av--payday::after {
-  content: ''; position: absolute; left: 1px; bottom: -6px; z-index: -1;
-  width: 15px; height: 12px; transform: rotate(-14deg);
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--cat-dining) 70%, var(--cat-dining-b)), var(--cat-dining));
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 68%, 0 100%);
-}
-.av-sheen { position: absolute; inset: 0; z-index: 2; border-radius: inherit; overflow: hidden; pointer-events: none; }
-.av-sheen::after {
-  content: ''; position: absolute; top: -20%; bottom: -20%; left: 0; width: 55%;
-  background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--bg-surface) 72%, transparent), transparent);
-  animation: payday-sheen 1150ms var(--ease-out) 240ms both;
-}
-@keyframes payday-sheen {
-  from { transform: translate3d(-120%, 0, 0) skewX(-16deg); opacity: 0; }
-  30%  { opacity: 1; }
-  to   { transform: translate3d(300%, 0, 0) skewX(-16deg); opacity: 0; }
-}
-
-/* ── 新事件入场（§D.3 ③：只给新事件，不给滚动）────────────────────────
-   一次缩放 + 淡入，240ms，只播一次。动的是 scale 属性而不是 transform，
-   否则动画的填充值会一直压住行 hover 的 transform: scale(1.06)。 */
+.av-sheen { display: none; }
+/* 保留列表入场与 motion.css 的类别图形微动效。 */
 @media (prefers-reduced-motion: no-preference) {
   .feed-item .av.av { animation: av-in 240ms var(--ease-out) both; }
   @keyframes av-in { from { opacity: 0; scale: .88; } }

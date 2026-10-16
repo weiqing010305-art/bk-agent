@@ -1,0 +1,86 @@
+/* Three confirmed color families, applied by purpose rather than by item index. */
+.ui-sample .app-shell { --page-tint: var(--surface-info); --page-ink: var(--palette-blue-ink); }
+.ui-sample :is(.app-shell--transfer, .app-shell--phone, .app-shell--traffic, .app-shell--utility) {
+  --page-tint: var(--surface-mint); --page-ink: var(--brand-ink);
+}
+.ui-sample :is(.app-shell--savings, .app-shell--subscriptions, .app-shell--travel, .app-shell--wealth, .app-shell--appointment) {
+  --page-tint: var(--surface-plan); --page-ink: var(--palette-apricot-ink);
+}
+.ui-sample .app-shell:not(.app-shell--overview) .page-head h1 { color: var(--page-ink); }
+.ui-sample .app-shell:not(.app-shell--overview) .panel-head {
+  background: var(--page-tint); color: var(--page-ink);
+  border-bottom-color: color-mix(in srgb, var(--page-ink) 12%, transparent);
+}
+.ui-sample .app-shell:not(.app-shell--overview) .panel-head .panel-hint { color: var(--page-ink); }
+
+/* The balance area carries more color; the 13 entry tiles stay white. */
+.ui-sample .app-shell--overview .balance-hero {
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.ui-sample .app-shell--overview .balance-hero .page-note {
+  background: var(--surface-plan); color: var(--palette-apricot-ink);
+}
+.ui-sample .app-shell--overview .hero-eye { background: var(--surface-mint); }
+.ui-sample .app-shell--overview .icon-grid::before,
+.ui-sample .app-shell--overview .icon-grid::after { font-size: 13px; letter-spacing: .04em; }
+.ui-sample .app-shell--overview .panel-head { background: var(--surface-plan); color: var(--palette-apricot-ink); }
+.ui-sample .app-shell--overview .day-head[data-kind="soon"] { color: var(--palette-apricot-ink); }
+
+/* Readings and selections give the three colors visible roles on every business page. */
+.ui-sample .app-shell:not(.app-shell--overview) .stat-bar .stat-cell:first-child { background: var(--surface-info); }
+.ui-sample .app-shell:not(.app-shell--overview) .stat-bar .stat-cell--right { background: var(--surface-plan); }
+.ui-sample .app-shell:not(.app-shell--overview) .stat-cell:first-child :is(.stat-label, .stat-value, .stat-note) { color: var(--palette-blue-ink); }
+.ui-sample .app-shell:not(.app-shell--overview) .stat-cell--right :is(.stat-label, .stat-value, .stat-note) { color: var(--palette-apricot-ink); }
+.ui-sample .chip.on { background: var(--surface-mint); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 32%, transparent); }
+.ui-sample :is(.chart-tab.on, .month-pill.on) { background: var(--surface-info); color: var(--palette-blue-ink); }
+.ui-sample .a2ui-btn--secondary { background: var(--surface-info); color: var(--palette-blue-ink); }
+.ui-sample .service-field :is(input, select) { background: var(--bg-surface); border-color: color-mix(in srgb, var(--palette-blue) 45%, var(--bank-line)); }
+.ui-sample .service-field :is(input, select):focus-visible { background: color-mix(in srgb, var(--surface-mint) 30%, var(--bg-surface)); }
+.ui-sample .service-review { background: var(--surface-info); }
+.ui-sample .service-review :is(dt, dd) { color: var(--palette-blue-ink); }
+.ui-sample .service-journey li > span { background: var(--surface-info); color: var(--palette-blue-ink); }
+.ui-sample .service-journey :is([aria-current="step"], [data-complete="true"]) > span { background: var(--surface-mint); color: var(--accent); }
+.ui-sample .service-receipt-mark { background: var(--surface-mint); }
+.ui-sample .service-receipt > strong { color: var(--brand-ink); }
+
+/* A continuous colored reading region, without adding another layer of cards. */
+.ui-sample .app-shell--utility .utility-overview .panel-head { background: var(--surface-info); color: var(--palette-blue-ink); }
+.ui-sample .app-shell--utility .utility-overview .panel-body { background: linear-gradient(115deg, var(--surface-mint), var(--surface-info)); }
+.ui-sample .utility-total strong { color: var(--brand-ink); }
+.ui-sample .utility-total > span { color: var(--hero-muted); }
+.ui-sample .utility-legend small, .ui-sample .utility-trend :is(h3, h3 span) { color: var(--palette-blue-ink); }
+.ui-sample .utility-columns small { color: var(--palette-blue-ink); }
+.ui-sample .utility-bar-track { border-bottom-color: color-mix(in srgb, var(--palette-blue-ink) 22%, transparent); }
+.ui-sample .utility-types button[aria-pressed="true"] { background: var(--surface-mint); }
+.ui-sample .app-shell--utility .utility-history .panel-head { background: var(--surface-plan); color: var(--palette-apricot-ink); }
+.ui-sample .app-shell--utility .utility-history .panel-head .panel-hint { color: var(--palette-apricot-ink); }
+.ui-sample .app-shell--utility .state-mark { background: var(--icon-bg); color: var(--icon-ink); }
+
+/* Object pages: amounts and dates, rather than colored management buttons. */
+.ui-sample .ruler-amount, .ui-sample .savings-goal-amount strong { color: var(--brand-ink); }
+.ui-sample .card-title { color: var(--palette-blue-ink); }
+.ui-sample .card-activity .activity-stats { background: var(--surface-info); color: var(--palette-blue-ink); padding: 16px; border-radius: var(--radius-thumb); }
+.ui-sample .card-activity .activity-stats small { color: var(--palette-blue-ink); }
+.ui-sample .sub-block-head h2 { color: var(--palette-apricot-ink); }
+.ui-sample .sub-cards:not(.sub-cards--gone) .sub-card { background: linear-gradient(120deg, color-mix(in srgb, var(--surface-mint) 65%, var(--bg-surface)), var(--bg-surface) 72%); }
+.ui-sample .sub-card-price > span:first-child b { color: var(--palette-apricot-ink); }
+.ui-sample .due-chip { background: var(--surface-plan); }
+.ui-sample .sub-cards--gone .due-chip { background: var(--bg-surface-alt); color: var(--text-secondary); }
+.ui-sample .travel-summary { background: var(--surface-info); border-radius: var(--radius-card); }
+.ui-sample .w-page { background: linear-gradient(120deg, var(--surface-plan), var(--bg-surface) 85%); }
+.ui-sample .w-big { color: var(--brand-ink); }
+.ui-sample .w-rank-head { background: var(--surface-info); color: var(--palette-blue-ink); padding: 12px; border-radius: var(--radius-thumb); }
+.ui-sample .w-rank-def { color: var(--palette-blue-ink); }
+.ui-sample .w-ranks-hint { position: static; align-self: flex-end; }
+.ui-sample .app-shell--transfer .a2ui-progress-seg { background: var(--surface-info); }
+.ui-sample .app-shell--transfer .a2ui-progress-seg.on { background: var(--brand-fill); }
+.ui-sample .app-shell--transfer .a2ui-card--interactive {
+  background: color-mix(in srgb, var(--surface-info) 65%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--palette-blue) 45%, var(--bank-line)); box-shadow: none;
+}
+.ui-sample .app-shell--transfer .a2ui-card--interactive:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (hover: hover) {
+  .ui-sample .a2ui-btn--secondary:hover { background: var(--surface-info-hover); }
+  .ui-sample .utility-legend button:hover { background: color-mix(in srgb, var(--bg-surface) 50%, transparent); }
+  .ui-sample .app-shell--transfer .a2ui-card--interactive:hover { background: var(--surface-mint); border-color: var(--accent); }
+}

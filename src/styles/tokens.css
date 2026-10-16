@@ -112,25 +112,25 @@
   --glass-shadow: var(--glass-rim-light), var(--shadow-glass);
 
   /* ── 色彩 · 骨架（apple.com 网页色板）───────────────────────────────── */
-  --bg-app:         #f5f5f7;   /* 页面底 · 冷灰白，绝不偏暖 */
+  --bg-app:         #f6f8fb;   /* 中性雾白底，给三种主题色留出区分 */
   --bg-surface:     #ffffff;   /* 卡片 / 面板 —— 内容层一律不透明 */
-  --bg-surface-alt: #fafafc;
-  --bg-hover:       #fbfbfd;
+  --bg-surface-alt: #f0f5fc;
+  --bg-hover:       #edf4fb;
   --bg-track:       #e8e8ed;
-  --bg-ambient:     linear-gradient(160deg, #f3f7ff 0%, #f5f5f7 42%, #f4f2fb 100%);
+  --bg-ambient:     var(--bg-app);
 
-  --text-primary:     #1d1d1f;   /* 近黑，不是纯黑 */
+  --text-primary:     #1f2937;
   --color-body:       #424245;
-  --bank-ink:         #102c57;
-  --bank-muted:       #687c9c;
-  --bank-line:        #e4ebf5;
-  --bank-welcome:     #eaf3ff;
-  --chat-user:        #edf3fc;
-  --bank-nav:         #062555;
+  --bank-ink:         #20443b;
+  --bank-muted:       #566875;
+  --bank-line:        #dde5ee;
+  --bank-welcome:     var(--surface-info);
+  --chat-user:        var(--accent-tint);
+  --bank-nav:         var(--bank-ink);
   --bank-canvas:      #ffffff;
-  --text-secondary:   #6e6e73;
-  --text-tertiary:    #86868b;
-  --text-placeholder: #aeaeb2;
+  --text-secondary:   #586675;
+  --text-tertiary:    #606e7e;
+  --text-placeholder: #606e7e;
   --text-faint:       #d2d2d7;
 
   --hairline:     rgba(0,0,0,.07);
@@ -150,43 +150,66 @@
   --scrollbar-thumb: rgba(0,0,0,.14);
 
   /* ── 强调色（每屏最多 1–2 个填充色按钮）─────────────────────────────── */
-  --accent:       #0071e3;
-  --accent-hover: #0077ed;
-  --accent-press: #006edb;
-  --accent-link:  #0066cc;
+  --accent:       #087f67;
+  --accent-hover: #076f5a;
+  --accent-press: #06604e;
+  --accent-link:  var(--accent);
   --accent-on:    #ffffff;
-  --accent-tint:  rgba(0,113,227,.10);
-  /* 单一色相。以前第二停靠点是靛紫 #5e5ce6 —— 紫是这套配色里唯一的外来色，
-     换掉它，整个品牌的色相就统一在蓝上了。 */
-  --accent-2:     #0f5fa8;
-  --grad-brand:   linear-gradient(135deg, #0a84ff 0%, #0f5fa8 100%);
-  /* 余额主卡：低饱和板岩蓝，白字实测 5.7:1（原 #0a84ff→#5e5ce6 太艳） */
-  /* 竖直角对角，不是 135 度 —— 135 度会把最暗的那个角正好放在最先读到的位置。
-     白字对比度 9.10:1 到 15.88:1。 */
-  --grad-hero:    linear-gradient(to bottom, #1b4a7a 0%, #12365e 52%, #0b233d 100%);
-  /* 侧边栏品牌标记：与主卡同族，没有紫尾 */
-  --grad-brand-mark: linear-gradient(135deg, #1b4a7a 0%, #0f2f4f 100%);
-  /* 侧边栏「首页」块的高亮底。它压在玻璃上不在白底上，所以比主卡浅一档；
-     白字实测 6.31:1，仍远超 4.5:1。 */
-  --grad-hero-soft:  linear-gradient(135deg, #2b6396 0%, #1b4a7a 100%);
+  --accent-tint:  #e1f7ee;
+  --icon-bg:      var(--accent-tint);
+  --icon-ink:     var(--accent);
+  --icon-radius:  var(--radius-thumb);
+  --assistant-orb-bg: #b6e9d8;
+  /* 明亮的品牌填充与可读的文字色分开，避免薄荷绿配白字。 */
+  --brand-fill:   #2ccda4;
+  --brand-hover:  #46d7b3;
+  --brand-ink:    #164b40;
+  /* 三色体系：薄荷操作、浅蓝信息、暖杏计划；图标维持统一薄荷底。 */
+  --surface-mint:    #cff2e5;
+  --surface-mint-hover: #bcebd9;
+  --palette-blue:    #82b7e6;
+  --palette-blue-ink:#2f6188;
+  --surface-info:    #dfeefc;
+  --surface-info-hover: #cfe4f8;
+  --palette-apricot: #f2b574;
+  --palette-apricot-ink: #895026;
+  --surface-plan:    #ffe6c9;
+  --surface-plan-hover: #ffdcaf;
+  --ai-accent:    #087f8c;
+  --ai-tint:      #e3f7fa;
+  --goal-accent:  var(--palette-apricot-ink);
+  --goal-tint:    var(--surface-plan);
+  --hero-ink:     #20443b;
+  --hero-muted:   #335e55;
+  --hero-line:    #acd5ce;
+  --hero-control: #b4e9d7;
+  --hero-start:   #a3e8d1;
+  --hero-end:     #b5ddf8;
+  /* 品牌薄荷绿与浅蓝余额卡形成区分，暖杏标识计划和提醒。 */
+  --accent-2:     var(--ai-accent);
+  --grad-brand:   var(--brand-fill);
+  /* 余额主卡采用浅底深字，不用白字承载金额。 */
+  --grad-hero:    linear-gradient(110deg, var(--hero-start), var(--hero-end));
+  --grad-brand-mark: var(--accent);
+  --grad-hero-soft: var(--accent-hover);
 
   /* ── 状态色（iOS System Colors 2025 刷新值；只表达状态，不做装饰）──── */
-  --success: #34c759;  --success-tint: rgba(52,199,89,.12);
-  --warning: #ff8d28;  --warning-tint: rgba(255,141,40,.12);
+  --success: var(--accent);  --success-tint: var(--accent-tint);
+  --warning: var(--palette-apricot-ink);  --warning-tint: var(--surface-plan);
   --danger:  #ff383c;  --danger-tint:  rgba(255,56,60,.10);
-  --info:    #0088ff;  --info-tint:    rgba(0,136,255,.10);
+  --info: var(--palette-blue-ink);  --info-tint: var(--surface-info);
 
   --scrim: rgba(0,0,0,.45);   /* 浮层遮罩 —— 深度靠它，不靠阴影 */
 
   /* ── 交易分类色（iOS System Colors 2025 同族，与上面的 success/warning/accent-2 同一支）──
      只表达"这是哪一类"，不表达状态。底座形状遵循 ZA Bank 的双图标语言：
      圆形 = 动作（钱在动），方形 = 对象（有具体的消费品）。 */
-  --cat-transfer:  #0088ff;   /* 蓝 · 资金流动 */
-  --cat-dining:    #ff8d28;   /* 橙 · 食欲 */
-  --cat-shopping:  #ff2d92;   /* 粉 · 消费冲动 */
-  --cat-transport: #30b0c7;   /* 青 · 移动 */
-  --cat-subscribe: #5e5ce6;   /* 靛 · 长期扣费 */
-  --cat-income:    #34c759;   /* 绿 · 入账 */
+  --cat-transfer:  var(--palette-blue-ink);
+  --cat-dining:    var(--palette-apricot-ink);
+  --cat-shopping:  #ba7b43;
+  --cat-transport: #568cb6;
+  --cat-subscribe: var(--accent);
+  --cat-income:    #35866f;
 
   --cat-transfer-tint:  color-mix(in srgb, var(--cat-transfer)  12%, transparent);
   --cat-dining-tint:    color-mix(in srgb, var(--cat-dining)    12%, transparent);
@@ -218,7 +241,7 @@
      ② 白字压在薄荷绿上只有 2.7:1，达不到 craft floor 的 3:1，浅底深字能到 7:1。 */
   --card-0-a: #b9ebd7;  --card-0-b: #8fdcc0;  --on-card-0: #0c4634;
   --card-1-a: #cfe0f8;  --card-1-b: #afc8ef;  --on-card-1: #16345f;
-  --card-2-a: #3a3a50;  --card-2-b: #20202e;  --on-card-2: #f2f2f7;
+  --card-2-a: #ffe5c6;  --card-2-b: #f3c28d;  --on-card-2: #653c20;
   --card-frost: rgba(255,255,255,.10);
   /* 卡面顶部高光（浅底卡用低 alpha，不用 mix-blend-mode 以免发灰） */
   --card-gloss-soft: linear-gradient(to bottom, rgba(255,255,255,.42), rgba(255,255,255,0) 34%);
@@ -232,7 +255,7 @@
 
   /* 卡面渐变（卡 1 = 品牌渐变，卡 2 = 备用卡） */
   --grad-card-1: var(--grad-brand);
-  --grad-card-2: linear-gradient(135deg, #30d158 0%, #0a84ff 100%);
+  --grad-card-2: linear-gradient(135deg, var(--card-1-a), var(--card-1-b));
 
   /* ── 动效 ────────────────────────────────────────────────────────────── */
   --duration-instant: 100ms;   /* 按压反馈 */

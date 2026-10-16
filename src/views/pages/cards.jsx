@@ -4,7 +4,9 @@ import { Page, Panel } from '../parts.jsx';
 import { EyeIcon } from '../shared.jsx';
 import { LOSS_FEE, money } from '../../domain/bank.js';
 import { buildCards, enrich, isHydrated, MAIL_ADDRESS } from './cardData.jsx';
-import { cycle, summary } from './cardUtils.jsx';
+import { cycle } from './cardUtils.jsx';
+import { cardActivitySummary } from '../../domain/cardActivity.js';
+import './cardInteraction.css';
 import { CardActivity, CardCycle, CardFacts, ChannelBoard, LimitMeter, LimitRows, StatusHistory } from './cardProfile.jsx';
 import { CardFace } from './cardFace.jsx';
 import { CardFreezeSheet, FreezeNotice } from './cardFreeze.jsx';
@@ -51,7 +53,7 @@ export default function Cards({ ctx }) {
     }
   }, [bank.cards, setBank]);
 
-  const cards = useMemo(() => buildCards(bank.cards), [bank.cards]);
+  const cards = useMemo(() => buildCards(bank.cards, bank.transactions), [bank.cards, bank.transactions]);
   /* 账本补齐前的那一帧：页面骨架在，内容为空。 */
   if (!cards.length) return <Page title="卡片"/>;
   const i = Math.min(selected, cards.length - 1);
@@ -60,8 +62,8 @@ export default function Cards({ ctx }) {
   const lost = card.status === 'lost';
   /* 冻结与挂失都让四个渠道停摆，界面上共用一把锁；区别在挂失没有回头路。 */
   const locked = frozen || lost;
-  const info = cycle(card.profile);
-  const stat = summary(card, info);
+  const info = cycle({ ...card.profile, dueOffset: card.id === 'credit' ? card.profile.dueOffset : 0 });
+  const stat = cardActivitySummary(card.feed);
   const over = card.channels.reduce((s, c) => s + (c.on ? c.dayUsed : 0), 0) >= card.channels.reduce((s, c) => s + (c.on ? c.dayLimit : 0), 0);
 
   /* 三个写入口，全部落到账本里的那一张卡上 */
@@ -107,33 +109,27 @@ export default function Cards({ ctx }) {
       aria-label={hidden ? '显示卡号与金额' : '隐藏卡号与金额'}
       onClick={() => setHidden(v => !v)}><EyeIcon off={hidden}/></button>}>
 
-    <div className="wallet" role="tablist" aria-label="卡包">
+    <div className="wallet" role="tablist" aria-label="卡包" onKeyDown={e => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      const next = e.key === 'Home' ? 0 : e.key === 'End' ? cards.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + cards.length) % cards.length;
+      setSelected(next);
+      const tab = e.currentTarget.querySelectorAll('[role="tab"]')[next];
+      tab.focus({ preventScroll: true });
+      tab.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
+    }}>
       {cards.map((c, k) => <CardFace key={c.id} card={c} hidden={hidden} selected={k === i}
         frozen={c.status === 'frozen'} lost={c.status === 'lost'}
+        id={'wallet-tab-' + c.id} controls={'wallet-panel-' + c.id}
         tabIndex={k === i ? 0 : -1} onSelect={() => setSelected(k)}/>)}
     </div>
 
     {alert && <FreezeNotice card={card} isFrozen={frozen} lost={lost}
       onOpen={() => (lost ? setLoss('info') : setSheet({ action: frozen ? 'unfreeze' : 'freeze', phase: 'confirm' }))}/>}
 
-    <div key={card.id} className="card-detail" role="tabpanel" aria-label={card.name + ' 档案'}>
-      <h2 className="card-title">{card.name.replace('青禾', '')}<span>•• {card.tail}</span></h2>
-
-      <Panel>
-        {/* 挂失后这一格换成补卡进度：「还能花多少」已经不是这张卡的问题了 */}
-        {lost && card.replacement
-          ? <ReplacementTrack replacement={card.replacement}/>
-          : <LimitMeter card={card} hidden={hidden}/>}
-        <CardCycle info={info} frozen={locked}/>
-        <CardFacts card={card}/>
-      </Panel>
-
-      <ChannelBoard card={card} frozen={locked} lost={lost} onToggle={toggleChannel}/>
-
-      {/* 限额只在卡还能用时才可调 —— 挂失的卡谈不上改限额 */}
-      {!lost && <div id="card-limits" className="card-limits">
-        <LimitRows card={card} onLimit={setLimit} say={setToast}/>
-      </div>}
+    <div key={card.id} className="card-detail" role="tabpanel" id={'wallet-panel-' + card.id} aria-labelledby={'wallet-tab-' + card.id}>
+      <h2 className="card-title">{card.name.replace('青禾', '')}<span>•• {hidden ? '••••' : card.tail}</span>
+        <span className="card-state-label" data-state={card.status}>{lost ? '已挂失' : frozen ? '已冻结' : '正常使用'}</span></h2>
 
       <div className="card-actions">
         {lost
@@ -158,6 +154,24 @@ export default function Cards({ ctx }) {
           </button>}
         </div>
       </div>
+
+      <Panel>
+        {/* 挂失后这一格换成补卡进度：「还能花多少」已经不是这张卡的问题了 */}
+        {lost && card.replacement
+          ? <ReplacementTrack replacement={card.replacement}/>
+          : <LimitMeter card={card} hidden={hidden}/>}
+        <CardCycle info={info} frozen={locked}/>
+        <CardFacts card={card} hidden={hidden}/>
+      </Panel>
+
+      <ChannelBoard card={card} frozen={locked} lost={lost} hidden={hidden} onToggle={toggleChannel}/>
+
+      {/* 限额只在卡还能用时才可调 —— 挂失的卡谈不上改限额 */}
+      {!lost && <div id="card-limits" className="card-limits">
+        <LimitRows card={card} hidden={hidden} onLimit={setLimit} say={setToast}/>
+      </div>}
+
+
 
       <CardActivity card={card} stat={stat} hidden={hidden}/>
 

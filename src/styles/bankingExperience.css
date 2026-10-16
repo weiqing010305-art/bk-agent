@@ -1,0 +1,84 @@
+/* Shared banking controls. Color values remain in tokens.css. */
+.ui-sample .app-shell--overview .balance-hero { box-shadow: none; }
+.ui-sample .app-shell:not(.app-shell--assistant):not(.app-shell--overview) .view-inner { max-width: 1240px; }
+.ui-sample .app-shell:not(.app-shell--overview) .page-head h1 { font-size: 28px; font-weight: 650; letter-spacing: -.025em; color: var(--text-primary); }
+.ui-sample .app-shell:not(.app-shell--overview) .page-head p { font-size: 14px; line-height: 1.6; }
+.ui-sample .app-shell:not(.app-shell--overview) .page-body { gap: 24px; }
+.ui-sample .panel { border-radius: 16px; box-shadow: none; border: 1px solid var(--bank-line); }
+.ui-sample .app-shell:not(.app-shell--overview) .panel-head { padding: 18px 24px; background: color-mix(in srgb,var(--page-tint) 38%,var(--bg-surface)); border-radius: 15px 15px 0 0; }
+.ui-sample .panel-head h2 { font-size: 18px; }
+.ui-sample .panel-body { padding: 24px; }
+.ui-sample .service-form { gap: 24px; }
+.ui-sample .service-form fieldset { gap: 24px; }
+.ui-sample .service-field { font-size: 14px; gap: 10px; }
+.ui-sample .service-field :is(input, select) { min-height: 48px; padding: 12px 14px; border-radius: 10px; font-size: 16px; }
+.ui-sample .service-field--amount input { padding: 16px 0; font-size: 32px; font-weight: 600; color: var(--brand-ink); border: 0; border-radius: 0; border-bottom: 1px solid var(--bank-line); font-variant-numeric: tabular-nums; }
+.ui-sample .service-field--amount input::placeholder { font-weight: 400; font-size: 23px; color: var(--text-secondary); }
+.ui-sample .service-field small { font-size: 12px; }
+.ui-sample .service-actions { gap: 12px; align-items: center; padding-top: 4px; }
+.ui-sample .a2ui-btn { min-height: 44px; border-radius: 10px; font-weight: 600; }
+.ui-sample .service-actions .a2ui-btn--primary { min-width: 136px; }
+.ui-sample .service-form > .service-actions { justify-content: flex-end; border-top: 1px solid var(--bank-line); padding-top: 20px; }
+.ui-sample .service-review { background: var(--surface-info); border-radius: 12px; padding-inline: 20px; }
+.ui-sample .service-review > div { padding-block: 15px; font-size: 14px; }
+.ui-sample .service-review > div:last-child { border-bottom: 0; }
+.ui-sample .service-review dd { font-weight: 600; }
+.ui-sample .service-journey { max-width: 660px; width: 100%; margin: 0; }
+.ui-sample .service-journey b { font-size: 13px; }
+.payment-account { display: grid; gap: 10px; }
+.payment-account > label { font-size: 14px; }
+.payment-account-select { position: relative; display: flex; align-items: center; gap: 14px; min-height: 84px; padding: 16px; border: 1px solid var(--bank-line); border-radius: 12px; background: var(--surface-info); color: var(--palette-blue-ink); }
+.payment-account-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--icon-radius); color: var(--icon-ink); background: var(--icon-bg); flex-shrink: 0; }
+.payment-account-copy { display: grid; gap: 5px; flex: 1; min-width: 0; }
+.payment-account-copy strong { font-size: 15px; font-weight: 600; }
+.payment-account-copy span { font-size: 12px; }
+.payment-account-select > svg { flex-shrink: 0; }
+.payment-account-select select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.payment-account-select:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.payment-account small { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+.payment-account small b { color: var(--brand-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ui-sample .app-shell--utility .utility-overview .panel-head { background: var(--surface-info); }
+.ui-sample .app-shell--utility .utility-overview .panel-body { background: var(--bg-surface); border-radius: 0 0 16px 16px; }
+.ui-sample .utility-summary-grid { gap: 40px; }
+.ui-sample .utility-total strong { font-size: 36px; }
+.ui-sample .utility-share { height: 10px; }
+.ui-sample .utility-types { gap: 10px; }
+.ui-sample .utility-types button { position: relative; min-height: 80px; padding: 12px 8px; flex-direction: column; gap: 8px; border-color: var(--bank-line); }
+.ui-sample .utility-types button[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-mint); box-shadow: inset 0 0 0 1px var(--accent); }
+.ui-sample .utility-types button[aria-pressed="true"]::after { content: ''; position: absolute; right: 10px; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.utility-trend-empty { margin: 16px 0; font-size: 12px; color: var(--palette-blue-ink); }
+.utility-trend--empty .utility-bar-track { height: 32px; }
+.ui-sample .app-shell--utility .utility-history .panel-head { background: var(--surface-plan); }
+.ui-sample .utility-history .state { padding: 36px 4px; }
+.ui-sample .utility-history .state-title { font-size: 18px; }
+.ui-sample .utility-history .state-desc { font-size: 14px; line-height: 1.6; }
+.ui-sample .service-receipt { padding: 24px 0; gap: 14px; }
+.ui-sample .service-receipt-details { font-size: 14px; overflow-wrap: anywhere; }
+.ui-sample .service-error { background: var(--danger-tint); padding: 12px 14px; border-radius: 8px; font-size: 14px; }
+.ui-sample .card-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; margin: 0; padding: 12px; background: var(--bg-surface); border: 1px solid var(--bank-line); border-radius: 16px; }
+.ui-sample .card-actions .action-grid { display: contents; }
+.ui-sample .card-actions .action-cell, .ui-sample .card-actions .freeze-btn { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 12px 6px; min-height: 80px; border: 0; box-shadow: none; border-radius: 10px; font-size: 13px; }
+.ui-sample .card-actions .action-cell { background: var(--bg-app); }
+.ui-sample .card-actions .freeze-btn b { font-size: 13px; }
+.ui-sample .card-actions :is(.freeze-btn, .action-cell) > svg { box-sizing: border-box; width: 36px; height: 36px; padding: 8px; border-radius: var(--icon-radius); color: var(--icon-ink); background: var(--icon-bg); flex-shrink: 0; }
+.ui-sample .card-stage, .ui-sample .wallet { margin-bottom: 8px; }
+.ui-sample .app-shell--transfer .a2ui-card--interactive { border-radius: 12px; background: var(--bg-surface); }
+.ui-sample .app-shell--transfer .a2ui-card--interactive:hover { background: var(--surface-mint); }
+.ui-sample .app-shell--savings .savings-goal { padding-block: 24px; }
+.ui-sample .app-shell--subscriptions .sub-card { border-radius: 16px; box-shadow: none; }
+.ui-sample :is(button, select, input, textarea):focus-visible { outline-color: var(--accent); outline-offset: 3px; }
+.ui-sample :is(input, textarea) { caret-color: var(--accent); }
+.ui-sample ::selection { background: var(--surface-mint); color: var(--brand-ink); }
+@media (max-width: 720px) {
+  .ui-sample .app-shell:not(.app-shell--overview) .page-head h1 { font-size: 26px; }
+  .ui-sample .app-shell:not(.app-shell--overview) .page-head p { font-size: 13px; }
+  .ui-sample .app-shell:not(.app-shell--overview) .panel-head { padding: 16px 18px; }
+  .ui-sample .panel-body { padding: 20px 18px; }
+  .ui-sample .service-workspace { min-width: 0; }
+  .ui-sample .utility-summary-grid { gap: 24px; }
+  .ui-sample .service-journey { gap: 8px; }
+  .ui-sample .service-journey b { font-size: 12px; }
+  .ui-sample .service-form > .service-actions .a2ui-btn { flex: 1; min-width: 0; }
+  .ui-sample .card-actions { padding: 12px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ui-sample .service-review { padding-inline: 14px; }
+}

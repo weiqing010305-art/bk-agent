@@ -28,14 +28,10 @@
 .a2ui-col > .a2ui-text--caption + .a2ui-text--headline { margin-top: 1px; }
 
 .a2ui-icon {
-  width: 32px; height: 32px; flex: 0 0 auto; border-radius: var(--radius-thumb);
+  width: 32px; height: 32px; flex: 0 0 auto; border-radius: var(--icon-radius);
   display: grid; place-items: center;
-  background: var(--fill-3); color: var(--text-secondary);
+  background: var(--icon-bg); color: var(--icon-ink);
 }
-.a2ui-icon--accent { background: var(--accent-tint); color: var(--accent); }
-.a2ui-icon--positive { background: var(--success-tint); color: var(--success); }
-.a2ui-icon--negative { background: var(--danger-tint); color: var(--danger); }
-.a2ui-icon--warning { background: var(--warning-tint); color: var(--warning); }
 
 /* 业务卡片：不透明 + hairline。这是 Apple 两层模型的内容层。 */
 .a2ui-card {
@@ -93,8 +89,8 @@
   transition: transform var(--duration-base) var(--ease-spring), background var(--duration-fast) var(--ease-out);
 }
 .a2ui-btn:active { transform: scale(.96); transition-duration: var(--duration-instant); }
-.a2ui-btn--primary { background: var(--accent); color: var(--accent-on); }
-.a2ui-btn--primary:hover { background: var(--accent-hover); }
+.a2ui-btn--primary { background: var(--brand-fill); color: var(--brand-ink); }
+.a2ui-btn--primary:hover { background: var(--brand-hover); }
 .a2ui-btn--secondary { background: var(--fill-3); color: var(--text-primary); }
 .a2ui-btn--secondary:hover { background: var(--fill-2); }
 
@@ -143,11 +139,11 @@
 .composer textarea::placeholder { color: var(--text-placeholder); }
 .send {
   width: 38px; height: 38px; flex: 0 0 auto; border-radius: var(--radius-pill); border: none;
-  display: grid; place-items: center; color: var(--accent-on);
-  background: var(--accent);
+  display: grid; place-items: center; color: var(--brand-ink);
+  background: var(--brand-fill);
   transition: transform var(--duration-base) var(--ease-spring), background var(--duration-fast) var(--ease-out);
 }
-.send:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.send:hover:not(:disabled) { background: var(--brand-hover); transform: translateY(-1px); }
 .send:active:not(:disabled) { transform: scale(.95); transition-duration: var(--duration-instant); }
 .send:disabled { background: var(--fill-2); color: var(--text-tertiary); }
 .hint { margin: var(--space-3) 0 0; text-align: center; font-size: var(--text-caption-2); color: var(--text-faint); }
@@ -181,7 +177,7 @@
 .confirm-amount { font-variant-numeric: tabular-nums; }
 .modal-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
 .ghost-btn { height: var(--hit-min); padding: 0 var(--space-6); border-radius: var(--radius-pill); border: none; background: var(--fill-3); color: var(--text-primary); }
-.primary-btn { height: var(--hit-min); padding: 0 var(--space-6); border-radius: var(--radius-pill); border: none; background: var(--accent); color: var(--accent-on); font-weight: 500; }
+.primary-btn { height: var(--hit-min); padding: 0 var(--space-6); border-radius: var(--radius-pill); border: none; background: var(--brand-fill); color: var(--brand-ink); font-weight: 500; }
 .danger-btn { background: var(--danger); }
 .api-error { color: var(--danger); font-size: var(--text-footnote); }
 .verification-box { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border-radius: var(--radius-md); background: var(--accent-tint); }

@@ -41,7 +41,7 @@ const shortDate = date => date.slice(5).replace('-', '/');
 /** 概览只看最近这几天有动账的日子：再往前的交给账单页。 */
 const RECENT_DAYS = 3;
 
-function FeedRow({ r, open, onToggle, onGo }) {
+function FeedRow({ r, open, onToggle, onGo, hidden }) {
   const Dir = r.positive ? ArrowDownLeft : ArrowUpRight;
   return <li className="row-item feed-item">
     <button type="button" className="feed-hit" aria-expanded={open} onClick={onToggle}>
@@ -49,14 +49,14 @@ function FeedRow({ r, open, onToggle, onGo }) {
       <span className="row-main"><strong>{r.name}</strong><small>{r.sub}</small></span>
       {r.amountText
         ? <span className={'feed-amt' + (r.positive ? ' feed-amt--in' : '')}>
-            <Dir size={13} className="feed-dir"/><Amount value={r.amountText} positive={r.positive}/>
+            <Dir size={13} className="feed-dir"/><Amount value={hidden ? '¥ ••••' : r.amountText} positive={r.positive}/>
           </span>
-        : <span className="feed-used"><span className="feed-used-label">本月已用 </span>{r.usedText}</span>}
+        : <span className="feed-used"><span className="feed-used-label">本月已用 </span>{hidden ? '¥ ••••' : r.usedText}</span>}
       <ChevronDown size={14} className={'feed-chev' + (open ? ' on' : '')}/>
     </button>
     {open && <div className="feed-detail">
       <dl className="feed-facts">
-        {r.facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+        {r.facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{hidden && /[¥￥]/.test(String(v)) ? '¥ ••••' : v}</dd></div>)}
       </dl>
       {r.action && <button className="a2ui-btn a2ui-btn--secondary" onClick={() => onGo(r.action.route)}>
         {r.action.label}
@@ -96,7 +96,7 @@ function headOf(key, list) {
   return { label: dayLabel(key), note: parts.join('  ') };
 }
 
-export default function Feed({ ctx }) {
+export default function Feed({ ctx, hidden = false }) {
   const { bank, dataModel: d, setRoute } = ctx;
   const [open, setOpen] = useState(null);
 
@@ -157,10 +157,10 @@ export default function Feed({ ctx }) {
       {rows.length === 0
         ? <Empty icon={Inbox} title="暂无动态"/>
         : <div className="day-groups">
-            {sections.map(s => <section className="day-group" key={s.key}>
-              <header className="day-head feed-day"><h3>{s.label}</h3><b>{s.note}</b></header>
+            {sections.map(s => <section className="day-group" data-kind={s.key} key={s.key}>
+              <header className="day-head feed-day"><h3>{s.label}</h3><b>{hidden && s.note ? '¥ ••••' : s.note}</b></header>
               <ul className="row-list">
-                {s.list.map(r => <FeedRow key={r.id} r={r} open={open === r.id}
+                {s.list.map(r => <FeedRow key={r.id} r={r} open={open === r.id} hidden={hidden}
                   onToggle={() => setOpen(open === r.id ? null : r.id)} onGo={setRoute}/>)}
               </ul>
             </section>)}

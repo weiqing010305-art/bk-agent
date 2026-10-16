@@ -1,0 +1,57 @@
+.assistant-dock { flex: 0 0 112px; position: relative; z-index: 3; }
+.app-shell--overview .assistant-dock { flex-basis: 0; }
+.app-shell--overview .view-scroll { scrollbar-gutter: stable both-edges; }
+.app-shell--overview .view-inner { max-width: min(1100px, calc(100vw - 800px)); }
+.assistant-orb {
+  position: absolute; top: 28px; left: 24px;
+  display: grid; place-items: center; width: 76px; height: 76px;
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+  border-radius: var(--radius-pill); color: var(--icon-ink);
+  background: var(--assistant-orb-bg); box-shadow: var(--shadow-panel);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.assistant-orb:hover { transform: translateY(-2px); }
+.assistant-orb:active { transform: scale(.96); }
+.assistant-orb span {
+  position: absolute; right: -2px; bottom: 0; display: grid; place-items: center;
+  width: 25px; height: 25px; border: 3px solid var(--bg-app);
+  border-radius: var(--radius-pill); background: var(--ai-accent);
+  color: var(--accent-on); font-size: 10px; font-weight: 700;
+}
+.assistant-greeting {
+  position: absolute; top: 32px; left: 118px; width: 264px;
+  padding: var(--space-5) var(--space-6); border: 1px solid var(--bank-line);
+  border-radius: var(--radius-panel); background: var(--bg-surface);
+  box-shadow: var(--shadow-1);
+}
+.assistant-greeting::before {
+  content: ''; position: absolute; left: -7px; top: 27px; width: 12px; height: 12px;
+  transform: rotate(45deg); background: var(--bg-surface);
+  border-left: 1px solid var(--bank-line); border-bottom: 1px solid var(--bank-line);
+}
+.assistant-greeting strong { color: var(--ai-accent); font-size: var(--text-subhead); }
+.assistant-greeting p { margin: var(--space-2) 0 0; color: var(--text-secondary); font-size: var(--text-footnote); }
+.assistant-home {
+  position: absolute; top: 124px; left: 40px; display: grid; place-items: center;
+  width: 44px; height: 44px; border: none; border-radius: var(--radius-pill);
+  color: var(--accent); background: transparent;
+}
+.assistant-home:hover { background: var(--accent-tint); }
+@media (max-width: 1200px) {
+  .app-shell--overview .main-area { padding-top: 128px; }
+  .app-shell--overview .view-inner { max-width: 1100px; }
+}
+@media (max-width: 900px) {
+  .assistant-dock, .app-shell--overview .assistant-dock { flex-basis: 0; }
+  .assistant-orb { position: fixed; top: auto; left: auto; right: 20px; bottom: 24px; width: 60px; height: 60px; }
+  .assistant-home { position: fixed; top: auto; left: auto; right: 28px; bottom: 100px; background: var(--bg-surface); box-shadow: var(--shadow-1); }
+  .assistant-greeting { position: fixed; top: 24px; left: 22px; box-shadow: none; }
+  .app-shell--overview .main-area { padding-top: 128px; }
+  .assistant-greeting::before { display: none; }
+  .app-shell .page-head, .app-shell .view-head { padding-left: 0; }
+  .app-shell--assistant .assistant-orb { bottom: 164px; }
+  .app-shell--assistant .assistant-home { bottom: 240px; }
+  /* 手动业务页为悬浮入口留出底部操作区，避免覆盖表单按钮和卡片开关。 */
+  .app-shell:not(.app-shell--overview):not(.app-shell--assistant) .view-scroll { margin-bottom: 96px; }
+  .app-shell:not(.app-shell--overview):not(.app-shell--assistant) .assistant-home { right: 96px; bottom: 32px; }
+}

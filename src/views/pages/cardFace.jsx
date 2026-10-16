@@ -50,13 +50,13 @@ const EXPIRY_FALLBACK = '09 / 29';
  * 挂失与冻结都用 lost / frozen 两个布尔传进来，卡面自己不读 status —— 助手侧的 dataModel
  * 只有 id / name / tail，读不到状态，靠调用方告诉它这张卡现在是什么材料。
  */
-export function CardFace({ card = {}, hidden = false, frozen = false, lost = false, still = false, decorative = false, selected = false, tabIndex, onSelect }) {
+export function CardFace({ card = {}, hidden = false, frozen = false, lost = false, still = false, decorative = false, selected = false, tabIndex, onSelect, id, controls }) {
   const ref = useRef(null);
   const { tone, org } = look(card);
   const tail = card.tail || '••••';
   const state = lost ? 'lost' : frozen ? 'frozen' : 'active';
   const off = state !== 'active';
-  const label = (card.name || '银行卡') + '，尾号 ' + tail + (lost ? '，已挂失' : frozen ? '，已冻结' : '，状态正常');
+  const label = (card.name || '银行卡') + (hidden ? '，卡号已隐藏' : '，尾号 ' + tail) + (lost ? '，已挂失' : frozen ? '，已冻结' : '，状态正常');
 
   const move = e => {
     const el = ref.current;
@@ -79,6 +79,7 @@ export function CardFace({ card = {}, hidden = false, frozen = false, lost = fal
 
   const face = (
     <div className="bank-card card-face" data-tone={tone} data-state={state}
+         id={id} aria-controls={controls}
          role={decorative ? undefined : still ? 'img' : 'tab'}
          aria-label={decorative ? undefined : label}
          aria-hidden={decorative ? 'true' : undefined}
@@ -111,7 +112,9 @@ export function CardFace({ card = {}, hidden = false, frozen = false, lost = fal
 
   if (still) return face;
   return <div className="card-face-wrap" ref={ref} onPointerMove={move} onPointerLeave={leave}
-              data-state={state} data-on={selected ? 'on' : undefined}>{face}</div>;
+              data-state={state} data-on={selected ? 'on' : undefined}>{face}
+    <span className="card-face-caption" aria-hidden="true">{card.name}<small>{selected ? '当前卡片' : '点击切换'}</small></span>
+  </div>;
 }
 
 /**

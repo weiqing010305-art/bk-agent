@@ -42,8 +42,8 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 
 .sub-card-head { display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: var(--space-5); }
 /* 形象本体：46px 的方形底座（方形 = 有具体的物，订阅是有物的一类）+ 该细分的动效 */
-.sub-card .sub-logo { width: 46px; height: 46px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--sub-hue) 14%, transparent); color: var(--sub-hue); }
-.sub-card .sub-logo--cloud::after { width: 22px; margin-left: -11px; background: var(--sub-hue); }
+.sub-card .sub-logo { width: 46px; height: 46px; border-radius: var(--icon-radius); background: var(--icon-bg); color: var(--icon-ink); }
+.sub-card .sub-logo--cloud::after { width: 22px; margin-left: -11px; background: var(--icon-ink); }
 .sub-card-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .sub-card-id h3 { margin: 0; font-size: var(--text-headline); font-weight: 600; letter-spacing: var(--tracking-body); }
 .sub-card-id small { font-size: var(--text-footnote); color: var(--text-secondary); line-height: var(--leading-subhead); }
@@ -63,7 +63,7 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 .due-chip {
   display: inline-flex; align-items: center; gap: var(--space-2);
   min-height: 36px; padding: var(--space-1) var(--space-4); border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--sub-hue) 12%, transparent); color: var(--sub-hue);
+  background: var(--surface-plan); color: var(--palette-apricot-ink);
   font-size: var(--text-subhead); font-weight: 600;
 }
 .due-date { font-size: var(--text-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -72,7 +72,7 @@ li.sub-card[data-tone="read"]  { --sub-hue: var(--cat-dining); }
 
 /* ── 已取消：同一张卡，但材料换成"不在运行"的那一种 ─────────────────── */
 .sub-cards--gone li.sub-card { background: var(--bg-surface-alt); box-shadow: var(--shadow-1); }
-.sub-cards--gone .sub-logo { background: var(--fill-3); color: var(--text-tertiary); }
+.sub-cards--gone .sub-logo { background: var(--icon-bg); color: var(--icon-ink); }
 .sub-cards--gone .due-chip { background: var(--fill-3); color: var(--text-secondary); }
 .sub-cards--gone .sub-card-price b { color: var(--text-secondary); }
 @media (max-width: 560px) {

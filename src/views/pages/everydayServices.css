@@ -30,7 +30,7 @@
   font-size: max(16px, var(--text-callout));
 }
 .service-field small { color: var(--text-secondary); }
-.service-review { margin: 0; }
+.service-review { margin: 0; background: var(--surface-info); padding-inline: var(--space-5); border-radius: var(--radius-thumb); }
 .service-review > div {
   display: flex;
   justify-content: space-between;
@@ -73,4 +73,8 @@
 }
 .savings-goal:last-child { border-bottom: 0; }
 .savings-goal h3 { margin: 0; }
-.savings-goal progress { width: 100%; height: 12px; accent-color: var(--accent); }
+.savings-goal progress { width: 100%; height: 12px; accent-color: var(--goal-accent); }
+.app-shell--savings .panel-head { background: var(--surface-plan); color: var(--palette-apricot-ink); }
+.app-shell--savings .panel { overflow: hidden; }
+.app-shell--savings .stat-bar { background: var(--surface-plan); }
+.app-shell--savings .stat-label { color: var(--palette-apricot-ink); }

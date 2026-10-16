@@ -30,17 +30,43 @@
 
 ## 快速开始
 
-需要 Node.js 20.19+ 或 22.12+。
+当前默认入口采用已确认的薄荷绿首页，`qinghe-ui-preview.html` 保留为同一应用的预览地址。需要 Node.js 20.19+ 或 22.12+、Python 3.12，以及 PostgreSQL（或 Docker 中的 PostgreSQL）。
+
+首次安装，在仓库根目录执行（Windows PowerShell）：
+
+```powershell
+npm ci
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements-lock.txt
+npm start           # http://127.0.0.1:8080/，页面与 API 同一服务
+```
+
+`npm start` 在不存在 `.env` 时复制 `.env.example`，复用数据库并升级迁移，以后端模式构建当前前端，再由 FastAPI 同源提供页面、资源及 `/api`。默认只监听本机 8080；可在 `.env` 设置 `QINGHE_PORT`。终端按 Ctrl+C 停止应用，数据库数据保留。
+
+Windows 本机数据库默认查找 `D:/PostgreSQL18/bin` 或 `C:/Program Files/PostgreSQL/18/bin`，其他安装位置设置 `POSTGRES_BIN`。使用 Docker 时先复制 `.env.example` 为 `.env`（已有配置不要覆盖），再执行 `docker compose up -d db`。Linux/macOS 使用 `.venv/bin/python` 安装依赖，先启动数据库，再运行 `npm start`。
+
+开发时可继续单独使用 Vite：
 
 ```bash
 npm install
 npm run dev          # http://127.0.0.1:5173/
 ```
 
+前后端热更新联调入口：
+
+```bash
+npm run dev:full     # 数据库 → migration → API → 当前前端
+```
+
+该命令复用 `.env`，数据库数据及日志放在 `.local/`，不重置账户。完整安装和数据范围见 [后端运行说明](backend/README.md)。数据库文件、环境变量、构建产物、临时截图不上传 GitHub；上传源码、迁移、依赖锁文件与可复现启动命令。
+
 ### 验证
 
 ```bash
-npm test             # 单元测试（87 条）
+npm test             # 单元测试
+npm run test:ui:product # 当前十三业务、搜索、隐私与手机避让
+npm run test:chat     # 新建/历史聊天及刷新保留
+npm run test:e2e:backend # 数据库联调：转账、充值、储蓄、恢复与隔离
 npm run build        # 构建
 npm run test:e2e     # 端到端（需要 Microsoft Edge；可用 EDGE_PATH 覆盖路径）
 npm run test:flow    # 转账四步流程走查
@@ -48,11 +74,17 @@ npm run test:motion  # 动效是否真的在跑（实际 hover 并读 computed s
 npm run test:mobile  # 窄屏 390px 无横向溢出
 ```
 
-### 可选：接后端
+浏览器测试首次运行先执行 `npx playwright install chromium`；可用 `BROWSER_PATH` 指定已有浏览器。测试合并入口时在 PowerShell 设置 `$env:BASE_URL='http://127.0.0.1:8080'`，或在 POSIX shell 给命令添加 `BASE_URL=http://127.0.0.1:8080`。后端测试使用虚拟环境执行 `python -m pytest backend/tests -q`，会在唯一测试 schema 中验证迁移和业务，不清空应用表。
 
-项目带一个 PostgreSQL + FastAPI 的模拟转账闭环。先按 [后端运行说明](backend/README.md)
-启动数据库与 API，再在 `.env` 里设 `VITE_API_MODE=backend`。
-不配置该变量时，前端使用本地 mock 账本（localStorage）。
+旧 `test:e2e/text/copy/smoke/flow/motion` 仍需迁移导航定位：当前默认首页是概览，重复侧栏已移除，这些脚本会在原入口超时；不记为已通过。当前业务使用上述产品 UI 和后端集成测试。
+
+### 后端模式与保存范围
+
+当前 `.env` 的 `VITE_API_MODE=backend` 连接 PostgreSQL + FastAPI，Vite 代理同源 `/api` 请求。余额、流水、联系人、转账、充值缴费和储蓄资金以服务端为准；核对和验证码通过前不扣款。转账保留原操作编号，支持刷新恢复及网络中断后查询，避免重复扣款。
+
+卡片设置、订阅、聊天和预约等元数据仍保存在浏览器；理财申购及挂失手续费仍是原本的本地流程，尚未接入数据库记账，刷新账户时本地资金变化会被服务端账本覆盖。详细范围见 [后端说明](backend/README.md)。没有继续开发 Agent，也没有接入真实银行。
+
+将变量改为 `local` 并重启 Vite 可使用原有纯浏览器账本。后端故障不会自动切换账本。
 
 ---
 

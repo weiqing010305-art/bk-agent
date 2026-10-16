@@ -33,7 +33,7 @@ const SURFACE_ID = 'page-transfer';
 const EMPTY_DRAFT = { type: 'person', contactId: '', manualCardNumber: '', amountText: '', note: '' };
 
 export default function Transfer({ ctx }) {
-  const { bank, dataModel, contacts, directory, provenance, handleAction, setConfirm, setRoute, yuan } = ctx;
+  const { bank, dataModel, contacts, directory, provenance, handleAction, setConfirm, setRoute, yuan, backendMode, prepareTransfer } = ctx;
   const draftRef = useRef({ ...EMPTY_DRAFT });
   const pendingRef = useRef(null);
   const [step, setStep] = useState('type');
@@ -84,7 +84,7 @@ export default function Transfer({ ctx }) {
     return undefined;
   };
 
-  const confirmNow = () => {
+  const confirmNow = async () => {
     const d = draftRef.current;
     const manual = !d.contactId && !!d.manualCardNumber;
     const recipient = manual ? { mode: 'manual', cardNumber: d.manualCardNumber } : { mode: 'saved', contactId: d.contactId };
@@ -92,6 +92,12 @@ export default function Transfer({ ctx }) {
     if (Math.round(Number(d.amountText || 0) * 100) > MAX_TRANSFER) return setNotice('单笔最多 ' + yuan(MAX_TRANSFER));
     const check = validateTransferSlots({ recipient, amountText: d.amountText, balance: bank.balance });
     if (!check.ok) return setNotice(check.error);
+    if (backendMode) {
+      const op = await prepareTransfer({ amount: check.amount, note: d.note || '',
+        ...(manual ? { cardNumber: check.cardNumber } : { contactId: d.contactId }) });
+      if (op) pendingRef.current = { id: op.id, amount: op.amount, contactId: op.contactId, draft: d };
+      return;
+    }
     const contact = manual ? directory.find(c => c.number === check.cardNumber) : contacts.find(c => c.id === d.contactId);
     if (!contact) return setNotice('查不到这个卡号');
     const id = crypto.randomUUID();

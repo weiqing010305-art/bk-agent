@@ -17,11 +17,18 @@ export function useConversations() {
     catch { setSaveError(true); }
   }, [store]);
 
-  const patch = useCallback(p => setStore(prev => updateCurrent(prev, p)), []);
+  const patch = useCallback((p, conversationId) => setStore(prev => {
+    if (!conversationId) return updateCurrent(prev, p);
+    if (!prev.items.some(c => c.id === conversationId)) return prev;
+    return { ...updateCurrent({ ...prev, activeId: conversationId }, p), activeId: prev.activeId };
+  }), []);
   /** 函数式改 turns：用于「先占位、后填充」这类异步补丁，避免闭包拿到过期的 turns */
-  const patchTurns = useCallback(fn => setStore(prev => {
-    const cur = prev.items.find(c => c.id === prev.activeId);
-    return updateCurrent(prev, { turns: fn(cur ? cur.turns : []) });
+  const patchTurns = useCallback((fn, conversationId) => setStore(prev => {
+    const targetId = conversationId || prev.activeId;
+    const cur = prev.items.find(c => c.id === targetId);
+    if (!cur) return prev;
+    const next = updateCurrent({ ...prev, activeId: targetId }, { turns: fn(cur.turns) });
+    return { ...next, activeId: prev.activeId };
   }), []);
   const select = useCallback(id => setStore(prev => prev.items.some(c => c.id === id) ? { ...prev, activeId: id } : prev), []);
   const create = useCallback(() => setStore(createConversation), []);

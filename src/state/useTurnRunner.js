@@ -44,8 +44,9 @@ export function useTurnRunner({ history, a2ui, turns, ctxFor, record, resumeFoll
 
   /** 先占位再填充：surface 数据立刻可用，但那条消息先显示骨架，隔一拍才落内容。 */
   const settle = useCallback(turnId => {
+    const conversationId = history.current.id;
     setTimeout(() => {
-      history.patchTurns(ts => ts.map(x => (x.id === turnId ? { ...x, pending: false } : x)));
+      history.patchTurns(ts => ts.map(x => (x.id === turnId ? { ...x, pending: false } : x)), conversationId);
     }, 420);
   }, [history]);
 

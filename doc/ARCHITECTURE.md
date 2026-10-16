@@ -1,5 +1,116 @@
 # ARCHITECTURE — 青禾银行 AI 资金管家的整体架构
 
+## 前后端统一运行（2026-10-16）
+
+开发继续由 Vite 代理 API；`npm start` 在准备同一数据库和迁移后，以 backend 模式构建前端，由 FastAPI 同源提供页面及接口。只托管 dist，原 API 注册在静态托管之前；没有构建文件时 API 仍独立可用。旧预览地址返回同一份 index，不改变业务、授权或存储范围。
+
+```mermaid
+flowchart LR
+  START["npm start"] --> DB["复用数据库与迁移"]
+  DB --> BUILD["Vite build：backend 模式"]
+  BUILD --> APP["FastAPI：默认本机 8080"]
+  APP --> API["原 api 会话与银行接口"]
+  APP --> STATIC["dist：页面与资源"]
+  ALIAS["旧预览地址"] --> STATIC
+  API --> PG["原 PostgreSQL 账本"]
+  DEV["npm run dev:full"] --> VITE["Vite 5173 代理 API 8000"]
+```
+
+## 账户首页与办理组件（2026-10-16）
+
+ProductView 将概览标题放在滚动区外，为原悬浮问候留出安全空间；业务页仍用原 Page 标题。原路由、API、授权及持久化范围不变。
+
+```mermaid
+flowchart LR
+  PV["ProductView"] --> HEAD["概览标题：滚动区外"]
+  PV --> OV["Overview"]
+  CAT["SERVICE_TILES：13 路由"] --> HS["HomeServices 名称与别名筛选"]
+  HS --> GO["原 onGo 路由"]
+  OV --> HS
+  BANK["bank.transactions"] --> PURE["overviewInsights 只读汇总"]
+  PURE --> HI["HomeInsights 账期与分类"]
+  OV --> HI
+  HIDE["Overview hidden"] --> HI
+  HIDE --> FEED["Feed 金额显隐"]
+  CARDS["原银行卡状态"] --> PA["PaymentAccount 原生 select"]
+  PA --> FORM["原生活服务表单"]
+  FORM --> PAY["原核对与 payService"]
+```
+
+布局样式由 `qinghe-ui-preview.css` 覆盖概览，由 `bankingExperience.css` 统一业务页。新增组件使用既有 tokens，不引入组件库或新的依赖。
+
+## 产品页可视化派生（2026-10-14）
+
+新增展示层保持只读。支付动作仍调用原 payService，成功刷新同一份账本；卡片档案与管理设置的本地保存边界不变。ProductView 路由及助手行为不变。
+
+```mermaid
+flowchart LR
+  BANK["bank.transactions"] --> UTIL["utilityInsights 按月构成与趋势"]
+  BANK --> CARD["cardActivity 明确卡片关联"]
+  UTIL --> UO["UtilityOverview 月份与类别筛选"]
+  UTIL --> UH["UtilityHistory 明细展开"]
+  UH -->|"仅填户号和类型"| FORM["EverydayServices 原表单"]
+  FORM --> REVIEW["核对与密码确认"]
+  REVIEW --> PAY["原 payService"]
+  PAY --> BANK
+  CARD --> CA["CardActivity 近期交易"]
+```
+
+```mermaid
+flowchart LR
+  TAB["卡面点击或方向键"] --> SELECT["selected 卡片索引"]
+  SELECT --> DETAIL["关联 tabpanel 档案渠道限额与流水"]
+  HIDE["hidden 显隐"] --> DETAIL
+  GOAL["services.savingsGoals"] --> SG["SavingsGoal 目标和期限"]
+  FUND["bank.savings"] --> SG
+  SG --> EDIT["定位原表单或原存取流程"]
+```
+
+## 默认前端与数据库连接
+
+默认入口与预览别名复用同一 App 和精修样式，启动进入概览。后端模式的资金及流水以服务端快照为准；卡片、订阅、理财等尚未接入的原本本地流程边界见 backend/README.md。
+
+```mermaid
+flowchart LR
+  ROOT["默认首页与预览别名"] --> APP["App 概览与原业务入口"]
+  APP --> HTTP["同源 api/client 与 Vite 代理"]
+  HTTP --> API["FastAPI 会话与业务接口"]
+  API --> DB["项目 PostgreSQL"]
+  DB --> STATE["GET state 服务端快照"]
+  STATE --> BANK["useBackendBank 余额流水联系人留存"]
+  BANK --> APP
+  APP --> LOCAL["localStorage 本地设置及元数据"]
+```
+
+```mermaid
+flowchart TD
+  FORM["产品表单或助手转账表单"] --> DRAFT["prepareTransfer 原幂等键创建草稿"]
+  DRAFT --> KEEP["sessionStorage 保存原操作"]
+  DRAFT --> SNAP["核对服务端参数快照"]
+  SNAP --> CONFIRM["confirm 获取绑定验证码"]
+  CONFIRM --> VERIFY["verify 成功才记账"]
+  VERIFY --> REFRESH["refreshBank 更新所有业务视图"]
+  KEEP --> RECOVER["刷新恢复或查询原操作"]
+  RECOVER --> VERIFY
+  REFRESH --> FLOW["会话 transferFlow 按原 operationId 恢复完成"]
+```
+
+启动器 `scripts/start-dev.mjs` 依次复用或初始化项目数据库、执行 migration、启动 API 和 Vite。`.local/` 不提交；没有自动退回本地账本，也不停止系统数据库服务。
+
+## 聊天新建与恢复
+
+ConversationControls 在助手页顶部提供新建和历史弹窗，调用现有 ctx 会话接口；useConversations 将消息、A2UI、草稿和转账表单步骤保存在同一会话中。延迟回复按发起会话 ID 更新，避免切换后留在生成状态。切换会话恢复滚动跟随；不重置账本。
+
+```mermaid
+flowchart LR
+  C["ConversationControls"] --> CTX["App 会话接口"]
+  CTX --> H["useConversations"]
+  H --> LS["localStorage 独立会话"]
+  H --> V["AssistantView 欢迎与原消息"]
+  H --> F["useTransferFlow 会话内步骤与草稿"]
+  R["延迟回复"] -->|"按发起会话 ID"| H
+```
+
 ## 转账方式元数据合并
 
 ```mermaid
@@ -1191,7 +1302,7 @@ Get-ChildItem src -Recurse -File |
 | 文件 | 职责 |
 | --- | --- |
 | `App.jsx` | 状态编排；产出 `ctx`；派发 action |
-| `Sidebar.jsx` | 首页块 + 功能列表 + 历史对话 |
+| `Sidebar.jsx` | 悬浮圆形全局助手入口 + 首页问候 + 返回概览；样式在 assistantDock.css |
 | `Composer.jsx` | 输入区（IME 三级防护 + autosize） |
 | `FlowLauncher.jsx` | 常驻入口（4 项动作） |
 | `TaskGraph.jsx` | 任务 DAG 呈现 + 三个控制 |

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Page, Panel, Empty } from '../parts.jsx';
 import { api } from '../../api/client.js';
+import SavingsGoal from './savingsGoal.jsx';
 import './everydayServices.css';
 
 const key = 'qinghe-savings-pending-v1';
@@ -20,6 +21,11 @@ export default function Savings({ ctx }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const composing = useRef(false), sending = useRef(false);
+  const goalForm = useRef(null);
+  const showGoalForm = () => requestAnimationFrame(() => {
+    goalForm.current?.scrollIntoView({ block: 'center', behavior: 'auto' });
+    goalForm.current?.querySelector('input')?.focus({ preventScroll: true });
+  });
   const goals = services.savingsGoals || [];
   const saved = id => bank.savings?.[id] || 0;
   const total = Object.values(bank.savings || {}).reduce((n, value) => n + value, 0);
@@ -81,16 +87,13 @@ export default function Savings({ ctx }) {
         {uncertain ? <button type="button" className="a2ui-btn a2ui-btn--primary" disabled={busy} onClick={query}>查询原划转结果</button> : <div className="service-actions"><button className="a2ui-btn a2ui-btn--primary" disabled={busy}>{busy ? '处理中…' : review ? '确认划转' : '下一步'}</button><button type="button" className="link-btn" disabled={busy} onClick={() => { setDraft(null); setError(''); setPassword(''); }}>取消</button></div>}
       </form>
     </Panel> : <>
-      <Panel title="我的目标">{!goals.length ? <Empty>还没有目标，先为一次旅行或一笔备用金定个计划。</Empty> : goals.map(g => {
-        const amount = saved(g.id), left = Math.max(0, g.target - amount);
-        const months = Math.max(1, Math.ceil((new Date(g.date + 'T12:00:00') - new Date()) / (86400000 * 30)));
-        return <section className="savings-goal" key={g.id}><h3>{g.name}</h3><p>{yuan(amount)} / {yuan(g.target)} · {amount >= g.target ? '目标已达成' : g.date < today() ? '目标日期已过，可调整计划' : '目标日期 ' + g.date}</p><progress max={g.target} value={amount} aria-label={g.name + '储蓄进度'}/><p className="page-note">{left ? `还差 ${yuan(left)}，按剩余时间每月约存 ${yuan(Math.ceil(left / months))}` : '已经存够了，随时可以取回使用。'}</p><div className="service-actions">
-          <button className="a2ui-btn a2ui-btn--primary" disabled={!left} onClick={() => start(g, 'deposit')}>存入</button><button className="a2ui-btn a2ui-btn--secondary" disabled={!amount} onClick={() => start(g, 'withdraw')}>取回</button>
-          <button className="link-btn" onClick={() => { setEditing(g.id); setGoal({ name: g.name, amount: String(g.target / 100), date: g.date }); setError(''); }}>修改目标</button>
-          <button className="link-btn" disabled={!!amount} title={amount ? '先取回全部资金，再删除目标' : ''} onClick={() => { setServices(s => ({ ...s, savingsGoals: s.savingsGoals.filter(x => x.id !== g.id) })); if (editing === g.id) { setEditing(null); setGoal({ name: '', amount: '', date: '' }); } }}>删除空计划</button>
-        </div></section>;
-      })}</Panel>
-      <Panel title={editing ? '修改目标' : '创建储蓄目标'}><form className="service-form" onSubmit={saveGoal} onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}>
+      <Panel title="我的目标">{!goals.length ? <Empty title="为想做的事留一笔钱" action="创建目标" onAction={showGoalForm}>从一次旅行或一笔备用金开始。</Empty> : goals.map(g =>
+        <SavingsGoal key={g.id} goal={g} amount={saved(g.id)} yuan={yuan}
+          onDeposit={() => start(g, 'deposit')} onWithdraw={() => start(g, 'withdraw')}
+          onEdit={() => { setEditing(g.id); setGoal({ name: g.name, amount: String(g.target / 100), date: g.date }); setError(''); showGoalForm(); }}
+          onDelete={() => { setServices(s => ({ ...s, savingsGoals: s.savingsGoals.filter(x => x.id !== g.id) })); if (editing === g.id) { setEditing(null); setGoal({ name: '', amount: '', date: '' }); } }}/>
+      )}</Panel>
+      <Panel title={editing ? '修改目标' : '创建储蓄目标'}><form ref={goalForm} className="service-form" onSubmit={saveGoal} onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}>
         <label className="service-field">目标名称<input required maxLength={30} placeholder="例如：旅行基金、应急备用金" value={goal.name} onChange={e => change('name', e.target.value)}/></label>
         <label className="service-field">目标金额（元）<input required inputMode="decimal" value={goal.amount} onChange={e => change('amount', e.target.value)}/></label>
         <label className="service-field">目标日期<input required type="date" min={today()} value={goal.date} onChange={e => change('date', e.target.value)}/></label>

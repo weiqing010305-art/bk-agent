@@ -162,6 +162,7 @@ export default function Bills({ ctx }) {
   }, [m.txns, filter]);
 
   const shown = groups.reduce((n, g) => n + g[1].length, 0);
+  const categories = [...new Set([...CATS, ...m.txns.map(t => t.category)])];
 
   /* 点了图例之后把明细送到眼前。hover 不触发滚动：一天几十次的高频交互里
      让页面自己跳，比不动更糟（ARCHITECTURE §5A.3 的频率门）。 */
@@ -180,7 +181,7 @@ export default function Bills({ ctx }) {
 
   const dayTotal = list => {
     const n = list.reduce((a, t) => a + t.amount, 0);
-    return (n > 0 ? '+' : '') + yuan(Math.abs(n));
+    return (n > 0 ? '+' : n < 0 ? '−' : '') + yuan(Math.abs(n));
   };
 
   return <Page title="账单" subtitle={subtitle} aside={
@@ -210,7 +211,7 @@ export default function Bills({ ctx }) {
 
     <Panel title="明细" aside={<span className="panel-hint">{groups.length} 天 · {shown} 笔</span>}>
       <div className="chips-row">
-        {CATS.map(c => <button key={c} type="button" className={'chip' + (filter === c ? ' on' : '')}
+        {categories.map(c => <button key={c} type="button" className={'chip' + (filter === c ? ' on' : '')}
           aria-pressed={filter === c} onClick={() => { setFilter(c); setHover(null); }}>{c}</button>)}
       </div>
       <div className="day-groups" ref={listRef}>

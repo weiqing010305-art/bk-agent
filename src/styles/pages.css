@@ -4,10 +4,7 @@
 .sidebar {
   flex: 0 0 auto; width: clamp(260px, 16vw, 340px); display: flex; flex-direction: column; gap: var(--space-6);
   padding: 26px 8px var(--space-5) 16px; overflow-y: auto; color: var(--bank-ink);
-  background: var(--material-thin-tint);
-  -webkit-backdrop-filter: blur(var(--blur-thick)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--blur-thick)) saturate(var(--glass-saturate));
-  border-right: 1px solid var(--glass-border);
+  background: transparent;
 }
 .sidebar-head { min-height: 36px; margin-bottom: 3px; padding-left: 16px; display: flex; align-items: center; justify-content: space-between; }
 .sidebar-close { display: none; }
@@ -47,17 +44,17 @@
 }
 .side-item--assistant:not(.current) svg,
 .side-item--assistant:not(.current) strong { position: relative; z-index: 1; }
-.side-item--assistant:not(.current) svg { color: var(--accent); }
+.side-item--assistant:not(.current) svg { color: var(--ai-accent); }
 .side-item--assistant:not(.current) strong { font-weight: 600; }
 .side-home.current .side-item.current {
-  position: relative; background: var(--bank-nav); color: var(--accent-on);
+  position: relative; background: transparent; color: var(--bank-nav);
   font-weight: 600;
 }
 .side-home.current .side-item.current::before {
   content: ''; position: absolute; left: 0; top: var(--space-3); bottom: var(--space-3);
-  width: 4px; border-radius: var(--radius-pill); background: var(--accent);
+  width: 3px; border-radius: var(--radius-pill); background: var(--ai-accent);
 }
-.side-home.current .side-item.current:hover { background: var(--grad-hero-soft); }
+.side-home.current .side-item.current:hover { background: var(--accent-tint); }
 
 .side-history { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--space-3); min-height: 120px; margin-top: var(--space-3); border-top: 1px solid var(--hairline); padding-top: var(--space-5); }
 .side-history-head { display: flex; align-items: center; justify-content: space-between; }
@@ -132,10 +129,10 @@
 /* 余额主卡：内容层，不透明 */
 .balance-hero {
   border-radius: var(--radius-panel); padding: var(--space-7);
-  background: var(--grad-hero); color: var(--accent-on);
+  background: var(--grad-hero); color: var(--hero-ink);
   box-shadow: var(--shadow-panel); display: flex; flex-direction: column; gap: var(--space-3);
 }
-.balance-hero-top { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-subhead); opacity: .82; }
+.balance-hero-top { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-subhead); color: var(--hero-muted); }
 .balance-hero > strong { font-size: 2.25rem; line-height: 1.1; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .balance-hero-foot { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-footnote); opacity: .78; }
 .balance-hero-actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }

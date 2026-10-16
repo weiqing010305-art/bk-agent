@@ -17,13 +17,13 @@ import { ArrowDownLeft, ArrowUpRight, CreditCard, Info } from 'lucide-react';
 
 export const Page = ({ title, subtitle, aside, children }) => (
   <div className="page">
-    <header className="page-head">
+    {(title || aside) && <header className="page-head">
       <div>
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
       </div>
       {aside}
-    </header>
+    </header>}
     <div className="page-body">{children}</div>
   </div>
 );

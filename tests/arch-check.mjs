@@ -22,7 +22,7 @@ for (const f of files) {
 }
 console.log('文档数:', files.length, '| Mermaid 块:', blocks.length);
 
-const browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
+const browser = await chromium.launch({ executablePath: process.env.BROWSER_PATH || process.env.EDGE_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
 const page = await browser.newPage();
 await page.setContent('<html><body></body></html>');
 const loaded = await page.evaluate(async () => {

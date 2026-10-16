@@ -1,8 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { deleteSurface, updateDataModel } from '../a2ui/protocol.js';
 import { applyMessages } from '../a2ui/apply.js';
 import { fromAction } from '../agent/planner.js';
 import { validateTransferSlots } from '../services/banking.js';
+import { backendMode } from '../api/client.js';
 
 const uid = () => crypto.randomUUID();
 
@@ -17,17 +18,23 @@ const uid = () => crypto.randomUUID();
  * 结果就是输入框每敲一个字丢一次焦点。
  */
 export function useTransferFlow({ history, a2ui, turns, ctxFor, record, resumeFollow, contacts, bank, directory, onDraft, setToast }) {
-  const [flow, setFlow] = useState(null);
+  const flow = history.current.transferFlow || null;
   const draftRef = useRef({});
+  useEffect(() => { draftRef.current = flow?.draft || {}; }, [history.current.id]);
 
   const paintFlow = useCallback((surfaceId, step, draft) => {
     const envelopes = fromAction('transfer', { ...ctxFor(surfaceId), transferStep: step, transferDraft: draft });
     /* 同一个 surfaceId 先删后建：消息流里只有一张卡，它在"换页"而不是堆叠 */
-    history.patch({ a2ui: applyMessages(a2ui, [deleteSurface(surfaceId), ...envelopes]) });
+    history.patch({ a2ui: applyMessages(a2ui, [deleteSurface(surfaceId), ...envelopes]),
+      transferFlow: { surfaceId, step, draft } });
     draftRef.current = draft;
-    setFlow({ surfaceId, step, draft });
     record('业务面 · 转账 ' + step, null, envelopes, 'transfer.' + step, draft, surfaceId);
   }, [a2ui, ctxFor, history, record]);
+  useEffect(() => {
+    if (backendMode && flow?.operationId && flow.step !== 'done' && bank.completed.includes(flow.operationId)) {
+      paintFlow(flow.surfaceId, 'done', { ...flow.draft, receiptId: flow.operationId });
+    }
+  }, [bank.completed, flow, paintFlow]);
 
   /**
    * 业务层入口。**已经说过的信息不重复问**：
@@ -50,12 +57,12 @@ export function useTransferFlow({ history, a2ui, turns, ctxFor, record, resumeFo
     const envelopes = fromAction('transfer', { ...ctxFor(surfaceId), transferStep: step, transferDraft: draft });
     history.patch({
       a2ui: applyMessages(a2ui, envelopes),
+      transferFlow: { surfaceId, step, draft },
       turns: [...turns, ...(userText ? [{ id: uid(), role: 'user', text: userText }] : []),
         /* 复杂转账（定时、AA）带着任务图进来，这样编排在流程内部也看得见。 */
         { id: uid(), role: 'assistant', surfaceId, task }],
     });
     draftRef.current = draft;
-    setFlow({ surfaceId, step, draft });
     record(userText ? '业务层 · 识别到转账意图' : '产品层 · 直接开转账', userText, envelopes, 'transfer.' + step, draft, surfaceId);
   }, [a2ui, turns, ctxFor, history, resumeFollow, record, contacts]);
 
@@ -86,6 +93,8 @@ export function useTransferFlow({ history, a2ui, turns, ctxFor, record, resumeFo
     const recipient = manual ? { mode: 'manual', cardNumber: d.manualCardNumber } : { mode: 'saved', contactId: d.contactId };
     const check = validateTransferSlots({ recipient, amountText: d.amountText, balance: bank.balance });
     if (!check.ok) return setToast(check.error);
+    if (backendMode) return onDraft({ id: uid(), amount: check.amount, note: d.note || '',
+      ...(manual ? { cardNumber: check.cardNumber } : { contactId: d.contactId }) });
     const contact = manual ? directory.find(c => c.number === check.cardNumber) : contacts.find(c => c.id === d.contactId);
     if (!contact) return setToast('这个卡号不在名录里');
     /* 不自己决定走哪道门 —— 交给 App 的策略门禁。
@@ -99,8 +108,9 @@ export function useTransferFlow({ history, a2ui, turns, ctxFor, record, resumeFo
   /** 输入框改值：只更新 dataModel，不重画 surface */
   const setField = useCallback((surfaceId, path, value) => {
     draftRef.current = { ...draftRef.current, [path.slice(1)]: value };
-    history.patch({ a2ui: applyMessages(a2ui, [updateDataModel({ surfaceId, patch: { [path.slice(1)]: value } })]) });
-  }, [a2ui, history]);
+    history.patch({ a2ui: applyMessages(a2ui, [updateDataModel({ surfaceId, patch: { [path.slice(1)]: value } })]),
+      ...(flow?.surfaceId === surfaceId ? { transferFlow: { ...flow, draft: draftRef.current } } : {}) });
+  }, [a2ui, history, flow]);
 
   return { flow, draftRef, startTransfer, gotoStep, nextStep, confirmTransfer, setField, paintFlow };
 }

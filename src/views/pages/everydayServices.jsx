@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Page, Panel, Empty } from '../parts.jsx';
 import { api } from '../../api/client.js';
 import { paymentDetails, utilityNames, creditBill, creditDue } from '../../domain/payments.js';
+import { UtilityTypes, UtilityOverview, UtilityHistory, useUtilityReport } from './utilityInsights.jsx';
+import { ServiceJourney, ServiceReceipt } from './serviceJourney.jsx';
+import PaymentAccount from './paymentAccount.jsx';
 import './everydayServices.css';
 
 const titles = { traffic: '交通卡充值', phone: '手机充值', utility: '生活缴费', exchange: '外币兑换', credit: '信用卡还款', appointment: '网点预约' };
@@ -40,6 +43,16 @@ export default function EverydayServices({ ctx }) {
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(!!pending.current);
   const [result, setResult] = useState(null);
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const { report, setMonth } = useUtilityReport(bank.transactions);
+  const entryRef = useRef(null);
+  const scrollToEntry = () => requestAnimationFrame(() => {
+    const heading = entryRef.current?.querySelector('h2');
+    heading?.setAttribute('tabindex', '-1');
+    heading?.focus({ preventScroll: true });
+    entryRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+  });
+  useEffect(() => { if (step !== 'form') scrollToEntry(); }, [step]);
   const exchange = kind === 'exchange';
   const booking = exchange || kind === 'appointment';
   const due = creditDue(bank);
@@ -67,6 +80,7 @@ export default function EverydayServices({ ctx }) {
   };
   const complete = receipt => {
     sessionStorage.removeItem(pendingKey);
+    if (kind === 'utility') { setMonth(null); setHistoryFilter('all'); }
     setUncertain(false); setPassword(''); setResult(receipt); setStep('done');
   };
   const submit = async e => {
@@ -105,23 +119,35 @@ export default function EverydayServices({ ctx }) {
       else setError(err.message);
     } finally { setBusy(false); }
   };
-  const field = (key, label, props = {}) => <label className="service-field">{label}
+  const field = (key, label, props = {}) => <label className={'service-field' + (key === 'amountText' ? ' service-field--amount' : '')}>{label}
     <input required value={fields[key]} onChange={e => update(key, e.target.value)} {...props}/>
   </label>;
   const card = bank.cards.find(c => c.id === fields.cardId);
-  return <Page title={titles[kind]} subtitle={booking ? '选择业务、时间与网点，保存到店预约' : '选择银行卡，核对后完成演示支付'}
+  const repeat = record => {
+    if (busy || uncertain) return;
+    requestId.current = crypto.randomUUID();
+    setFields(f => ({ ...f, utility: record.kind, target: record.target, amountText: '' }));
+    setPassword(''); setError(''); setStep('form'); setResult(null); scrollToEntry();
+  };
+  return <Page title={titles[kind]} subtitle={kind === 'utility' ? '水、电、燃气，一处查看和办理' : booking ? '选择业务、时间与网点' : '填写信息，核对后支付'}
     aside={<button className="link-btn service-back" onClick={() => setRoute(backRoute)}>{trip ? '返回出行钱袋' : '返回概览'}</button>}>
     {trip && <p className="page-note">为“{trip.destination}”预约兑换 · 出发日期 {trip.start}，保存后会关联到这次行程。</p>}
     {kind === 'credit' && <Panel title={`${creditBill.name} · 尾号 ${creditBill.tail}`}>
       <dl className="service-review"><div><dt>本期待还</dt><dd><strong>{yuan(due)}</strong></dd></div><div><dt>还款日</dt><dd>{creditBill.dueDate}</dd></div></dl>
       <p className="page-note">演示账单 {yuan(creditBill.amount)}；本期还款后待还金额同步减少。</p>
     </Panel>}
-    {step === 'done' ? <Panel title={booking ? '预约已保存' : '支付成功'}>
-      <p role="status">{booking ? `${fields.date} ${fields.slot} · ${fields.branch}` : `${titles[kind]} ${yuan(draft().amount)}，已记入账单。`}</p>
+    {kind === 'utility' && <UtilityOverview report={report} setMonth={setMonth} filter={historyFilter} setFilter={setHistoryFilter} yuan={yuan}/>}
+    <ServiceJourney step={step} booking={booking}/>
+    <div className={'service-workspace' + (kind === 'utility' ? ' service-workspace--utility' : '')}>
+    <div ref={entryRef} className="service-entry">
+    {step === 'done' ? <Panel>
+      <ServiceReceipt title={booking ? '预约已保存' : '支付成功'} amount={booking ? null : yuan(draft().amount)}
+        action={<button className="a2ui-btn a2ui-btn--primary" onClick={() => setRoute(booking ? backRoute : 'bills')}>{booking ? trip ? '返回出行钱袋' : '返回概览' : '查看账单'}</button>}>
+      <p>{booking ? `${fields.date} ${fields.slot} · ${fields.branch}` : `${kind === 'utility' ? utilityNames[fields.utility] + ' · ' + fields.target : titles[kind]}，已记入账单。`}</p>
       <p>编号：{result.id}</p>
       {exchange && <p>{currencies[fields.currency]} {fields.amountText} · 请携带有效身份证件到店，汇率及可兑换金额以柜台确认为准。</p>}
       {kind === 'appointment' && <p>办理业务：{fields.business} · 联系电话：{fields.phone}。请携带有效身份证件，所需材料以网点确认为准。</p>}
-      <button className="a2ui-btn a2ui-btn--primary" onClick={() => setRoute(booking ? backRoute : 'bills')}>{booking ? trip ? '返回出行钱袋' : '返回概览' : '查看账单'}</button>
+      </ServiceReceipt>
     </Panel> : <Panel title={step === 'review' ? '核对信息' : booking ? '填写预约' : '填写信息'}>
       <form className="service-form" onSubmit={submit} onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}>
         {step === 'form' ? <fieldset disabled={busy}>
@@ -134,7 +160,7 @@ export default function EverydayServices({ ctx }) {
             <div className="chips-row">{[20, 50, 100, 200, 500].map(n => <button type="button" key={n} className={'chip' + (fields.amountText === String(n) ? ' on' : '')} aria-pressed={fields.amountText === String(n)} onClick={() => update('amountText', String(n))}>{n} 元</button>)}</div>
           </>}
           {kind === 'utility' && <>
-            <label className="service-field">缴费类型<select value={fields.utility} onChange={e => update('utility', e.target.value)}>{Object.entries(utilityNames).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+            <UtilityTypes value={fields.utility} onChange={value => update('utility', value)}/>
             {field('target', '缴费户号', { inputMode: 'numeric', maxLength: 20, placeholder: '输入 6–20 位户号' })}
           </>}
           {kind === 'credit' && <div className="service-actions"><button type="button" className="a2ui-btn a2ui-btn--secondary" disabled={!due} onClick={() => update('amountText', (due / 100).toFixed(2))}>全额还款 {yuan(due)}</button><span>也可在下方填写自定义金额</span></div>}
@@ -147,9 +173,7 @@ export default function EverydayServices({ ctx }) {
             <label className="service-field">{exchange ? '兑换网点' : '预约网点'}<select value={fields.branch} onChange={e => update('branch', e.target.value)}>{branches.map(b => <option key={b}>{b}</option>)}</select><small>演示营业时间：09:00–16:00；具体业务及材料需到店确认。</small></label>
           </>}
           {kind !== 'appointment' && field('amountText', exchange ? '预约外币金额' : kind === 'credit' ? '还款金额（元）' : '支付金额（元）', { inputMode: exchange ? 'numeric' : 'decimal', placeholder: exchange ? '输入外币整数金额' : '输入金额' })}
-          {!booking && <label className="service-field">支付银行卡<select required value={fields.cardId} onChange={e => update('cardId', e.target.value)}>
-            <option value="">请选择银行卡</option>{bank.cards.filter(c => c.id !== 'credit').map(c => <option key={c.id} value={c.id} disabled={c.status !== 'active'}>{c.name} · 尾号 {c.tail}{c.status !== 'active' ? '（已冻结）' : ''}</option>)}
-          </select><small>演示卡共享账户余额 {yuan(bank.balance)}</small></label>}
+          {!booking && <PaymentAccount cards={bank.cards} value={fields.cardId} onChange={value => update('cardId', value)} balance={yuan(bank.balance)}/>}
         </fieldset> : <>
           <dl className="service-review">
             {Object.entries(booking ? { ...(exchange ? { 币种: currencies[fields.currency], 外币金额: fields.amountText } : { 办理业务: fields.business }), 联系电话: fields.phone, 预约日期: fields.date, 时段: fields.slot, 网点: fields.branch }
@@ -164,6 +188,9 @@ export default function EverydayServices({ ctx }) {
         </div>}
       </form>
     </Panel>}
+    </div>
+    {kind === 'utility' && <UtilityHistory report={report} filter={historyFilter} setFilter={setHistoryFilter} yuan={yuan} onRepeat={repeat} canRepeat={!busy && !uncertain}/>}
+    </div>
     {booking && <Panel title={exchange ? '我的兑换预约' : '我的网点预约'}>
       {appointments.length ? <ul className="service-bookings">{appointments.map(b => <li key={b.id}>
         <div><strong>{b.branch} · {b.status}</strong><p>{b.date} {b.slot} · {exchange ? `${currencies[b.currency]} ${b.amountText}` : b.business}</p><small>预约编号：{b.id}</small></div>

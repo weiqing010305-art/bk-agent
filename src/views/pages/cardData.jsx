@@ -1,4 +1,4 @@
-import { money } from '../../domain/bank.js';
+import { cardTransactions } from '../../domain/cardActivity.js';
 
 /**
  * 卡片页的演示数据与「账本 → 视图」的合并。
@@ -8,8 +8,8 @@ import { money } from '../../domain/bank.js';
  *   「账期 / 卡组织 / 渠道日限额 / 状态历史」在**首次进入本页时补进账本**（见 enrich），
  *   之后这些字段和 status 一样由账本保存，页面只读不另存一份。
  *
- * ⚠️ 全部是静态演示值。基准日写死（TODAY），不跟随系统日期，
- *   否则跨月再跑 e2e，账期进度与「本期小结」就会变样。
+ * ⚠️ 档案与额度配置是静态演示值，基准日为 TODAY。近期交易独立读取同一份账本，
+ *   不再补造固定流水；其汇总月份取实际记录的最近月份。
  * ⚠️ 金额单位一律是**分**，与 bank.js 的 money() 对齐。
  */
 
@@ -130,42 +130,8 @@ export function enrich(cards) {
   });
 }
 
-/** 这张卡自己的动账明细：演示流水明确挂在校验过的卡 id 上，不再拿全局流水糊。 */
-export const FEED = {
-  debit: [
-    { id: 'd1',  name: '九月工资',   category: '收入', amount: 1500000,  date: '09-10', note: '青禾科技' },
-    { id: 'd2',  name: '房租',       category: '转账', amount: -300000,  date: '09-12', note: '每月自动扣' },
-    { id: 'd3',  name: '日常餐饮',   category: '餐饮', amount: -85600,   date: '09-24' },
-    { id: 'd4',  name: '生活采购',   category: '购物', amount: -62800,   date: '09-23' },
-    { id: 'd5',  name: '地铁与打车', category: '交通', amount: -18600,   date: '09-22' },
-    { id: 'd6',  name: '星巴克咖啡', category: '餐饮', amount: -4200,    date: '09-21' },
-    { id: 'd7',  name: '海底捞火锅', category: '餐饮', amount: -23600,   date: '09-21' },
-    { id: 'd8',  name: '麦当劳',     category: '餐饮', amount: -3800,    date: '09-19' },
-    { id: 'd9',  name: '沪上阿姨',   category: '餐饮', amount: -1900,    date: '09-18' },
-    { id: 'd10', name: '光影视频',   category: '订阅', amount: -2500,    date: '09-01' },
-  ],
-  credit: [
-    { id: 'c1', name: '生活采购',       category: '购物', amount: -128600, date: '09-24' },
-    { id: 'c2', name: '海底捞火锅',     category: '餐饮', amount: -23600,  date: '09-21' },
-    { id: 'c3', name: '山姆会员店',     category: '购物', amount: -86400,  date: '09-17' },
-    { id: 'c4', name: '京东',           category: '购物', amount: -64900,  date: '09-15' },
-    { id: 'c5', name: '小米之家',       category: '购物', amount: -129900, date: '09-12' },
-    { id: 'c6', name: '星巴克咖啡',     category: '餐饮', amount: -4200,   date: '09-10' },
-    { id: 'c7', name: '宜家家居',       category: '购物', amount: -28900,  date: '09-08' },
-    { id: 'c8', name: '上月账单还款',   category: '转账', amount: 452000,  date: '09-05', note: '自动还款' },
-  ],
-  travel: [
-    { id: 't1', name: 'ANA 机票',     category: '交通', amount: -486000, date: '09-11', note: '上海 至 东京' },
-    { id: 't2', name: '境外取现',     category: '转账', amount: -168000, date: '09-12', note: '日本 · 7-11 ATM' },
-    { id: 't3', name: 'Booking 酒店', category: '购物', amount: -128000, date: '09-18', note: '日本 · 大阪' },
-    { id: 't4', name: 'Suica 充值',   category: '交通', amount: -16800,  date: '09-20', note: '日本 · 东京' },
-    { id: 't5', name: '成田机场免税', category: '购物', amount: -64200,  date: '09-11', note: '日本 · 成田' },
-    { id: 't6', name: '购汇转入',     category: '转账', amount: 800000,  date: '09-09', note: '人民币购日元' },
-  ],
-};
-
-/** 账本卡片 + 这张卡的演示动账 → 页面直接可用的一张「有档案的卡」。 */
-export function buildCards(ledgerCards) {
+/** 卡片档案与同一份账本的关联交易。缺少卡片标识的流水不强行分配。 */
+export function buildCards(ledgerCards, transactions = []) {
   return ledgerCards.filter(c => c.profile && c.limits).map(c => {
     const t = TEMPLATE[c.id] || TEMPLATE_FALLBACK;
     const limit = c.limit || 0, used = c.used || 0;
@@ -180,7 +146,7 @@ export function buildCards(ledgerCards) {
          实查过：浏览器里 '2026-08-14'.localeCompare('2026-09-01') 会返回正数，
          时间线会出现「9 月 1 日排在 8 月 14 日前面」这种读不通的顺序。 */
       history: [...c.history].sort((a, b) => day(a.date) - day(b.date)),
-      feed: (FEED[c.id] || []).map(x => ({ ...x, amountText: money(Math.abs(x.amount)), positive: x.amount > 0 })),
+      feed: cardTransactions(transactions, c),
     };
   });
 }

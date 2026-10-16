@@ -2,6 +2,7 @@ import React from 'react';
 import { resolveTree } from '../a2ui/apply.js';
 import SurfaceView from '../a2ui/render.jsx';
 import Composer from '../components/Composer.jsx';
+import ConversationControls from '../components/ConversationControls.jsx';
 import FlowLauncher from '../components/FlowLauncher.jsx';
 import TaskGraph from '../components/TaskGraph.jsx';
 import BlockedNotice from '../components/BlockedNotice.jsx';
@@ -12,6 +13,7 @@ export default function AssistantView({ ctx }) {
   const { turns, a2ui, handleAction, taskControl, scrollRef } = ctx;
   return <div className="assistant-layout">
     <main className="assistant-main" aria-label="青禾助手对话">
+    <ConversationControls ctx={ctx}/>
     <div className="assistant-thread" ref={scrollRef} role="log" aria-live="polite" aria-label="对话记录" tabIndex={0}>
       <div className="assistant-thread-inner">
         {turns.map((turn, index) => {

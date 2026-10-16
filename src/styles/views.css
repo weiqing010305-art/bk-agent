@@ -2,7 +2,7 @@
  * views.css —— 产品层的信息架构零件
  *
  * 参考众安银行（doc/research/za-bank-product-layer.md §D.3/§D.4）：
- *   IconTile  两种图标语言：圆形=动作，方形=产品
+ *   IconTile  统一浅薄荷绿圆角方形；业务分类继续由标签和路由表达
  *   StatBar   双列统计条（账单 / 卡片 / 订阅 / 余额拆分行，4 处复用）
  *   Row       统一列表行（交易 / 订阅 / 卡片操作 / 动态 / 收款人，5 处复用）
  *
@@ -47,22 +47,12 @@
   transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-base) var(--ease-spring);
 }
 .icon-tile b { font-size: var(--text-caption); font-weight: 500; color: var(--text-secondary); }
-/* 两种图标语言的核心：动作是圆的（钱在动），产品是方的（有具体的物） */
+/* 用户最新图标规范：全部业务入口采用同一浅薄荷绿圆角方形。 */
 .icon-tile-mark {
   width: 44px; height: 44px; display: grid; place-items: center;
-  border-radius: var(--radius-thumb);
+  border-radius: var(--icon-radius); background: var(--icon-bg); color: var(--icon-ink);
   transition: transform var(--duration-base) var(--ease-spring);
 }
-.icon-tile--action .icon-tile-mark { border-radius: var(--radius-pill); color: var(--accent-on); }
-.icon-tile--product .icon-tile-mark { background: var(--fill-3); color: var(--text-secondary); }
-
-.icon-tile--action .icon-tile-mark--accent    { background: var(--accent); }
-.icon-tile--action .icon-tile-mark--positive  { background: var(--success); }
-.icon-tile--action .icon-tile-mark--subscribe { background: var(--cat-subscribe); }
-.icon-tile--product .icon-tile-mark--accent    { background: var(--accent-tint); color: var(--accent); }
-.icon-tile--product .icon-tile-mark--positive  { background: var(--success-tint); color: var(--success); }
-.icon-tile--product .icon-tile-mark--warning   { background: var(--warning-tint); color: var(--warning); }
-.icon-tile--product .icon-tile-mark--subscribe { background: var(--cat-subscribe-tint); color: var(--cat-subscribe); }
 
 @media (hover: hover) and (pointer: fine) {
   .icon-tile:hover { background: var(--bg-hover); }
@@ -124,11 +114,11 @@
   .card-eye:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
 }
 .balance-hero .stat-bar { background: transparent; box-shadow: none; }
-.balance-hero .stat-cell--right { border-left-color: color-mix(in srgb, currentColor 22%, transparent); }
+.balance-hero .stat-cell--right { border-left-color: var(--hero-line); }
 .balance-hero .stat-cell { padding: var(--space-4) 0 0; }
 .balance-hero .stat-cell--right { padding-right: 0; }
 .balance-hero .stat-label, .balance-hero .stat-value { color: inherit; }
-.balance-hero .stat-label { opacity: .72; }
+.balance-hero .stat-label { color: var(--hero-muted); opacity: 1; }
 .balance-hero .stat-value { font-size: var(--text-subhead); font-weight: 600; }
 .balance-hero .stat-cell--right .stat-value { font-size: var(--text-subhead); }
 /* 主卡里的两格是暗底上的「科目名 + 金额 + 这个数怎么来的」。
@@ -136,6 +126,8 @@
    label → value → note 三行才是三级，而不是两团。 */
 .balance-hero .stat-cell { gap: var(--space-2); }
 .balance-hero .stat-note { font-size: var(--text-caption-2); opacity: .68; }
+.balance-hero .hero-eye { background: var(--hero-control); color: var(--accent); }
+.balance-hero .hero-eye:hover { background: var(--accent-tint); }
 
 @media (max-width: 640px) {
   .icon-grid { grid-template-columns: repeat(4, 1fr); gap: var(--space-2); padding: var(--space-4); }

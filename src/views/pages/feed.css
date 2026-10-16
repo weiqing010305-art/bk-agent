@@ -61,6 +61,10 @@
 }
 .feed-day h3 { margin: 0; font-size: inherit; font-weight: 600; letter-spacing: .04em; }
 .feed-day b { font-weight: 500; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.day-group[data-kind="soon"] .feed-day,
+.day-group[data-kind="soon"] .feed-day b { color: var(--palette-apricot-ink); }
+.day-group[data-kind="card"] .feed-day,
+.day-group[data-kind="card"] .feed-day b { color: var(--palette-blue-ink); }
 
 @media (max-width: 640px) {
   /* 窄屏把"本月已用"这个标签收掉，只留金额：留着它会把卡名挤成三行 */

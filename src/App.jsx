@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Menu } from 'lucide-react';
 import { api, backendMode, binding } from './api/client.js';
 import { contacts as demoContacts, directory, money, seed, transfer as applyTransfer, reportLoss } from './domain/bank.js';
 import { buildDataModel, provenance } from './services/banking.js';
@@ -64,7 +63,7 @@ export default function App() {
   const [confirm, setConfirm] = useState(null);
   const [toast, setToast] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
-  const [route, setRoute] = useState('assistant');
+  const [route, setRoute] = useState('overview');
   const [exchangeDraft, setExchangeDraft] = useState(null);
   const [travelDraft, setTravelDraft] = useState(null);
   const [services, setServices] = useState(() => {
@@ -82,6 +81,7 @@ export default function App() {
   const busyRef = useRef(false);
   const confirmRef = useRef(null);
   const seededRef = useRef(null);
+  const prepareTransferRef = useRef(null);
   confirmRef.current = confirm;
 
   const history = useConversations();
@@ -143,7 +143,14 @@ export default function App() {
   });
 
   const { flow, draftRef, startTransfer, gotoStep, nextStep, confirmTransfer, setField, paintFlow } = useTransferFlow({
-    history, a2ui, turns, ctxFor, record, resumeFollow, contacts, bank, directory, onDraft: gateDraft, setToast,
+    history, a2ui, turns, ctxFor, record, resumeFollow, contacts, bank, directory,
+    onDraft: async payload => {
+      if (!backendMode) return gateDraft(payload);
+      const conversationId = history.current.id;
+      const savedFlow = history.current.transferFlow;
+      const op = await prepareTransferRef.current(payload);
+      if (op && savedFlow) history.patch({ transferFlow: { ...savedFlow, operationId: op.id } }, conversationId);
+    }, setToast,
   });
 
   /* ── 回合执行（实现在 state/useTurnRunner.js）─────────────────────────
@@ -231,10 +238,11 @@ export default function App() {
 
   /* ── 后端模式（实现在 state/useBackendBank.js）───────────────────────────
      与 UI 无关的一整块传输逻辑，抽出去是为了守住 300 行线。 */
-  const { refreshBank, connect, applyBackendTransfer } = useBackendBank({
+  const { refreshBank, connect, prepareTransfer, applyBackendTransfer, closeTransfer } = useBackendBank({
     setBank, setContacts, setConnection, setToast, setBusy, setApiError, setConfirm,
-    confirm, verificationCode, busyRef,
+    confirm, verificationCode, setVerificationCode, busyRef,
   });
+  prepareTransferRef.current = prepareTransfer;
 
   /**
    * 落地一个已经确认过的动作。
@@ -316,9 +324,9 @@ export default function App() {
     route, setRoute,
     mobileNav, setMobileNav, closeNav: () => setMobileNav(false),
     items: history.items, currentId: history.current.id,
-    navigateConversation: id => { history.select(id); setRoute('assistant'); setMobileNav(false); },
+    navigateConversation: id => { history.select(id); setPreviewId(null); resumeFollow(); setRoute('assistant'); setMobileNav(false); },
     removeConversation: id => history.remove(id),
-    createConversation: () => { history.create(); setRoute('assistant'); setMobileNav(false); },
+    createConversation: () => { history.create(); setPreviewId(null); resumeFollow(); setRoute('assistant'); setMobileNav(false); },
     saveError: history.saveError, busy, confirm, connection, backendMode,
     bank, dataModel, turns, a2ui, draft,
     /* 账本只有一个写入口。页面不要各自开 localStorage 覆盖层 ——
@@ -331,16 +339,14 @@ export default function App() {
     scrollRef,
     applyConfirmation, directory, yuan, contacts,
     previewId, setPreviewId, taskControl, gate,
-    refreshBank,
+    refreshBank, prepareTransfer,
     services, setServices, payService, moveSavings, exchangeDraft, setExchangeDraft, travelDraft, setTravelDraft,
   };
 
-  return <div className={`app-shell ${backendMode ? 'with-backend' : ''}`}>
+  return <div className={`app-shell app-shell--${route} ${backendMode ? 'with-backend' : ''}`}>
     <div className="mesh-bg" aria-hidden="true"/>
-    {mobileNav && <button className="nav-scrim" aria-label="关闭导航" onClick={ctx.closeNav}/>}
     <Sidebar ctx={ctx}/>
     <div className="main-area">
-      <button className="menu-fab" onClick={() => setMobileNav(true)} aria-label="打开导航"><Menu size={18}/></button>
       {/* key 按 route 变 —— 让每次切换都重播一次入场。craft-floor 要求
           「一个有作者意识的瞬间」，而不是把同一个入场贴到每一段上。 */}
       {route === 'assistant'
@@ -355,7 +361,7 @@ export default function App() {
       backend={{
         mode: backendMode, busy, code: verificationCode, setCode: setVerificationCode,
         error: apiError, onSubmit: applyBackendTransfer,
-        onClose: () => { if (!busyRef.current && !confirm.uncertain) { setConfirm(null); setApiError(''); } },
+        onClose: closeTransfer,
       }}
       transfer={{ onAuthenticated: applyConfirmation }}
     />

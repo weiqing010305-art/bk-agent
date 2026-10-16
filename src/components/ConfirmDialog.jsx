@@ -9,6 +9,7 @@ export default function ConfirmDialog({ ctx }) {
      被渲染成「重置演示数据」，点了还什么都不发生。 */
   if (confirm.type !== 'transfer' && confirm.type !== 'reset') return null;
   const isTransfer = confirm.type === 'transfer';
+  if (isTransfer && ctx.backendMode) return null;
   return <div className="modal-backdrop" onClick={() => setConfirm(null)}>
     <div className="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={e => e.stopPropagation()}>
       <button className="icon-btn" aria-label="关闭" onClick={() => setConfirm(null)} style={{ alignSelf: 'flex-end' }}><X size={16}/></button>

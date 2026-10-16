@@ -73,7 +73,7 @@
 .w-tags > span {
   display: inline-flex; align-items: center; gap: var(--space-2);
   height: 26px; padding: 0 var(--space-4); border-radius: var(--radius-pill);
-  background: var(--fill-3); color: var(--text-secondary); font-size: var(--text-caption);
+  background: var(--surface-info); color: var(--palette-blue-ink); font-size: var(--text-caption);
 }
 .w-periods {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);
