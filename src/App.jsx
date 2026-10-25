@@ -16,6 +16,7 @@ import { useBackendBank } from './state/useBackendBank.js';
 import { record as auditRecord } from './services/audit.js';
 import { useSecurity } from './state/useSecurity.js';
 import { useTurnRunner } from './state/useTurnRunner.js';
+import { useAgentConversation } from './state/useAgentConversation.js';
 import Sidebar from './components/Sidebar.jsx';
 import AssistantView from './views/AssistantView.jsx';
 import ProductView from './views/product.jsx';
@@ -85,6 +86,7 @@ export default function App() {
   confirmRef.current = confirm;
 
   const history = useConversations();
+  const agent = useAgentConversation({ history, route, setRoute, setToast });
 
   /* 5 秒可撤销窗口：必须在 applyConfirmation 之前调用，否则依赖数组求值时会 TDZ */
   const { undo, open: openUndo, cancel: cancelUndo } = useUndoWindow({
@@ -95,7 +97,7 @@ export default function App() {
 
   /* 滚动锚定必须早于 runText/runAction —— useCallback 的依赖数组在渲染期立即求值 */
   const scrollSignal = history.current.id + ':' + turns.length + ':' + (turns.at(-1)?.pending || false)
-    + ':' + (turns.at(-1)?.surfaceId || '') + ':' + Object.keys(a2ui.surfaces).length;
+    + ':' + (turns.at(-1)?.surfaceId || '') + ':' + (turns.at(-1)?.text?.length || 0) + ':' + Object.keys(a2ui.surfaces).length;
   const { scrollRef, resumeFollow } = useThreadScroll(scrollSignal);
 
   useEffect(() => {
@@ -165,8 +167,14 @@ export default function App() {
       e.preventDefault(); setTravelDraft(trip); setRoute('travel'); history.patch({ draft: '' });
       setToast('已填写出行草稿，请核对目的地、日期和现金需求后保存。'); return;
     }
+    const action = parseIntent(draft).action;
+    const collecting = history.current.agentTask?.kind && !['CANCELLED', 'SUCCEEDED'].includes(history.current.agentTask.status);
+    if (backendMode && (collecting || /\d{16,19}/.test(draft) ||
+        !['bills', 'cards', 'subscriptions', 'occasion'].includes(action))) {
+      e.preventDefault(); return agent.send(draft.trim());
+    }
     return turnSubmit(draft, busyRef)(e);
-  }, [turnSubmit, draft, history]);
+  }, [turnSubmit, draft, history, agent]);
 
   /* ── 两个入口 ─────────────────────────────────────────────────────────── */
 
@@ -238,7 +246,7 @@ export default function App() {
 
   /* ── 后端模式（实现在 state/useBackendBank.js）───────────────────────────
      与 UI 无关的一整块传输逻辑，抽出去是为了守住 300 行线。 */
-  const { refreshBank, connect, prepareTransfer, applyBackendTransfer, closeTransfer } = useBackendBank({
+  const { refreshBank, connect, prepareTransfer, applyBackendTransfer, closeTransfer, showOperation } = useBackendBank({
     setBank, setContacts, setConnection, setToast, setBusy, setApiError, setConfirm,
     confirm, verificationCode, setVerificationCode, busyRef,
   });
@@ -334,12 +342,14 @@ export default function App() {
     setBank,
     setToast,
     setDraft: v => history.patch({ draft: v }),
-    submit, runAction, handleAction, setConfirm, startTransfer,
+    submit, runAction, handleAction, setConfirm,
+    startTransfer: backendMode ? () => agent.send('我要转账') : startTransfer,
+    agent,
     resetDemo: () => setConfirm({ type: 'reset' }),
     scrollRef,
     applyConfirmation, directory, yuan, contacts,
     previewId, setPreviewId, taskControl, gate,
-    refreshBank, prepareTransfer,
+    refreshBank, prepareTransfer, showOperation,
     services, setServices, payService, moveSavings, exchangeDraft, setExchangeDraft, travelDraft, setTravelDraft,
   };
 

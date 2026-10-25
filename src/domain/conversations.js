@@ -34,7 +34,7 @@ export function newConversation() {
 
 const isTurn = t => t && typeof t.id === 'string' &&
   ((t.role === 'user' && typeof t.text === 'string') ||
-   (t.role === 'assistant' && (t.kind === 'welcome' || typeof t.surfaceId === 'string')));
+   (t.role === 'assistant' && (t.kind === 'welcome' || (t.kind === 'agent' && typeof t.text === 'string') || typeof t.surfaceId === 'string')));
 
 const isConversation = c => c && typeof c.id === 'string' && typeof c.title === 'string' &&
   typeof c.updatedAt === 'string' && Array.isArray(c.turns) && c.turns.every(isTurn) &&

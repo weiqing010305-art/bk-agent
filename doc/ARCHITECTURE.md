@@ -1,5 +1,76 @@
 # ARCHITECTURE — 青禾银行 AI 资金管家的整体架构
 
+## 过期任务恢复（2026-10-23）
+
+新消息按原会话锁与版本校验后，发现当前任务过期则归档它，在同一聊天创建空白任务。原未完成操作在账户锁下失效，成功操作及回执保留；不将旧字段带入新的提取上下文。原请求 ID 重放只返回旧任务的只读状态，编辑、核对和充值接口仍拒绝过期任务。此处理不延长任何旧授权。
+
+## Agent 流式回复（2026-10-23）
+
+同一 POST `/api/agent/turn` 按 Accept 支持 JSON 与 SSE。SSE 先发送 thinking，复用原提取、校验及任务提交后，发送用户回复 delta 和最终 complete；HTTP 业务错误转为安全 error 事件。仅流式展示校验后的回复，不透传模型 JSON 或内部推理。前端只在 complete 后应用任务元数据、业务动作和跳转；断流保留原请求 ID 重试。文字更新绑定原聊天，滚动跟随加入末条文字长度；刷新中断的消息从服务端任务恢复。
+
+```mermaid
+sequenceDiagram
+  participant UI as 助手界面
+  participant API as Agent接口
+  participant DB as 原任务服务
+  UI->>API: POST turn / Accept SSE
+  API-->>UI: thinking
+  API->>DB: 原提取校验和任务提交
+  DB-->>API: 完整有效任务与回复
+  API-->>UI: delta 分段回复
+  API-->>UI: complete 完整任务
+  UI->>UI: 回复完成后动作或核对页
+```
+
+## 手机充值任务交接（2026-10-21）
+
+Extraction 增加 phone 意图及带原文依据的手机号字段。agent_phone 管理缺项、手机号验证和支付请求绑定；AgentTask JSON 保存 kind/phone/amount/payment_id，无新迁移。统一任务路由返回 kind/can_open，前端按业务打开 AgentPhoneReview，再向原 EverydayServices 传服务端草稿；原用户确认和密码支付流程继续有效。支付时校验所属会话、任务版本、手机号、金额和 ID，成功关联任务回执。
+
+```mermaid
+flowchart LR
+  M["模型候选手机号与金额"] --> V["后端验证与追问"]
+  V --> T["手机任务引用"]
+  T --> UI["原充值核对页"]
+  UI --> EDIT["修改后新版本与支付 ID"]
+  UI --> P["原支付接口与用户密码"]
+  EDIT --> UI
+  P --> R["任务关联充值回执"]
+```
+
+## 本机模型设置（2026-10-21）
+
+全局齿轮打开原生 ModelSettings 弹窗；读取接口仅返回地址、模型名、密钥是否存在与配置版本。model_config 按锁读取一致快照，版本检查后原子保存 .env，保留其他配置并即时更新内存。Agent 与连接测试使用同一提取协议；测试只发送固定文本，不写配置。设置入口限本机、有效会话及原 CSRF 控制。
+
+```mermaid
+flowchart LR
+  UI["模型设置弹窗"] --> READ["脱敏配置与版本"]
+  UI --> TEST["固定文本连接测试"]
+  UI --> SAVE["目的地与版本校验"]
+  SAVE --> FILE["原子更新本机 env"]
+  FILE --> MEM["一致内存快照"]
+  MEM --> AGENT["下一轮 Agent 调用"]
+  TEST --> PROTOCOL["相同提取协议"]
+```
+
+## 对话转账 Agent（2026-10-21）
+
+`useAgentConversation` 提交会话和请求引用；`agent_model.py` 通过兼容 Chat Completions 的接口提取带原文依据的字段。`agent_routes.py` 管任务版本、当前任务与历史任务、会话归属和幂等；`agent_slots.py` 校验金额和数据库收款人，产生真实页面数据。任务 ID 交接到 `AgentTransferReview`，不让模型控制任意页面或执行转账。
+
+`transfer_auth.py` 保留原验证码路径，并为 Agent 操作提供独立密码验证、账户级失败锁定及服务端累计风险升级。确认、验证和扣款不在模型工具目录。任务和交易状态变化后重新加载服务端结果，权限及资金写入仍在后端。
+
+```mermaid
+flowchart LR
+  C["对话界面"] --> R["agent turn 接口"]
+  R --> M["模型：仅候选字段"]
+  M --> S["草稿校验与原文依据检查"]
+  S --> DB["AgentTask 与收款目录"]
+  S --> Q["缺项追问"]
+  S --> UI["核对页：任务引用"]
+  UI --> A["用户确认与独立认证"]
+  A --> TX["账户锁与原子记账"]
+  TX --> RECEIPT["后端回执"]
+```
+
 ## 前后端统一运行（2026-10-16）
 
 开发继续由 Vite 代理 API；`npm start` 在准备同一数据库和迁移后，以 backend 模式构建前端，由 FastAPI 同源提供页面及接口。只托管 dist，原 API 注册在静态托管之前；没有构建文件时 API 仍独立可用。旧预览地址返回同一份 index，不改变业务、授权或存储范围。

@@ -13,7 +13,11 @@ export function useConversations() {
   const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
-    try { localStorage.setItem(historyKey, JSON.stringify(store)); setSaveError(false); }
+    const persisted = { ...store, items: store.items.map(c => ({ ...c,
+      draft: /密码|验证码|口令|密钥|api.?key/i.test(c.draft) ? '' :
+        c.draft.replace(/(?<!\d)(?:\d[ -]?){15,18}\d(?!\d)/g, value => '卡号尾号 ' + value.replace(/\D/g, '').slice(-4)),
+    })) };
+    try { localStorage.setItem(historyKey, JSON.stringify(persisted)); setSaveError(false); }
     catch { setSaveError(true); }
   }, [store]);
 

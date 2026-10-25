@@ -75,7 +75,7 @@ export function useBackendBank({ setBank, setContacts, setConnection, setToast, 
     } finally { busyRef.current = false; setBusy(false); }
   }, [busyRef, setBusy, setApiError, showOperation, setToast]);
 
-  const applyBackendTransfer = useCallback(async () => {
+  const applyBackendTransfer = useCallback(async (credentials = {}) => {
     if (busyRef.current || !confirm || ['FAILED', 'EXPIRED'].includes(confirm.status)) return;
     const op = confirm;
     busyRef.current = true; setBusy(true); setApiError('');
@@ -87,8 +87,10 @@ export function useBackendBank({ setBank, setContacts, setConnection, setToast, 
       } else if (!op.challenge_id) {
         result = await api('/operations/' + op.id + '/confirm', binding(op));
       } else {
-        result = await api('/operations/' + op.id + '/verify', {
-          ...binding(op), challenge_id: op.challenge_id, code: verificationCode,
+        const passwordMode = op.auth_method?.startsWith('password');
+        result = await api('/operations/' + op.id + (passwordMode ? '/verify-password' : '/verify'), {
+          ...binding(op), challenge_id: op.challenge_id,
+          ...(passwordMode ? { password: credentials.password, code: verificationCode } : { code: verificationCode }),
         });
       }
       if (result.status !== 'SUCCEEDED') { showOperation(result); return; }
@@ -97,7 +99,7 @@ export function useBackendBank({ setBank, setContacts, setConnection, setToast, 
       catch { setConnection('error'); setToast('转账已完成，余额刷新失败，请刷新页面。'); }
     } catch (err) {
       setApiError(err.message);
-      if (!err.status || err.status >= 500) setConfirm(prev => ({ ...prev, uncertain: true }));
+      if (!err.status || err.status >= 500 || err.code === 'STEP_UP_REQUIRED') setConfirm(prev => ({ ...prev, uncertain: true }));
     } finally { busyRef.current = false; setBusy(false); }
   }, [confirm, verificationCode, refreshBank, showOperation, setBusy, setApiError, setConfirm,
     setVerificationCode, setConnection, setToast, busyRef]);
@@ -106,5 +108,5 @@ export function useBackendBank({ setBank, setContacts, setConnection, setToast, 
     if (busyRef.current || confirm?.uncertain) return;
     savePending(null); setConfirm(null); setApiError(''); setVerificationCode('');
   }, [busyRef, confirm, setConfirm, setApiError, setVerificationCode]);
-  return { refreshBank, connect, prepareTransfer, applyBackendTransfer, closeTransfer };
+  return { refreshBank, connect, prepareTransfer, applyBackendTransfer, closeTransfer, showOperation };
 }

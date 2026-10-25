@@ -9,6 +9,8 @@ import EverydayServices from './pages/everydayServices.jsx';
 import Savings from './pages/savings.jsx';
 import TravelWallet from './pages/travelWallet.jsx';
 import Wealth from './pages/wealth.jsx';
+import AgentTransferReview from './pages/agentTransferReview.jsx';
+import AgentPhoneReview from './pages/agentPhoneReview.jsx';
 
 /**
  * 产品层路由。
@@ -21,7 +23,8 @@ const VIEWS = { overview: Overview, bills: Bills, statement: StatementExport, su
   credit: EverydayServices, appointment: EverydayServices, travel: TravelWallet, wealth: Wealth };
 
 export default function ProductView({ ctx }) {
-  const View = VIEWS[ctx.route] || Overview;
+  const agentView = { transfer: AgentTransferReview, phone: AgentPhoneReview };
+  const View = ctx.agent?.taskId && agentView[ctx.route] ? agentView[ctx.route] : VIEWS[ctx.route] || Overview;
   return <>
     {ctx.route === 'overview' && <header className="page-head overview-page-head"><h1>概览</h1></header>}
     <div className="view-scroll">

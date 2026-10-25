@@ -1,9 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ShieldCheck, X } from 'lucide-react';
 import { money } from '../domain/bank.js';
 
 export default function TransferDialog({ operation, busy, code, setCode, error, onClose, onSubmit }) {
   const ref = useRef(null);
+  const [password, setPassword] = useState('');
+  const passwordMode = operation.auth_method?.startsWith('password');
+  const needsCode = !passwordMode || operation.auth_method === 'password_code';
   const verifying = Boolean(operation.challenge_id);
   const terminal = ['FAILED', 'EXPIRED'].includes(operation.status);
   useEffect(() => {
@@ -31,8 +34,13 @@ export default function TransferDialog({ operation, busy, code, setCode, error, 
         <div><span>转账金额</span><strong className="confirm-amount">¥{money(operation.amount)}</strong></div>
         {operation.note && <div><span>备注</span><strong>{operation.note}</strong></div>}
       </div>
-      <form onSubmit={e => { e.preventDefault(); onSubmit(); }}>
-        {verifying && !operation.uncertain && <div className="verification-box">
+      <form onSubmit={e => { e.preventDefault(); const value = password; setPassword(''); onSubmit({ password: value }); }}>
+        {verifying && passwordMode && !operation.uncertain && <div className="verification-box">
+          <label htmlFor="payment-password">支付密码</label>
+          <input id="payment-password" type="password" autoComplete="off" inputMode="numeric" maxLength={6}
+            value={password} onChange={e => setPassword(e.target.value.replace(/\D/g, ''))} disabled={busy}/>
+        </div>}
+        {verifying && needsCode && !operation.uncertain && <div className="verification-box">
           {/* 演示里验证码必须可见，否则流程走不下去；但「演示」两个字不上界面 ——
               码本身放在输入框右侧当提示，不占一行文字。 */}
           <label htmlFor="demo-code">短信验证码</label>
@@ -44,7 +52,7 @@ export default function TransferDialog({ operation, busy, code, setCode, error, 
         </div>}
         {operation.uncertain && <p>结果未确认。请先查询，不要另发一笔。</p>}
         {error && <p className="api-error" role="alert">{error}</p>}
-        <div className="modal-actions"><button type="button" className="ghost-btn" disabled={locked} onClick={onClose}>返回修改</button><button type="submit" className="primary-btn" disabled={terminal || busy || (verifying && !operation.uncertain && code.length !== 6)}>{busy ? '处理中…' : terminal ? '请返回修改' : operation.uncertain ? '查询原操作结果' : verifying ? '验证' : '确认并获取验证码'}<ArrowRight size={16}/></button></div>
+        <div className="modal-actions"><button type="button" className="ghost-btn" disabled={locked} onClick={onClose}>返回修改</button><button type="submit" className="primary-btn" disabled={terminal || busy || (verifying && !operation.uncertain && ((needsCode && code.length !== 6) || (passwordMode && password.length !== 6)))}>{busy ? '处理中…' : terminal ? '请返回修改' : operation.uncertain ? '查询原操作结果' : verifying ? '验证' : passwordMode ? '确认转账' : '确认并获取验证码'}<ArrowRight size={16}/></button></div>
       </form>
     </section>
   </div>;

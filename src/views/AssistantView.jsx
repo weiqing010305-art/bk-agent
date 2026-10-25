@@ -7,6 +7,7 @@ import FlowLauncher from '../components/FlowLauncher.jsx';
 import TaskGraph from '../components/TaskGraph.jsx';
 import BlockedNotice from '../components/BlockedNotice.jsx';
 import { Loading, Failed } from '../components/StateBlock.jsx';
+import AgentThinking from '../components/AgentThinking.jsx';
 
 /** 按会话顺序呈现消息；业务 surface 留在触发它的助手回复里。 */
 export default function AssistantView({ ctx }) {
@@ -45,8 +46,21 @@ export default function AssistantView({ ctx }) {
                     错误态按 ZA 口径：拟人化标题 + 独立错误码 + 一个动作，不解释技术原因。 */}
                 {turn.blocked
                   ? <BlockedNotice blocked={turn.blocked}/>
-                  : turn.pending
-                    ? <Loading/>
+                  : turn.pending && !turn.streaming
+                    ? turn.kind === 'agent' ? <AgentThinking/> : <Loading/>
+                    : turn.kind === 'agent'
+                      ? <div className="agent-answer" aria-busy={!!turn.pending}>
+                        <p className={'chat-bubble chat-bubble--assistant' + (turn.streaming ? ' agent-streaming' : '')}>{turn.text}</p>
+                        {!turn.pending && turn.agentTask?.choices?.length > 0 && <div className="agent-choices">
+                          {turn.agentTask.choices.map(choice => <button className="ghost-btn" key={choice.id}
+                            disabled={ctx.agent.busy} onClick={() => ctx.agent.choose(turn.agentTask, choice.id, turn.id)}>
+                            {choice.name} · 尾号 {choice.tail}
+                          </button>)}
+                        </div>}
+                        {!turn.pending && turn.agentTask?.can_open && <button className="link-btn" onClick={() => ctx.agent.open(turn.agentTask.id)}>
+                          {turn.agentTask.kind === 'phone' ? '查看这笔充值' : '查看这笔转账'}</button>}
+                        {turn.retry && <button className="ghost-btn" disabled={ctx.agent.busy} onClick={() => ctx.agent.retry(turn.id)}>重试</button>}
+                      </div>
                     : surface
                       ? <SurfaceView surface={surface} tree={resolveTree(surface)} showProvenance={false}
                                      onAction={e => handleAction(turn.surfaceId, e)}/>

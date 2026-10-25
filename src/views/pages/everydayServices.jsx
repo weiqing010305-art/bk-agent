@@ -26,7 +26,7 @@ function pendingFor(kind) {
 export default function EverydayServices({ ctx }) {
   const { route: kind, bank, services, setServices, setRoute, payService, yuan, refreshBank, backendMode, exchangeDraft, setExchangeDraft } = ctx;
   const pending = useRef(pendingFor(kind));
-  const requestId = useRef(pending.current?.id || crypto.randomUUID());
+  const requestId = useRef(pending.current?.id || ctx.serviceDraft?.id || crypto.randomUUID());
   const composing = useRef(false);
   const paying = useRef(false);
   const [fields, setFields] = useState(pending.current || {
@@ -35,9 +35,10 @@ export default function EverydayServices({ ctx }) {
     cardId: bank.cards.find(c => c.id !== 'credit' && c.status === 'active')?.id || '', utility: 'water',
     currency: 'USD', date: dateAfter(1), slot: slots[0], branch: branches[0], phone: services.phone, business: businesses[0],
     ...(kind === 'exchange' ? exchangeDraft : {}),
+    ...(ctx.serviceDraft || {}),
   });
   useEffect(() => { if (kind === 'exchange' && exchangeDraft) setExchangeDraft(null); }, [kind, exchangeDraft, setExchangeDraft]);
-  const [step, setStep] = useState(pending.current ? 'review' : 'form');
+  const [step, setStep] = useState(pending.current || ctx.serviceDraft ? 'review' : 'form');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -63,6 +64,8 @@ export default function EverydayServices({ ctx }) {
   const update = (key, value) => { setFields(f => ({ ...f, [key]: value })); setError(''); };
   const remember = phone => { if (/^1[3-9]\d{9}$/.test(phone)) setServices(s => ({ ...s, phone })); };
   const draft = () => ({ id: requestId.current, kind, target: fields.target.trim(),
+    ...(ctx.serviceTask ? { agentTaskId: ctx.serviceTask.id, agentVersion: ctx.serviceTask.version }
+      : pending.current?.agentTaskId ? { agentTaskId: pending.current.agentTaskId, agentVersion: pending.current.agentVersion } : {}),
     utility: fields.utility, cardId: fields.cardId, amount: Math.round(Number(fields.amountText) * 100) });
   const validate = () => {
     if (booking) {
@@ -89,7 +92,12 @@ export default function EverydayServices({ ctx }) {
     setError('');
     try {
       validate();
-      if (step === 'form') { if (kind === 'phone') remember(fields.target); if (kind === 'traffic') setServices(s => ({ ...s, trafficCard: fields.target.trim() })); setStep('review'); return; }
+      if (step === 'form') {
+        if (ctx.syncAgentPhone) { await ctx.syncAgentPhone(fields); return; }
+        if (kind === 'phone') remember(fields.target);
+        if (kind === 'traffic') setServices(s => ({ ...s, trafficCard: fields.target.trim() }));
+        setStep('review'); return;
+      }
       if (booking) {
         const appointment = { ...fields, kind, id: requestId.current, createdAt: new Date().toISOString(), status: '已预约' };
         setServices(s => ({ ...s, phone: fields.phone, appointments: [appointment, ...s.appointments] }));
@@ -99,7 +107,8 @@ export default function EverydayServices({ ctx }) {
       const otherPending = pendingFor('phone') || pendingFor('utility') || pendingFor('credit') || pendingFor('traffic');
       if (backendMode && otherPending && otherPending.id !== requestId.current) throw new Error(`还有一笔${titles[otherPending.kind]}结果未确认，请返回该页面查询原支付结果。`);
       paying.current = true; setBusy(true);
-      if (backendMode) sessionStorage.setItem(pendingKey, JSON.stringify({ ...fields, kind, id: requestId.current }));
+      if (backendMode) sessionStorage.setItem(pendingKey, JSON.stringify({ ...fields, kind, id: requestId.current,
+        ...(ctx.serviceTask ? { agentTaskId: ctx.serviceTask.id, agentVersion: ctx.serviceTask.version } : {}) }));
       const receipt = await payService({ ...draft(), password });
       complete(receipt);
     } catch (err) {

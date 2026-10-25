@@ -1,0 +1,51 @@
+.model-settings-trigger {
+  position: absolute; top: 180px; left: 40px; display: grid; place-items: center;
+  width: 44px; height: 44px; border: 1px solid var(--bank-line); border-radius: var(--radius-pill);
+  color: var(--icon-ink); background: var(--bg-surface);
+}
+.app-shell--overview .model-settings-trigger { position: fixed; top: 32px; right: 32px; left: auto; }
+.model-settings-trigger:hover { background: var(--icon-bg); }
+.model-settings {
+  width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); overflow-y: auto;
+  margin: auto; padding: var(--space-7); border: 1px solid var(--bank-line); border-radius: var(--radius-panel);
+  background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-overlay);
+}
+.model-settings::backdrop { background: color-mix(in srgb, var(--text-primary) 24%, transparent); }
+.model-settings-head, .model-settings-title { display: flex; align-items: center; gap: var(--space-4); }
+.model-settings-head { justify-content: space-between; }
+.model-settings-title h2 { font-size: var(--text-headline); margin: 0; }
+.model-settings-title > span { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--icon-radius); background: var(--icon-bg); color: var(--icon-ink); }
+.model-settings-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: none; background: none; color: var(--text-secondary); }
+.model-settings-intro { margin: var(--space-4) 0 var(--space-6); font-size: var(--text-footnote); color: var(--text-secondary); }
+.model-settings fieldset { padding: 0; margin: 0; border: none; display: grid; gap: var(--space-3); min-width: 0; }
+.model-settings label { margin-top: var(--space-3); font-size: var(--text-footnote); font-weight: 600; }
+.model-settings label small { font-weight: 400; color: var(--text-secondary); margin-left: var(--space-3); }
+.model-settings input, .model-settings select {
+  width: 100%; min-width: 0; min-height: 48px; padding: var(--space-4);
+  border: 1px solid var(--bank-line); border-radius: var(--radius-thumb); font-size: var(--text-footnote);
+  background: var(--bg-surface-alt); color: var(--text-primary); box-sizing: border-box;
+}
+.model-settings input:focus-visible, .model-settings select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.model-key-input { position: relative; }
+.model-key-input input { padding-right: 52px; }
+.model-key-input button { position: absolute; right: 2px; top: 2px; width: 44px; height: 44px; display: grid; place-items: center; color: var(--text-secondary); background: none; border: none; }
+.model-settings-status { min-height: 42px; padding-top: var(--space-4); font-size: var(--text-caption); }
+.model-settings-status span { display: flex; align-items: center; gap: var(--space-3); }
+.model-settings-success { color: var(--accent); }
+.model-settings-status p { margin: 0; color: var(--danger); }
+.model-settings-actions { display: flex; gap: var(--space-4); justify-content: flex-end; }
+.model-settings-actions button { min-height: 44px; }
+.model-settings-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--bank-line); }
+.model-settings-bottom small { color: var(--text-secondary); font-size: var(--text-caption); }
+.model-address-note { color: var(--palette-apricot-ink); font-size: var(--text-caption); }
+.model-settings-spinner { animation: model-settings-spin 1s linear infinite; }
+@keyframes model-settings-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .model-settings-spinner { animation: none; } }
+@media (max-width: 900px) {
+  .model-settings-trigger, .app-shell--overview .model-settings-trigger { position: fixed; top: auto; right: auto; left: 22px; bottom: 32px; }
+  .app-shell--assistant .model-settings-trigger { bottom: 168px; }
+}
+@media (max-width: 520px) {
+  .model-settings { padding: var(--space-5); }
+  .model-settings-actions > button { flex: 1; }
+}

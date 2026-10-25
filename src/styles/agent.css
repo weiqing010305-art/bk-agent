@@ -1,0 +1,28 @@
+.agent-review { max-width: 720px; margin: auto; display: grid; gap: var(--space-7); }
+.agent-review-details { margin: 0; display: grid; gap: var(--space-6); }
+.agent-review-details > div { display: flex; justify-content: space-between; gap: var(--space-6); }
+.agent-review-details dt { color: var(--text-secondary); flex-shrink: 0; }
+.agent-review-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.agent-review-amount { font-size: var(--text-title-1); font-weight: 700; font-variant-numeric: tabular-nums; }
+.agent-review-actions, .agent-choices { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+.agent-edit { display: grid; gap: var(--space-5); }
+.agent-edit label { display: grid; gap: var(--space-3); }
+.agent-edit input { min-height: var(--hit-min); width: 100%; }
+.agent-answer { display: grid; gap: var(--space-4); }
+.agent-choices button { min-height: var(--hit-min); }
+.agent-thinking { display: flex; align-items: center; gap: var(--space-3); color: var(--text-secondary); padding: var(--space-4) 0; }
+.agent-thinking-icon { color: var(--accent); animation: agent-thinking-spin 1.2s linear infinite; }
+.agent-thinking-dots { display: inline-flex; gap: 4px; }
+.agent-thinking-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: agent-thinking-pulse 1.2s ease-in-out infinite; }
+.agent-thinking-dots i:nth-child(2) { animation-delay: .15s; }
+.agent-thinking-dots i:nth-child(3) { animation-delay: .3s; }
+.agent-streaming::after { content: ''; display: inline-block; width: 2px; height: 1em; background: currentColor; margin-inline-start: 4px; vertical-align: -.1em; animation: agent-thinking-pulse 1s ease-in-out infinite; }
+@keyframes agent-thinking-spin { to { transform: rotate(360deg); } }
+@keyframes agent-thinking-pulse { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .agent-thinking-icon, .agent-thinking-dots i, .agent-streaming::after { animation: none; }
+}
+@media (max-width: 600px) {
+  .agent-review-actions { flex-direction: column; }
+  .agent-review-actions button { width: 100%; }
+}

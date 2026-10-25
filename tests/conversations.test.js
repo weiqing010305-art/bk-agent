@@ -8,6 +8,20 @@ const turn = (role, v) => role === 'user'
   ? { id: crypto.randomUUID(), role, text: v }
   : { id: crypto.randomUUID(), role, surfaceId: v };
 
+test('Agent 追问与任务引用刷新后保留，新聊天不继承旧任务', () => {
+  let state = initialHistory(null);
+  const task = { id: crypto.randomUUID(), version: 2, status: 'COLLECTING' };
+  const original = state.activeId;
+  state = updateCurrent(state, { agentTask: task, turns: [turn('user', '我要转账'),
+    { id: crypto.randomUUID(), role: 'assistant', kind: 'agent', text: '转多少钱？', agentTask: task }] });
+  state = initialHistory(JSON.stringify(state));
+  assert.equal(state.activeId, original);
+  assert.deepEqual(state.items[0].agentTask, task);
+  state = createConversation(state);
+  assert.equal(state.items.find(c => c.id === state.activeId).agentTask, undefined);
+  assert.equal(state.items.find(c => c.id === original).turns[1].text, '转多少钱？');
+});
+
 test('新会话是空的：没有 turn，A2UI state 干净', () => {
   const c = newConversation();
   assert.deepEqual(c.turns, []);

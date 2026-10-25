@@ -1,5 +1,11 @@
 # PostgreSQL 模拟转账后端
 
+## 本机模型配置 API
+
+`GET /api/settings/model` 只返回地址、模型名、has_key、configured 与 revision；不返回密钥。`POST /api/settings/model` 接收 base_url、model、api_key、revision；相同地址可留空沿用密钥，更换地址必须新密钥。原子更新本机 .env 并即时生效，保留其他环境变量。
+
+`POST /api/settings/model/test` 使用同一配置请求体，只发送固定测试文本验证结构化结果，不保存。`POST /api/settings/model/clear` 仅接收 revision，清除配置。版本冲突返回 409，设置仅允许真实 loopback 来源、有效会话和原 CSRF 检查，不使用转发头判本机。模型配置为本机服务共用；仍需管理员认证才能用于多用户或公开部署。
+
 ## 交通卡与储蓄 API
 
 `POST /api/payments` 新增 `kind: traffic`，target 为 8–20 位数字交通卡号，生成交通充值流水。

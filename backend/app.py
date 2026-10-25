@@ -9,6 +9,7 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
 from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -80,6 +81,8 @@ class Payment(StrictBody):
     target: str = Field(min_length=6, max_length=20)
     amount: StrictInt = Field(gt=0, le=10000000)
     password: str = Field(pattern=r"^\d{6}$")
+    agentTaskId: str | None = Field(default=None, pattern=r"^[a-f0-9-]{36}$")
+    agentVersion: StrictInt | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def valid_target(self):
@@ -106,7 +109,7 @@ class SavingsTransfer(StrictBody):
 def operation_view(op):
     return {"id": op.id, "contactId": op.contact_id, "recipient_name": op.recipient_name,
             "recipient_number": op.recipient_number, "amount": op.amount, "note": op.note,
-            "revision": op.revision, "params_hash": op.params_hash, "status": op.status,
+            "revision": op.revision, "params_hash": op.params_hash, "status": op.status, "auth_method": op.auth_method,
             "expires_at": op.expires_at, "failure": op.failure,
             "receipt_id": op.id if op.status == "SUCCEEDED" else None, "mock": True}
 
@@ -138,6 +141,12 @@ def create_app(engine=None):
     async def database_error(request, exc):
         # No connection strings or raw DB exception text in client responses.
         return JSONResponse(status_code=503, content={"detail": {"code": "DATABASE_UNAVAILABLE", "message": "数据库暂不可用，请保留原操作并查询结果"}})
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request, exc):
+        # Pydantic's default error body includes rejected inputs, including credentials.
+        return JSONResponse(status_code=422, content={"detail": {
+            "code": "INVALID_REQUEST", "message": "请求内容不符合要求，请检查填写信息。"}})
 
     def get_db():
         with factory() as db:
@@ -265,10 +274,12 @@ def create_app(engine=None):
 
     @app.post("/api/payments")
     def payment(body: Payment, session=Depends(get_session), db=Depends(get_db)):
+        from .agent_phone import payment_task
+        task = payment_task(db, session, body, expired, fail)
         account = lock_account(db, session)
         if not secrets.compare_digest(body.password, "123456"):
             fail("INVALID_PASSWORD", "支付密码不正确，请重新输入。", 422)
-        params = body.model_dump(exclude={"password"})
+        params = body.model_dump(exclude={"password", "agentTaskId", "agentVersion"})
         digest = hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
         existing = db.get(Operation, body.id)
         if existing:
@@ -301,6 +312,9 @@ def create_app(engine=None):
                            category="交通" if body.kind == "traffic" else "信用卡还款" if body.kind == "credit" else "通信" if body.kind == "phone" else "生活缴费", amount=-body.amount,
                            date=now().date().isoformat(), note=note, created_at=now()))
         audit(db, session, "SERVICE_PAYMENT_POSTED", op)
+        if task:
+            task.state = {**task.state, "operation_id": op.id, "status": "SUCCEEDED", "handoff": False,
+                          "message": "手机充值已完成，可查看这笔充值回执。"}
         db.commit()
         return operation_view(op)
 
@@ -348,69 +362,14 @@ def create_app(engine=None):
         finish_if_expired(db, session, op)
         return operation_view(op)
 
-    @app.post("/api/operations/{op_id}/confirm")
-    def confirm(op_id: str, body: Confirmation, session=Depends(get_session), db=Depends(get_db)):
-        lock_account(db, session)
-        op = own_operation(db, session, op_id)
-        validate_version(op, body)
-        finish_if_expired(db, session, op)
-        if op.status in {"SUCCEEDED", "FAILED", "EXPIRED"}:
-            return operation_view(op)
-        auth = db.get(Authorization, op.id)
-        if not auth:
-            auth = Authorization(operation_id=op.id, session_id=session.id, params_hash=op.params_hash,
-                                 challenge_id=str(uuid4()), demo_code=f"{secrets.randbelow(1000000):06d}",
-                                 expires_at=min(op.expires_at, now() + timedelta(minutes=2)), attempts=0)
-            db.add(auth)
-            op.status = "AWAITING_VERIFICATION"
-            audit(db, session, "USER_CONFIRMED", op)
-            db.commit()
-        if expired(auth.expires_at):
-            op.status = "EXPIRED"
-            db.commit()
-            return operation_view(op)
-        return {**operation_view(op), "challenge_id": auth.challenge_id, "demo_code": auth.demo_code,
-                "verification_expires_at": auth.expires_at}
-
-    @app.post("/api/operations/{op_id}/verify")
-    def verify(op_id: str, body: Verification, session=Depends(get_session), db=Depends(get_db)):
-        account = lock_account(db, session)
-        op = own_operation(db, session, op_id)
-        validate_version(op, body)
-        if op.status == "SUCCEEDED":
-            return operation_view(op)  # Same receipt, no second debit.
-        finish_if_expired(db, session, op)
-        if op.status in {"FAILED", "EXPIRED"}:
-            return operation_view(op)
-        auth = db.get(Authorization, op.id)
-        if (not auth or op.status != "AWAITING_VERIFICATION" or auth.session_id != session.id
-                or auth.params_hash != op.params_hash or auth.challenge_id != body.challenge_id):
-            fail("VERIFICATION_REQUIRED", "请先核对并确认本笔转账", 403)
-        if expired(auth.expires_at):
-            op.status = "EXPIRED"
-            audit(db, session, "VERIFICATION_EXPIRED", op)
-            db.commit()
-            return operation_view(op)
-        if not secrets.compare_digest(auth.demo_code, body.code):
-            auth.attempts += 1
-            if auth.attempts >= 3:
-                op.status, op.failure = "FAILED", "VERIFICATION_LOCKED"
-            audit(db, session, "VERIFICATION_REJECTED", op)
-            db.commit()  # Persist failed attempts, even though HTTP response is an error.
-            fail("INVALID_CODE", "模拟验证码不正确，最多允许 3 次尝试", 422)
-        if account.balance < op.amount:
-            op.status, op.failure = "FAILED", "INSUFFICIENT_FUNDS"
-            audit(db, session, "TRANSFER_REJECTED", op)
-        else:
-            account.balance -= op.amount
-            op.status = "SUCCEEDED"
-            auth.consumed_at = now()
-            db.add(Transaction(id=op.id, user_id=session.user_id, operation_id=op.id,
-                               name=f"转给{op.recipient_name}", category="转账", amount=-op.amount,
-                               date="2026-09-25", note=op.note, created_at=now()))
-            audit(db, session, "TRANSFER_POSTED", op)
-        db.commit()  # Atomic simulated-bank posting + authorization + receipt.
-        return operation_view(op)
+    from .transfer_auth import mount_transfer_auth
+    from .agent_routes import mount_agent
+    from .model_settings import mount_model_settings
+    mount_transfer_auth(app, get_db, get_session, lock_account, own_operation,
+                        validate_version, finish_if_expired, now, expired, fail,
+                        audit, operation_view, Confirmation, Verification)
+    mount_agent(app, get_db, get_session, lock_account, now, expired, fail, audit, operation_view)
+    mount_model_settings(app, get_session)
 
     mount_frontend(app)
     return app

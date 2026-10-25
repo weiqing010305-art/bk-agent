@@ -17,6 +17,7 @@ export async function api(path, body, headers = {}) {
   if (!response.ok) {
     const error = new Error(result.detail?.message || (response.status === 422 ? '请求内容不符合要求，请检查金额和验证码。' : '后端暂不可用，请稍后重试。'));
     error.status = response.status;
+    error.code = result.detail?.code;
     throw error;
   }
   return result;
