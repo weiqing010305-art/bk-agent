@@ -31,6 +31,8 @@ DEMO_PAYMENT_PASSWORD=123456
 
 测试：`python -m pytest backend/tests -q`；浏览器联调需显式设置 `AGENT_LIVE_TEST=1` 后运行 `npm run test:agent`。该联调会调用配置的外部模型并在新建虚构账户写测试交易，可能产生模型费用。未设置时脚本跳过且不调用模型。
 
+多样例验证：同样设置 `AGENT_LIVE_TEST=1` 后运行 `npm run test:agent:matrix`，覆盖 31 组独立输入、5 组连续对话和 4 组浏览器交易/恢复场景。可设置 `AGENT_MATRIX_ONLY` 按名称筛选，结果默认写 `.local/agent-matrix-results.json`；失败会保留在结果中并以非零状态退出。实际范围与首轮/复测区别见 [多样例记录](doc/research/2026-10-26-agent-matrix-validation.md)。
+
 ## 赛题三个高优先级项的落地
 
 | 赛题要求 | 我们的实现 | 在哪看 |

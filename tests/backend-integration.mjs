@@ -1,5 +1,6 @@
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
+import { taskResponse } from './agent-response.mjs';
 
 const url = process.env.BASE_URL || 'http://127.0.0.1:5173';
 const browser = await chromium.launch({ headless: true,
@@ -10,13 +11,8 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 const state = () => page.evaluate(() => fetch('/api/state').then(r => r.json()));
 const surface = () => page.locator('.a2ui-surface').last();
-const openTransfer = async (name, amount, assistant = false) => {
-  if (assistant) {
-    await page.getByRole('button', { name: '打开青禾助手' }).click();
-    await page.locator('.flow-chip').filter({ hasText: /^转账$/ }).click();
-  } else {
-    await page.locator('.icon-tile').filter({ hasText: /^转账$/ }).click();
-  }
+const openTransfer = async (name, amount) => {
+  await page.locator('.icon-tile').filter({ hasText: /^转账$/ }).click();
   await surface().locator('.a2ui-card--interactive').filter({ hasText: '转给他人' }).click();
   await surface().locator('.a2ui-card--interactive').filter({ hasText: name }).click();
   await surface().getByTestId('amount').fill(amount);
@@ -82,13 +78,21 @@ try {
   assert.equal(recovered.transactions.filter(t => t.id === second.id).length, 1);
   await page.locator('.assistant-home').click();
 
-  const third = await openTransfer(initial.contacts[2].name, '2.00', true);
-  await authorize();
-  await page.getByRole('button', { name: '验证', exact: true }).click();
-  await page.locator('.backend-transfer').waitFor({ state: 'detached' });
-  await page.waitForFunction(() => document.querySelector('.assistant-thread')?.textContent.includes('已转出'));
-  assert.ok((await state()).completed.includes(third.id));
-  await page.locator('.assistant-home').click();
+  if (process.env.AGENT_LIVE_TEST === '1') {
+    await page.getByRole('button', { name: '打开青禾助手' }).click();
+    const firstTurn = page.waitForResponse(r => r.url().endsWith('/api/agent/turn'));
+    await page.locator('.flow-chip').filter({ hasText: /^转账$/ }).click();
+    await taskResponse(await firstTurn, page);
+    await page.getByLabel('输入消息').fill(`给${initial.contacts[2].name}转2元`);
+    await page.getByRole('button', { name: '发送', exact: true }).click();
+    await page.getByRole('heading', { name: '核对转账信息', exact: true }).waitFor();
+    await page.getByRole('button', { name: '确认转账', exact: true }).click();
+    await page.getByLabel('支付密码', { exact: true }).fill('123456');
+    await page.getByRole('button', { name: '验证', exact: true }).click();
+    await page.getByRole('heading', { name: '转账完成', exact: true }).waitFor();
+    assert.equal((await state()).balance, recovered.balance - 200);
+    await page.locator('.assistant-home').click();
+  } else console.log('SKIP: assistant model path requires AGENT_LIVE_TEST=1; manual API flows still run.');
 
   const beforeServices = await state();
   await page.locator('.icon-tile').filter({ hasText: /^手机充值$/ }).click();
@@ -141,5 +145,5 @@ try {
   await otherPage.waitForFunction(() => fetch('/api/state').then(r => r.json()).then(s => s.balance === 1286050));
   await other.close();
   assert.deepEqual(errors, []);
-  console.log('默认前端、数据库读取、两种转账入口、刷新/丢失响应恢复、充值、储蓄存取、会话隔离与手机布局均通过');
+  console.log('PASS: manual transfer, refresh/lost-response recovery, phone, savings, session isolation and mobile; assistant path ' + (process.env.AGENT_LIVE_TEST === '1' ? 'passed with real model.' : 'skipped.'));
 } finally { await browser.close(); }

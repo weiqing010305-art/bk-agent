@@ -16,6 +16,7 @@
     "test:settings": "node tests/model-settings.mjs",
     "test:agent:phone": "node tests/agent-phone.mjs",
     "test:agent:inputs": "node tests/agent-inputs-live.mjs",
+    "test:agent:matrix": "node tests/agent-matrix-live.mjs",
     "test:agent:stream": "node --test tests/agent-stream.test.js && node tests/agent-stream-ui.mjs",
     "test:card": "node tests/card-loss.mjs",
     "test:e2e": "node tests/e2e.mjs",
